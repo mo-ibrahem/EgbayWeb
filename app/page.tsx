@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { productService, formatEGP, type Product } from '@/lib/products';
 import { useAuth } from '@/components/AuthProvider';
+import { useLanguage } from '@/components/LanguageProvider';
 import AnimatedNumber from '@/components/AnimatedNumber';
 import SmartImage from '@/components/SmartImage';
 
@@ -244,6 +245,7 @@ function HomeFeedContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { user } = useAuth();
+  const { isRTL, t } = useLanguage();
 
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -463,7 +465,11 @@ function HomeFeedContent() {
                   : 'text-slate-500 hover:text-slate-900'
               }`}
             >
-              {c === 'all' ? 'All Conditions' : c === 'New' ? 'Brand New' : 'Pre-Owned'}
+              {c === 'all'
+                ? isRTL ? 'جميع الحالات' : 'All Conditions'
+                : c === 'New'
+                ? isRTL ? 'جديد بالكامل' : 'Brand New'
+                : isRTL ? 'مستعمل' : 'Pre-Owned'}
             </button>
           ))}
         </div>
@@ -475,11 +481,15 @@ function HomeFeedContent() {
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-blue-600" />
             <h2 className="text-base font-black text-slate-900">
-              {activeCategory ? activeCategory : searchQuery ? `Search: "${searchQuery}"` : 'All Verified Listings'}
+              {activeCategory
+                ? t(`categories.${activeCategory.toLowerCase()}`, activeCategory)
+                : searchQuery
+                ? (isRTL ? `نتائج البحث: "${searchQuery}"` : `Search: "${searchQuery}"`)
+                : (isRTL ? 'جميع الإعلانات الموثقة' : 'All Verified Listings')}
             </h2>
             {!loading && (
               <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full">
-                {products.length} items
+                {products.length} {isRTL ? 'إعلان' : 'items'}
               </span>
             )}
           </div>

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import './globals.css';
 import { AuthProvider } from '@/components/AuthProvider';
+import { LanguageProvider } from '@/components/LanguageProvider';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import PageTransition from '@/components/PageTransition';
@@ -27,19 +28,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="min-h-screen flex flex-col bg-[#F8FAFC]" suppressHydrationWarning>
-        <AuthProvider>
-          <Suspense fallback={
-            <div className="h-[110px] bg-white border-b border-gray-200" />
-          }>
-            <Navbar />
-          </Suspense>
-          <main className="flex-1 flex flex-col">
-            <PageTransition>
-              {children}
-            </PageTransition>
-          </main>
-          <Footer />
-        </AuthProvider>
+        <LanguageProvider>
+          <AuthProvider>
+            <Suspense fallback={
+              <div className="h-[110px] bg-white border-b border-gray-200" />
+            }>
+              <Navbar />
+            </Suspense>
+            <main className="flex-1 flex flex-col">
+              <PageTransition>
+                {children}
+              </PageTransition>
+            </main>
+            <Footer />
+          </AuthProvider>
+        </LanguageProvider>
       </body>
     </html>
   );
