@@ -364,8 +364,62 @@ function HomeFeedContent() {
 
   return (
     <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-6 sm:space-y-8 pb-28 sm:pb-12">
-      {/* ─── Hero Deal Banner with Framer Motion AnimatePresence ─── */}
-      <div className="rounded-3xl overflow-hidden shadow-lg shadow-slate-900/10 border border-slate-800/40 relative min-h-[160px] sm:min-h-[190px]">
+      {/* ─── Unified Story-Style Category & Live Rail ─── */}
+      <div>
+        <div className="flex items-center gap-3 overflow-x-auto no-scrollbar py-1">
+          {/* 🔴 Live Stream Story Circle */}
+          <Link
+            href="/live"
+            className="flex flex-col items-center gap-1.5 flex-shrink-0 group"
+          >
+            <div className="w-14 h-14 rounded-full p-[2.5px] bg-gradient-to-tr from-red-600 via-rose-500 to-amber-500 flex items-center justify-center relative shadow-sm group-hover:scale-105 transition-transform">
+              <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
+                <Video className="w-5 h-5 text-red-600" />
+              </div>
+              <span className="absolute -bottom-1 bg-red-600 text-white text-[8px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded-full border border-white">
+                LIVE
+              </span>
+            </div>
+            <span className="text-[11px] font-extrabold text-red-600 text-center leading-tight">
+              {isRTL ? 'بث مباشر' : 'Live'}
+            </span>
+          </Link>
+
+          {/* Category Story Circles */}
+          {CATEGORIES_WITH_ICONS.map((cat) => {
+            const Icon = cat.icon;
+            const isSelected = activeCategory === cat.id || (!activeCategory && cat.id === '');
+            const label = isRTL ? cat.label_ar : cat.label;
+
+            return (
+              <button
+                key={cat.id || 'all'}
+                onClick={() => handleCategorySelect(cat.id)}
+                className="flex flex-col items-center gap-1.5 flex-shrink-0 group"
+              >
+                <div
+                  className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-200 shadow-sm group-hover:scale-105 ${
+                    isSelected
+                      ? 'ring-2 ring-[#3665F3] ring-offset-2 bg-blue-50 text-[#3665F3]'
+                      : 'border border-slate-200 bg-white hover:border-slate-300'
+                  }`}
+                  style={!isSelected ? { backgroundColor: cat.bg, color: cat.color } : {}}
+                >
+                  <Icon className="w-5 h-5" />
+                </div>
+                <span className={`text-[11px] font-bold text-center leading-tight truncate max-w-[64px] ${
+                  isSelected ? 'text-blue-700 font-black' : 'text-slate-700'
+                }`}>
+                  {label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ─── Hero Deal Banner with Dynamic Carousel ─── */}
+      <div className="rounded-3xl overflow-hidden shadow-lg shadow-slate-900/10 border border-slate-800/40 relative min-h-[150px] sm:min-h-[180px]">
         <AnimatePresence mode="wait">
           <motion.div
             key={banner.key}
@@ -373,18 +427,18 @@ function HomeFeedContent() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: isRTL ? 20 : -20 }}
             transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-            className="w-full h-full min-h-[160px] sm:min-h-[190px] p-6 sm:p-8 flex items-center justify-between relative text-white"
+            className="w-full h-full min-h-[150px] sm:min-h-[180px] p-5 sm:p-7 flex items-center justify-between relative text-white"
             style={{ background: `linear-gradient(135deg, ${banner.colors[0]}, ${banner.colors[1]})` }}
           >
-            <div className="z-10 max-w-xl space-y-2">
-              <div className="inline-flex items-center gap-1.5 text-[11px] font-black tracking-wider uppercase bg-white/15 backdrop-blur-md px-3 py-1 rounded-full border border-white/20">
-                <BannerIcon className="w-3.5 h-3.5 text-amber-300" />
+            <div className="z-10 max-w-xl space-y-1.5 sm:space-y-2">
+              <div className="inline-flex items-center gap-1.5 text-[10px] sm:text-[11px] font-black tracking-wider uppercase bg-white/15 backdrop-blur-md px-2.5 py-0.5 rounded-full border border-white/20">
+                <BannerIcon className="w-3 h-3 text-amber-300" />
                 <span>{isRTL ? banner.badge_ar : banner.badge}</span>
               </div>
-              <h2 className="text-xl sm:text-3xl font-black tracking-tight leading-tight">
+              <h2 className="text-lg sm:text-2xl font-black tracking-tight leading-tight">
                 {isRTL ? banner.title_ar : banner.title}
               </h2>
-              <p className="text-xs sm:text-sm text-white/80 leading-relaxed">
+              <p className="text-xs sm:text-sm text-white/80 leading-relaxed line-clamp-1 sm:line-clamp-none">
                 {isRTL ? banner.sub_ar : banner.sub}
               </p>
               {banner.category && (
@@ -396,7 +450,7 @@ function HomeFeedContent() {
                       handleCategorySelect(banner.category);
                     }
                   }}
-                  className="mt-2 inline-flex items-center gap-1.5 bg-white text-slate-900 text-xs font-bold px-4 py-2 rounded-xl hover:bg-slate-100 transition-all shadow-md"
+                  className="mt-1 sm:mt-2 inline-flex items-center gap-1.5 bg-white text-slate-900 text-xs font-bold px-3.5 py-1.5 sm:py-2 rounded-xl hover:bg-slate-100 transition-all shadow-md"
                 >
                   <span>{banner.category === '__live__' ? (isRTL ? 'دخول البث المباشر 🔴' : 'Watch Live Shows 🔴') : (isRTL ? 'تصفح العروض' : 'Browse Deals')}</span>
                   <ArrowRight className={`w-3.5 h-3.5 ${isRTL ? 'rotate-180' : ''}`} />
@@ -405,11 +459,11 @@ function HomeFeedContent() {
             </div>
 
             {/* Flash Sale Live Timer */}
-            <div className={`hidden md:flex flex-col ${isRTL ? 'items-start text-left' : 'items-end text-right'} z-10 bg-black/20 backdrop-blur-md border border-white/10 p-4 rounded-2xl`}>
-              <span className="text-[11px] font-bold text-white/60 uppercase tracking-wider mb-1 flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5 text-amber-300" /> {isRTL ? 'تحديث العروض اليومية خلال' : 'Daily Deals Reset In'}
+            <div className={`hidden md:flex flex-col ${isRTL ? 'items-start text-left' : 'items-end text-right'} z-10 bg-black/20 backdrop-blur-md border border-white/10 p-3.5 rounded-2xl`}>
+              <span className="text-[10px] font-bold text-white/60 uppercase tracking-wider mb-0.5 flex items-center gap-1">
+                <Clock className="w-3 h-3 text-amber-300" /> {isRTL ? 'تحديث العروض اليومية خلال' : 'Daily Deals Reset In'}
               </span>
-              <span className="font-mono font-black text-2xl text-white tracking-widest" suppressHydrationWarning>
+              <span className="font-mono font-black text-xl text-white tracking-widest" suppressHydrationWarning>
                 {mounted ? countdown : '08:00:00'}
               </span>
             </div>
@@ -417,173 +471,35 @@ function HomeFeedContent() {
         </AnimatePresence>
 
         {/* Dot Indicators */}
-        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-20">
+        <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex gap-1.5 z-20">
           {DEAL_BANNERS.map((_, i) => (
             <button
               key={i}
               onClick={() => setBannerIdx(i)}
               className={`h-1.5 rounded-full transition-all ${
-                i === bannerIdx ? 'w-6 bg-white' : 'w-2 bg-white/40 hover:bg-white/70'
+                i === bannerIdx ? 'w-5 bg-white' : 'w-1.5 bg-white/40 hover:bg-white/70'
               }`}
             />
           ))}
         </div>
       </div>
 
-      {/* ─── Circular Category Icon Rail with Spring Hover ─── */}
-      <div>
-        <div className="flex items-center justify-between mb-3.5">
-          <h2 className="text-sm font-black uppercase tracking-wider text-slate-800 flex items-center gap-2">
-            <LayoutGrid className="w-4 h-4 text-blue-600" />
-            {isRTL ? 'تصفح حسب القسم' : 'Explore Categories'}
-          </h2>
-          {activeCategory && (
-            <button
-              onClick={() => handleCategorySelect('')}
-              className="text-xs text-blue-600 hover:underline font-semibold"
-            >
-              {isRTL ? 'عرض الكل' : 'Reset to All'}
-            </button>
-          )}
+      {/* ─── Micro-Trust Ticker (1-liner, High Credibility) ─── */}
+      <div className="flex items-center justify-center gap-3 sm:gap-6 bg-slate-50 border border-slate-200/80 rounded-2xl py-2 px-4 text-[11px] sm:text-xs text-slate-600 font-semibold overflow-x-auto no-scrollbar">
+        <div className="flex items-center gap-1.5 flex-shrink-0 text-blue-700">
+          <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+          <span>{isRTL ? 'حماية الضمان المالي ١٠٠٪' : '100% Escrow Protection'}</span>
         </div>
-
-        {/* Swipeable Category Rail on Mobile, Grid on Desktop */}
-        <div className="flex sm:grid sm:grid-cols-8 gap-2.5 sm:gap-4 overflow-x-auto no-scrollbar pb-1">
-          {CATEGORIES_WITH_ICONS.map((cat) => {
-            const Icon = cat.icon;
-            const isSelected = activeCategory === cat.id || (!activeCategory && cat.id === '');
-            const label = isRTL ? cat.label_ar : cat.label;
-
-            return (
-              <motion.button
-                key={cat.id || 'all'}
-                whileHover={{ scale: 1.05, y: -2 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => handleCategorySelect(cat.id)}
-                className={`flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-2xl border transition-all duration-200 group flex-shrink-0 min-w-[76px] sm:min-w-0 ${
-                  isSelected
-                    ? 'border-blue-600 bg-blue-50/70 shadow-sm ring-2 ring-blue-500/20'
-                    : 'border-slate-200/80 bg-white hover:border-slate-300 hover:shadow-sm'
-                }`}
-              >
-                <div
-                  className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center mb-1.5 transition-transform group-hover:scale-110 shadow-sm"
-                  style={{ backgroundColor: cat.bg, color: cat.color }}
-                >
-                  <Icon className="w-5 h-5" />
-                </div>
-                <span className={`text-[10px] sm:text-[11px] font-bold text-center leading-tight truncate w-full ${
-                  isSelected ? 'text-blue-700' : 'text-slate-700'
-                }`}>
-                  {label}
-                </span>
-              </motion.button>
-            );
-          })}
+        <span className="text-slate-300">•</span>
+        <div className="flex items-center gap-1.5 flex-shrink-0 text-emerald-700">
+          <Package className="w-3.5 h-3.5 text-emerald-600" />
+          <span>{isRTL ? 'شحن بوسطة لكافة المحافظات' : 'Bosta Courier Delivery'}</span>
         </div>
-      </div>
-
-      {/* ─── EgyBay Live Stage Strip (Industry Standard Live Shopping Lobby) ─── */}
-      <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-red-950 rounded-3xl p-4 sm:p-6 text-white border border-red-900/40 shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-80 h-80 bg-red-600/10 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-3 sm:mb-4 relative z-10">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-red-600/20 border border-red-500/30 flex items-center justify-center text-red-500 flex-shrink-0">
-              <Video className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-600 text-white text-[10px] font-black uppercase tracking-wider">
-                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                  LIVE
-                </span>
-                <h2 className="text-sm sm:text-base font-black text-white">
-                  {isRTL ? 'إيجي باي لايف — تسوق مباشر من التجار 🔴' : 'EgyBay Live — Real-time Selling 🔴'}
-                </h2>
-              </div>
-              <p className="text-[11px] sm:text-xs text-slate-300 mt-0.5">
-                {isRTL ? 'شاهد واستفسر واشترِ بضمان مالي كامل ومعاينة عند الاستلام مع بوسطة' : 'Live video shopping with 100% Escrow Protection & Bosta courier'}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Link
-              href="/live"
-              className="px-3.5 sm:px-4 py-2 rounded-xl bg-white text-slate-900 text-xs font-bold hover:bg-slate-100 transition-all shadow-sm flex items-center gap-1.5"
-            >
-              <span>{isRTL ? 'تصفح كل البثوث' : 'Watch Live Shows'}</span>
-              <ArrowRight className={`w-3.5 h-3.5 ${isRTL ? 'rotate-180' : ''}`} />
-            </Link>
-            {user && (
-              <Link
-                href="/live/book"
-                className="px-3.5 sm:px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
-              >
-                <Video className="w-3.5 h-3.5" />
-                <span>{isRTL ? 'ابدأ بثك الخاص' : 'Go Live'}</span>
-              </Link>
-            )}
-          </div>
+        <span className="text-slate-300 hidden sm:inline">•</span>
+        <div className="flex items-center gap-1.5 flex-shrink-0 text-amber-700 hidden sm:flex">
+          <Zap className="w-3.5 h-3.5 text-amber-600" />
+          <span>{isRTL ? 'تحويل فوري عبر إنستاباي' : 'Instant InstaPay Payouts'}</span>
         </div>
-
-        {/* Dynamic Streams or Feature Highlights */}
-        {liveSessions.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 relative z-10 pt-1">
-            {liveSessions.map((session) => (
-              <Link
-                key={session.id}
-                href={`/live/${session.agora_channel}`}
-                className="bg-slate-900/80 hover:bg-slate-850 border border-slate-700/60 rounded-2xl p-3 flex gap-3 items-center group transition-all"
-              >
-                <div className="w-14 h-16 rounded-xl bg-slate-800 overflow-hidden relative flex-shrink-0 flex items-center justify-center">
-                  {session.thumbnail_url ? (
-                    <Image src={session.thumbnail_url} alt={session.title} fill className="object-cover" />
-                  ) : (
-                    <Video className="w-5 h-5 text-slate-500" />
-                  )}
-                  <span className="absolute top-1 left-1 px-1 py-0.2 rounded bg-red-600 text-white text-[8px] font-black">
-                    LIVE
-                  </span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold text-white truncate group-hover:text-red-400 transition-colors">
-                    {isRTL ? session.title_ar || session.title : session.title}
-                  </p>
-                  <p className="text-[10px] text-slate-400 truncate mt-0.5">
-                    {session.seller?.full_name || 'Verified Merchant'}
-                  </p>
-                  <div className="flex items-center gap-1 text-[9px] text-slate-400 mt-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                    <span>{session.current_viewers} watching</span>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 relative z-10 pt-2 border-t border-slate-800/80 text-xs">
-            <div className="flex items-center gap-2 bg-slate-900/50 rounded-xl p-2.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-              <span className="text-slate-300 text-[11px]">
-                {isRTL ? 'حماية الضمان المالي المصري ١٠٠٪' : '100% Escrow Protection'}
-              </span>
-            </div>
-            <div className="flex items-center gap-2 bg-slate-900/50 rounded-xl p-2.5">
-              <Clock className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
-              <span className="text-slate-300 text-[11px]">
-                {isRTL ? 'باقات بث تبدأ من ٧٩ ج.م للتجار' : 'Broadcasting from 79 EGP'}
-              </span>
-            </div>
-            <div className="flex items-center gap-2 bg-slate-900/50 rounded-xl p-2.5">
-              <Zap className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
-              <span className="text-slate-300 text-[11px]">
-                {isRTL ? 'شراء فوري وشحن لباب البيت مع بوسطة' : '1-click buy & Bosta express shipping'}
-              </span>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* ─── Trending Tags & Condition Filter Bar ─── */}
