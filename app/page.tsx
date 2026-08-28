@@ -158,61 +158,59 @@ function ProductCard({
   const imgSrc = product.images?.[0] || null;
 
   return (
-    <motion.div variants={itemVariants} className="h-full">
+    <div className="h-full w-full">
       <Link href={`/products/${product.id}`} className="group block h-full">
-        <motion.div
-          whileHover={{ y: -5, transition: { duration: 0.2 } }}
-          className={`bg-white rounded-2xl overflow-hidden border transition-shadow duration-300 hover:shadow-xl flex flex-col h-full ${
+        <div
+          className={`bg-white rounded-2xl overflow-hidden border transition-all duration-200 hover:shadow-lg flex flex-col h-full ${
             product.is_promoted
-              ? 'border-blue-300 shadow-md shadow-blue-500/10 ring-1 ring-blue-500/30'
+              ? 'border-blue-300 shadow-sm ring-1 ring-blue-500/30'
               : 'border-slate-200/80 shadow-sm hover:border-slate-300'
           }`}
         >
           {/* Product Image Container */}
-          <div className="relative aspect-square bg-slate-50 overflow-hidden">
+          <div className="relative aspect-square bg-slate-50 overflow-hidden w-full">
             {imgSrc ? (
               <SmartImage
                 src={imgSrc}
                 alt={product.title}
                 fill
-                className="object-cover group-hover:scale-105 transition-transform duration-500"
+                className="object-cover group-hover:scale-105 transition-transform duration-300"
                 sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
               />
             ) : (
               <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 text-slate-400">
-                <Package className="w-10 h-10 stroke-[1.5]" />
-                <span className="text-[11px] font-semibold mt-1">
-                  {isRTL ? 'صورة الإعلان' : 'Listing Image'}
+                <Package className="w-8 h-8 stroke-[1.5]" />
+                <span className="text-[10px] font-semibold mt-1">
+                  {isRTL ? 'صورة الإعلان' : 'No Image'}
                 </span>
               </div>
             )}
 
             {/* Badges Overlay */}
-            <div className="absolute top-2.5 left-2.5 flex flex-col gap-1.5 z-10">
+            <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
               {product.is_promoted && (
-                <span className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
-                  <Zap className="w-3 h-3 fill-current" /> {isRTL ? 'مميز' : 'BOOSTED'}
+                <span className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-[9px] font-black px-1.5 py-0.2 rounded-full flex items-center gap-1 shadow-sm">
+                  <Zap className="w-2.5 h-2.5 fill-current" /> {isRTL ? 'مميز' : 'BOOST'}
                 </span>
               )}
               {product.condition === 'New' && (
-                <span className="bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
-                  {isRTL ? 'جديد تماماً' : 'BRAND NEW'}
+                <span className="bg-emerald-600 text-white text-[9px] font-bold px-1.5 py-0.2 rounded-full shadow-sm">
+                  {isRTL ? 'جديد' : 'NEW'}
                 </span>
               )}
             </div>
 
-            {/* Wishlist Button with Motion Tap */}
-            <motion.button
-              whileTap={{ scale: 0.75 }}
+            {/* Wishlist Button */}
+            <button
               onClick={handleWishlist}
-              className={`absolute top-2.5 right-2.5 w-8 h-8 rounded-full flex items-center justify-center transition-all shadow-sm z-10 ${
+              className={`absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center transition-all shadow-sm z-10 ${
                 wishlisted
                   ? 'bg-rose-500 text-white shadow-rose-500/30'
                   : 'bg-white/90 text-slate-400 hover:text-rose-500 hover:bg-white'
               }`}
             >
-              <Heart className={`w-4 h-4 ${wishlisted ? 'fill-current' : ''}`} />
-            </motion.button>
+              <Heart className={`w-3.5 h-3.5 ${wishlisted ? 'fill-current' : ''}`} />
+            </button>
           </div>
 
           {/* Info Container */}
@@ -270,9 +268,9 @@ function ProductCard({
               </div>
             </div>
           </div>
-        </motion.div>
+        </div>
       </Link>
-    </motion.div>
+    </div>
   );
 }
 
@@ -495,75 +493,74 @@ function HomeFeedContent() {
         </div>
       </div>
 
-      {/* ─── Micro-Trust Ticker (Balanced 3-Pill Bar) ─── */}
-      <div className="w-full bg-slate-50 border border-slate-200/80 rounded-2xl py-2 px-3 sm:px-4 flex items-center justify-between sm:justify-center gap-2 sm:gap-8 text-[10px] sm:text-xs text-slate-700 font-bold shadow-sm">
-        <div className="flex items-center gap-1.5 text-blue-700">
+      {/* ─── Micro-Trust Ticker (Balanced & Compact) ─── */}
+      <div className="w-full bg-slate-50 border border-slate-200/80 rounded-2xl py-2 px-2 sm:px-4 flex items-center justify-center gap-2 sm:gap-6 text-[10px] sm:text-xs text-slate-700 font-bold shadow-sm">
+        <div className="flex items-center gap-1 text-blue-700 whitespace-nowrap">
           <ShieldCheck className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
           <span>{isRTL ? 'ضمان مالي ١٠٠٪' : '100% Escrow'}</span>
         </div>
         <span className="text-slate-300">•</span>
-        <div className="flex items-center gap-1.5 text-emerald-700">
+        <div className="flex items-center gap-1 text-emerald-700 whitespace-nowrap">
           <Package className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
-          <span>{isRTL ? 'شحن بوسطة' : 'Bosta Shipping'}</span>
+          <span>{isRTL ? 'شحن بوسطة' : 'Bosta Delivery'}</span>
         </div>
         <span className="text-slate-300">•</span>
-        <div className="flex items-center gap-1.5 text-amber-700">
+        <div className="flex items-center gap-1 text-amber-700 whitespace-nowrap">
           <Zap className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
-          <span>{isRTL ? 'إنستاباي فوري' : 'InstaPay Payouts'}</span>
+          <span>{isRTL ? 'إنستاباي فوري' : 'InstaPay'}</span>
         </div>
       </div>
 
       {/* ─── Trending Tags & Condition Filter Bar ─── */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pt-2 border-t border-slate-200/60">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 pt-2 border-t border-slate-200/60">
         {/* Quick Trending Tags */}
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar max-w-full pb-1">
-          <span className="flex items-center gap-1 text-xs font-bold text-slate-400 uppercase tracking-wider flex-shrink-0">
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar max-w-full pb-1">
+          <span className="flex items-center gap-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider flex-shrink-0">
             <TrendingUp className="w-3.5 h-3.5 text-blue-600" />
             {isRTL ? 'الأكثر بحثاً:' : 'Trending:'}
           </span>
           {trendingTags.map((tag) => (
-            <motion.button
+            <button
               key={tag}
-              whileTap={{ scale: 0.93 }}
               onClick={() => {
                 setSearchQuery(tag);
                 router.push(`/?search=${encodeURIComponent(tag)}`, { scroll: false });
               }}
-              className="text-xs font-medium text-slate-600 hover:text-blue-600 bg-slate-100 hover:bg-blue-50 border border-slate-200/80 px-3 py-1 rounded-full transition-colors whitespace-nowrap"
+              className="text-[11px] font-medium text-slate-600 hover:text-blue-600 bg-slate-100 hover:bg-blue-50 border border-slate-200/80 px-2.5 py-1 rounded-full transition-colors whitespace-nowrap flex-shrink-0"
             >
               {tag}
-            </motion.button>
+            </button>
           ))}
         </div>
 
         {/* Condition Filter Tabs */}
-        <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200/80 self-end md:self-auto">
+        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/80 self-end md:self-auto">
           {(['all', 'New', 'Used'] as const).map((c) => (
             <button
               key={c}
               onClick={() => setConditionFilter(c)}
-              className={`text-xs font-bold px-3 py-1 rounded-lg transition-all ${
+              className={`text-[11px] font-bold px-2.5 py-1 rounded-lg transition-all ${
                 conditionFilter === c
                   ? 'bg-white text-slate-900 shadow-sm'
                   : 'text-slate-500 hover:text-slate-900'
               }`}
             >
               {c === 'all'
-                ? isRTL ? 'جميع الحالات' : 'All Conditions'
+                ? isRTL ? 'الكل' : 'All'
                 : c === 'New'
-                ? isRTL ? 'جديد بالكامل' : 'Brand New'
-                : isRTL ? 'مستعمل' : 'Pre-Owned'}
+                ? isRTL ? 'جديد' : 'New'
+                : isRTL ? 'مستعمل' : 'Used'}
             </button>
           ))}
         </div>
       </div>
 
-      {/* ─── Product Grid Section with Framer Motion Stagger ─── */}
+      {/* ─── Product Grid Section (Rock-solid 2-Column Mobile Grid) ─── */}
       <div>
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-3.5">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-blue-600" />
-            <h2 className="text-base font-black text-slate-900">
+            <h2 className="text-sm sm:text-base font-black text-slate-900">
               {activeCategory
                 ? t(`categories.${activeCategory.toLowerCase()}`, activeCategory)
                 : searchQuery
@@ -571,7 +568,7 @@ function HomeFeedContent() {
                 : (isRTL ? 'جميع الإعلانات الموثقة' : 'All Verified Listings')}
             </h2>
             {!loading && (
-              <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full">
+              <span className="text-[10px] sm:text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
                 {products.length} {isRTL ? 'إعلان' : 'items'}
               </span>
             )}
@@ -587,24 +584,19 @@ function HomeFeedContent() {
               }}
               className="text-xs text-blue-600 hover:underline font-semibold"
             >
-              {isRTL ? 'مسح جميع الفلاتر' : 'Clear all filters'}
+              {isRTL ? 'مسح الفلاتر' : 'Clear filters'}
             </button>
           )}
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5 sm:gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5 sm:gap-4">
             {Array.from({ length: 10 }).map((_, i) => (
               <SkeletonCard key={i} />
             ))}
           </div>
         ) : products.length > 0 ? (
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5 sm:gap-4"
-          >
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5 sm:gap-4">
             {products.map((product) => (
               <ProductCard
                 key={product.id}
@@ -612,21 +604,21 @@ function HomeFeedContent() {
                 onWishlistToggle={handleWishlistToggle}
               />
             ))}
-          </motion.div>
+          </div>
         ) : (
-          <div className="bg-white rounded-3xl border border-slate-200/80 p-12 text-center max-w-md mx-auto my-8 shadow-sm">
-            <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-400">
-              <Search className="w-8 h-8 stroke-[1.5]" />
+          <div className="bg-white rounded-3xl border border-slate-200/80 p-10 text-center max-w-md mx-auto my-6 shadow-sm">
+            <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-3 text-slate-400">
+              <Search className="w-7 h-7 stroke-[1.5]" />
             </div>
-            <h3 className="text-base font-bold text-slate-900 mb-1">
-              {isRTL ? 'لم نتمكن من إيجاد نتائج مطابقة' : 'No listings found'}
+            <h3 className="text-sm font-bold text-slate-900 mb-1">
+              {isRTL ? 'لم نتمكن من إيجاد نتائج' : 'No listings found'}
             </h3>
-            <p className="text-xs text-slate-500 mb-6 leading-relaxed">
+            <p className="text-xs text-slate-500 mb-5 leading-relaxed">
               {isRTL
-                ? 'جرب البحث بكلمات مختلفة أو إزالة الفلاتر لعرض المزيد من المنتجات.'
-                : 'Try adjusting your search terms, changing the category, or clearing active filters.'}
+                ? 'جرب البحث بكلمات أخرى أو تغيير القسم.'
+                : 'Try adjusting your search terms or clearing active filters.'}
             </p>
-            <div className="flex justify-center gap-3">
+            <div className="flex justify-center gap-2.5">
               {(activeCategory || searchQuery || conditionFilter !== 'all') && (
                 <button
                   onClick={() => {
@@ -637,14 +629,14 @@ function HomeFeedContent() {
                   }}
                   className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors"
                 >
-                  {isRTL ? 'إعادة ضبط البحث' : 'Clear Filters'}
+                  {isRTL ? 'إعادة ضبط' : 'Clear Filters'}
                 </button>
               )}
               <Link
                 href="/sell"
-                className="px-5 py-2 bg-[#3665F3] hover:bg-[#2B54D4] text-white text-xs font-bold rounded-xl transition-all shadow-sm"
+                className="px-4 py-2 bg-[#3665F3] hover:bg-[#2B54D4] text-white text-xs font-bold rounded-xl transition-all shadow-sm"
               >
-                {isRTL ? 'أضف أول إعلان الآن' : 'List an Item Now'}
+                {isRTL ? 'أضف إعلانك' : 'Sell an Item'}
               </Link>
             </div>
           </div>
