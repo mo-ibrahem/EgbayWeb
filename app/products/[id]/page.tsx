@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
+import SmartImage from '@/components/SmartImage';
 import {
   ArrowLeft, Heart, Share2, ShieldCheck, Truck, MapPin, Clock,
   MessageCircle, ShoppingBag, Star, ChevronLeft, ChevronRight,
@@ -169,13 +170,11 @@ export default function ProductDetailPage() {
 
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-          {/* ─── Gallery Column (3 cols) ─── */}
           <div className="lg:col-span-3 space-y-4">
             <div className="bg-white rounded-3xl overflow-hidden border border-slate-200/80 shadow-sm">
-              {/* Main Active Image */}
               <div className="relative aspect-square bg-slate-100 overflow-hidden">
                 <AnimatePresence mode="wait">
-                  {hasImages && !imgError[imgIdx] ? (
+                  {hasImages ? (
                     <motion.div
                       key={imgIdx}
                       initial={{ opacity: 0, scale: 1.03 }}
@@ -184,13 +183,11 @@ export default function ProductDetailPage() {
                       transition={{ duration: 0.25 }}
                       className="w-full h-full relative"
                     >
-                      <Image
+                      <SmartImage
                         src={images[imgIdx]}
                         alt={product.title}
                         fill
                         className="object-contain"
-                        onError={() => setImgError(prev => ({ ...prev, [imgIdx]: true }))}
-                        unoptimized={images[imgIdx]?.toLowerCase().includes('.heic') || images[imgIdx]?.toLowerCase().includes('.heif')}
                         sizes="(max-width: 1024px) 100vw, 60vw"
                         priority
                       />
@@ -203,7 +200,6 @@ export default function ProductDetailPage() {
                   )}
                 </AnimatePresence>
 
-                {/* Left/Right Carousel Controls */}
                 {images.length > 1 && (
                   <>
                     <motion.button
@@ -223,7 +219,6 @@ export default function ProductDetailPage() {
                   </>
                 )}
 
-                {/* Badges Overlay */}
                 <div className="absolute top-4 left-4 flex flex-col gap-2">
                   {product.is_promoted && (
                     <span className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-xs font-black px-3 py-1 rounded-full flex items-center gap-1 shadow-md">
@@ -237,7 +232,6 @@ export default function ProductDetailPage() {
                   )}
                 </div>
 
-                {/* Wishlist & Share Quick Actions */}
                 <div className="absolute top-4 right-4 flex flex-col gap-2">
                   <button
                     onClick={handleWishlist}
@@ -256,24 +250,22 @@ export default function ProductDetailPage() {
                 </div>
               </div>
 
-              {/* Thumbnails Row */}
               {images.length > 1 && (
-                <div className="flex gap-2 p-3 overflow-x-auto no-scrollbar border-t border-slate-100 bg-slate-50/50">
+                <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1 p-3">
                   {images.map((img, i) => (
                     <button
                       key={i}
                       onClick={() => setImgIdx(i)}
-                      className={`flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-all relative ${
-                        i === imgIdx ? 'border-blue-600 ring-2 ring-blue-500/20' : 'border-transparent opacity-60 hover:opacity-100'
+                      className={`relative w-20 h-20 rounded-2xl overflow-hidden flex-shrink-0 border-2 transition-all bg-white ${
+                        imgIdx === i ? 'border-blue-600 ring-2 ring-blue-500/30 scale-105' : 'border-slate-200 opacity-70 hover:opacity-100'
                       }`}
                     >
-                      <Image
+                      <SmartImage
                         src={img}
-                        alt=""
+                        alt={`Thumbnail ${i + 1}`}
                         fill
                         className="object-cover"
-                        unoptimized={img.toLowerCase().includes('.heic')}
-                        onError={() => setImgError(prev => ({ ...prev, [i]: true }))}
+                        sizes="80px"
                       />
                     </button>
                   ))}

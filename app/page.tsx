@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import {
   Search, SlidersHorizontal, Heart, ShieldCheck, Truck, Zap,
   Star, MapPin, Clock, TrendingUp, X, ChevronRight, Sparkles,
@@ -14,6 +14,7 @@ import {
 import { productService, formatEGP, type Product } from '@/lib/products';
 import { useAuth } from '@/components/AuthProvider';
 import AnimatedNumber from '@/components/AnimatedNumber';
+import SmartImage from '@/components/SmartImage';
 
 export const CATEGORIES_WITH_ICONS = [
   { id: '',            label: 'All Items',    icon: LayoutGrid,  color: '#4F46E5', bg: '#EEF2FF' },
@@ -64,7 +65,7 @@ const TRENDING_TAGS = [
   'Air Fryer', 'Sony WH-1000XM5', 'Toyota Corolla', 'Gaming PC'
 ];
 
-const containerVariants = {
+const containerVariants: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
@@ -75,12 +76,12 @@ const containerVariants = {
   },
 };
 
-const itemVariants = {
+const itemVariants: Variants = {
   hidden: { opacity: 0, y: 12 },
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] },
+    transition: { duration: 0.35, ease: 'easeOut' },
   },
 };
 
@@ -114,7 +115,6 @@ function ProductCard({
   onWishlistToggle: (id: string, current: boolean) => void;
 }) {
   const [wishlisted, setWishlisted] = useState(product.isWishlisted ?? false);
-  const [imgError, setImgError] = useState(false);
 
   const handleWishlist = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -124,7 +124,7 @@ function ProductCard({
     onWishlistToggle(product.id, !next);
   };
 
-  const imgSrc = !imgError && product.images?.[0] ? product.images[0] : null;
+  const imgSrc = product.images?.[0] || null;
 
   return (
     <motion.div variants={itemVariants} className="h-full">
@@ -140,13 +140,11 @@ function ProductCard({
           {/* Product Image Container */}
           <div className="relative aspect-square bg-slate-50 overflow-hidden">
             {imgSrc ? (
-              <Image
+              <SmartImage
                 src={imgSrc}
                 alt={product.title}
                 fill
                 className="object-cover group-hover:scale-105 transition-transform duration-500"
-                onError={() => setImgError(true)}
-                unoptimized={imgSrc.toLowerCase().includes('.heic') || imgSrc.toLowerCase().includes('.heif')}
                 sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
               />
             ) : (
