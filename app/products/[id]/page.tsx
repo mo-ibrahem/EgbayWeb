@@ -13,6 +13,7 @@ import {
 import { productService, formatEGP, type Product } from '@/lib/products';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/components/AuthProvider';
+import { ProductJsonLd } from '@/components/JsonLd';
 import { motion, AnimatePresence } from 'framer-motion';
 
 function timeAgo(dateStr?: string | null): string {
@@ -153,6 +154,7 @@ export default function ProductDetailPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      <ProductJsonLd product={product} />
       {/* Navigation Breadcrumb */}
       <div className="bg-white border-b border-slate-200/80">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-2.5 text-xs text-slate-500">
