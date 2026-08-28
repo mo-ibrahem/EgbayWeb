@@ -25,8 +25,9 @@ function SellerVerificationContent() {
   const [fullName, setFullName] = useState('');
   const [nationalIdNum, setNationalIdNum] = useState('');
   const [idInfo, setIdInfo] = useState<NationalIdInfo | null>(null);
-  const [payoutType, setPayoutType] = useState<'instapay_ipa' | 'vodafone_cash' | 'bank_account'>('instapay_ipa');
-  const [payoutIdentifier, setPayoutIdentifier] = useState('');
+  const [instapayIpa, setInstapayIpa] = useState('');
+  const [vodafoneCash, setVodafoneCash] = useState('');
+  const [bankIban, setBankIban] = useState('');
   const [frontImage, setFrontImage] = useState<string | null>(null);
   const [backImage, setBackImage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -62,8 +63,9 @@ function SellerVerificationContent() {
       setErrorMsg('Please enter a valid 14-digit Egyptian National ID');
       return;
     }
-    if (!payoutIdentifier.trim()) {
-      setErrorMsg('Please enter your payout details');
+    const hasAtLeastOne = instapayIpa.trim() || vodafoneCash.trim() || bankIban.trim();
+    if (!hasAtLeastOne) {
+      setErrorMsg('Please provide at least one payout destination (InstaPay, Vodafone Cash, or Bank IBAN)');
       return;
     }
 
@@ -72,14 +74,43 @@ function SellerVerificationContent() {
 
     try {
       await upgradeSellerTier(user.id, selectedTier);
-      await addPayoutMethod(user.id, {
-        user_id: user.id,
-        type: payoutType,
-        account_identifier: payoutIdentifier.trim(),
-        account_holder_name: fullName.trim() || user.user_metadata?.full_name || 'Seller',
-        is_default: true,
-        is_verified: true,
-      });
+
+      let isFirst = true;
+
+      if (instapayIpa.trim()) {
+        await addPayoutMethod(user.id, {
+          user_id: user.id,
+          type: 'instapay_ipa',
+          account_identifier: instapayIpa.trim(),
+          account_holder_name: fullName.trim() || user.user_metadata?.full_name || 'Seller',
+          is_default: isFirst,
+          is_verified: true,
+        });
+        isFirst = false;
+      }
+
+      if (vodafoneCash.trim()) {
+        await addPayoutMethod(user.id, {
+          user_id: user.id,
+          type: 'vodafone_cash',
+          account_identifier: vodafoneCash.trim(),
+          account_holder_name: fullName.trim() || user.user_metadata?.full_name || 'Seller',
+          is_default: isFirst,
+          is_verified: true,
+        });
+        isFirst = false;
+      }
+
+      if (bankIban.trim()) {
+        await addPayoutMethod(user.id, {
+          user_id: user.id,
+          type: 'bank_account',
+          account_identifier: bankIban.trim(),
+          account_holder_name: fullName.trim() || user.user_metadata?.full_name || 'Seller',
+          is_default: isFirst,
+          is_verified: true,
+        });
+      }
 
       setSuccess(true);
       setTimeout(() => router.push('/wallet'), 2000);
@@ -270,49 +301,63 @@ function SellerVerificationContent() {
 
         {/* Payout Details */}
         <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-4">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400">3. Payout Destination</h2>
-
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              { id: 'instapay_ipa', label: 'InstaPay IPA', icon: '⚡' },
-              { id: 'vodafone_cash', label: 'Vodafone Cash', icon: '📱' },
-              { id: 'bank_account', label: 'Bank IBAN', icon: '🏦' },
-            ].map(m => (
-              <button
-                type="button"
-                key={m.id}
-                onClick={() => setPayoutType(m.id as any)}
-                className={`p-3 rounded-xl border-2 text-center text-xs font-bold transition-all ${
-                  payoutType === m.id
-                    ? 'border-blue-600 bg-blue-50 text-blue-700'
-                    : 'border-gray-100 hover:border-gray-200 text-gray-600'
-                }`}
-              >
-                <div className="text-base mb-1">{m.icon}</div>
-                {m.label}
-              </button>
-            ))}
+          <div>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">3. Payout Destinations</h2>
+            <p className="text-xs text-gray-500">Link your Egyptian payout destinations. You can add all 3 (at least 1 is required).</p>
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">
-              {payoutType === 'instapay_ipa' ? 'InstaPay Address (e.g. username@instapay)' : payoutType === 'vodafone_cash' ? 'Mobile Wallet Number (010XXXXXXXX)' : 'Bank Account Number / IBAN'}
-            </label>
-            <input
-              type="text"
-              value={payoutIdentifier}
-              onChange={e => setPayoutIdentifier(e.target.value)}
-              placeholder={payoutType === 'instapay_ipa' ? 'name@instapay' : '010XXXXXXXX'}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500"
-              required
-            />
+          <div className="space-y-4 pt-2">
+            {/* 1. InstaPay IPA */}
+            <div>
+              <label className="flex items-center gap-2 text-xs font-bold text-gray-700 mb-1.5">
+                <Building className="w-4 h-4 text-blue-600" />
+                <span>1. InstaPay IPA Handle</span>
+              </label>
+              <input
+                type="text"
+                value={instapayIpa}
+                onChange={e => setInstapayIpa(e.target.value)}
+                placeholder="e.g. username@instapay"
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+              />
+            </div>
+
+            {/* 2. Vodafone Cash */}
+            <div>
+              <label className="flex items-center gap-2 text-xs font-bold text-gray-700 mb-1.5">
+                <Smartphone className="w-4 h-4 text-rose-600" />
+                <span>2. Vodafone Cash / Mobile Wallet</span>
+              </label>
+              <input
+                type="tel"
+                value={vodafoneCash}
+                onChange={e => setVodafoneCash(e.target.value)}
+                placeholder="e.g. 010XXXXXXXX"
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+              />
+            </div>
+
+            {/* 3. Bank IBAN */}
+            <div>
+              <label className="flex items-center gap-2 text-xs font-bold text-gray-700 mb-1.5">
+                <CreditCard className="w-4 h-4 text-emerald-600" />
+                <span>3. Bank Account IBAN</span>
+              </label>
+              <input
+                type="text"
+                value={bankIban}
+                onChange={e => setBankIban(e.target.value)}
+                placeholder="e.g. EG380002000100000000012345678"
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+              />
+            </div>
           </div>
         </div>
 
         {/* Submit */}
         <button
           type="submit"
-          disabled={submitting || !idInfo?.isValid}
+          disabled={submitting || !idInfo?.isValid || (!instapayIpa.trim() && !vodafoneCash.trim() && !bankIban.trim())}
           className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 text-white font-bold py-4 rounded-2xl text-sm transition-all shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2"
         >
           <ShieldCheck className="w-5 h-5" />
