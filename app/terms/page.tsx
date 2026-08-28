@@ -1,17 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { Scale, ShieldCheck, AlertOctagon, HelpCircle, Mail, FileText, CheckCircle2, ArrowRight } from 'lucide-react';
 import { useLanguage } from '@/components/LanguageProvider';
 
 export default function TermsPage() {
-  const { isRTL, language } = useLanguage();
-  const [activeTab, setActiveTab] = useState<'en' | 'ar'>(language === 'ar' ? 'ar' : 'en');
-
-  useEffect(() => {
-    setActiveTab(language === 'ar' ? 'ar' : 'en');
-  }, [language]);
+  const { isRTL } = useLanguage();
 
   const enSections = [
     {
@@ -161,47 +156,23 @@ Sellers must dispatch sold items via our integrated courier partner within 48 ho
     },
   ];
 
-  const sections = activeTab === 'ar' ? arSections : enSections;
+  const sections = isRTL ? arSections : enSections;
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-12">
-      {/* Header & Language Toggle Tabs */}
+      {/* Header */}
       <div className="text-center mb-10">
         <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-4 border border-blue-100 shadow-sm">
           <Scale className="w-7 h-7" />
         </div>
         <h1 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight mb-2">
-          {activeTab === 'ar' ? 'شروط وأحكام الاستخدام والضمان المالي' : 'Terms of Service & Escrow Agreement'}
+          {isRTL ? 'شروط وأحكام الاستخدام والضمان المالي' : 'Terms of Service & Escrow Agreement'}
         </h1>
         <p className="text-xs sm:text-sm text-gray-500 max-w-xl mx-auto mb-6">
-          {activeTab === 'ar'
+          {isRTL
             ? 'القواعد الحاكمة لمنصة إيجي باي، نظام حماية الضمان المالي، التزامات البائعين وحقوق المشترين وفقاً للقانون المصري.'
             : 'Governing rules for EgyBay, Escrow protection mechanisms, seller verification, and buyer rights under Egyptian Law.'}
         </p>
-
-        {/* Bilingual Document Switcher */}
-        <div className="inline-flex p-1 bg-gray-100 rounded-2xl border border-gray-200 shadow-inner">
-          <button
-            onClick={() => setActiveTab('ar')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-              activeTab === 'ar'
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            🇪🇬 الشروط بالعربية
-          </button>
-          <button
-            onClick={() => setActiveTab('en')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-              activeTab === 'en'
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            🇺🇸 English Agreement
-          </button>
-        </div>
       </div>
 
       {/* Trust Highlights Grid */}
@@ -210,10 +181,10 @@ Sellers must dispatch sold items via our integrated courier partner within 48 ho
           <ShieldCheck className="w-6 h-6 text-emerald-600 flex-shrink-0" />
           <div>
             <h4 className="text-xs font-bold text-gray-900">
-              {activeTab === 'ar' ? 'ضمان مالي ١٠٠٪' : '100% Escrow Protection'}
+              {isRTL ? 'ضمان مالي ١٠٠٪' : '100% Escrow Protection'}
             </h4>
             <p className="text-[11px] text-gray-500">
-              {activeTab === 'ar' ? 'حجز الأموال حتى فحص السلعة' : 'Funds released only after inspection'}
+              {isRTL ? 'حجز الأموال حتى فحص السلعة' : 'Funds released only after inspection'}
             </p>
           </div>
         </div>
@@ -222,10 +193,10 @@ Sellers must dispatch sold items via our integrated courier partner within 48 ho
           <FileText className="w-6 h-6 text-blue-600 flex-shrink-0" />
           <div>
             <h4 className="text-xs font-bold text-gray-900">
-              {activeTab === 'ar' ? 'قانون حماية المستهلك' : 'Law No. 181/2018'}
+              {isRTL ? 'قانون حماية المستهلك' : 'Law No. 181/2018'}
             </h4>
             <p className="text-[11px] text-gray-500">
-              {activeTab === 'ar' ? 'امتثال تام للقوانين المصرية' : 'Full Egyptian legal compliance'}
+              {isRTL ? 'امتثال تام للقوانين المصرية' : 'Full Egyptian legal compliance'}
             </p>
           </div>
         </div>
@@ -234,17 +205,17 @@ Sellers must dispatch sold items via our integrated courier partner within 48 ho
           <AlertOctagon className="w-6 h-6 text-amber-600 flex-shrink-0" />
           <div>
             <h4 className="text-xs font-bold text-gray-900">
-              {activeTab === 'ar' ? 'منع السلع المقلدة' : 'Zero Fake Items Policy'}
+              {isRTL ? 'منع السلع المقلدة' : 'Zero Fake Items Policy'}
             </h4>
             <p className="text-[11px] text-gray-500">
-              {activeTab === 'ar' ? 'إحالة المخالفين لمباحث الإنترنت' : 'Strict anti-fraud enforcement'}
+              {isRTL ? 'إحالة المخالفين لمباحث الإنترنت' : 'Strict anti-fraud enforcement'}
             </p>
           </div>
         </div>
       </div>
 
       {/* Main Content Sections */}
-      <div className={`bg-white rounded-3xl border border-gray-200/80 shadow-sm divide-y divide-gray-100 overflow-hidden ${activeTab === 'ar' ? 'text-right' : 'text-left'}`}>
+      <div className={`bg-white rounded-3xl border border-gray-200/80 shadow-sm divide-y divide-gray-100 overflow-hidden ${isRTL ? 'text-right' : 'text-left'}`}>
         {sections.map((section) => (
           <article key={section.id} className="p-6 sm:p-8 hover:bg-gray-50/50 transition-colors">
             <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-3">
@@ -260,10 +231,10 @@ Sellers must dispatch sold items via our integrated courier partner within 48 ho
         <div className="p-6 sm:p-8 bg-gradient-to-br from-slate-50 to-blue-50/50 rounded-b-3xl">
           <h3 className="text-base font-bold text-gray-900 mb-2 flex items-center gap-2">
             <HelpCircle className="w-5 h-5 text-blue-600" />
-            {activeTab === 'ar' ? 'هل لديك استفسار أو طلب مساعدة في نزاع؟' : 'Need Support or Mediation Assistance?'}
+            {isRTL ? 'هل لديك استفسار أو طلب مساعدة في نزاع؟' : 'Need Support or Mediation Assistance?'}
           </h3>
           <p className="text-gray-600 text-xs sm:text-sm mb-4 leading-relaxed">
-            {activeTab === 'ar'
+            {isRTL
               ? 'فريق خدمة العملاء والوساطة متاح على مدار الساعة لمساعدتك في حل أي نزاع أو الإجابة على استفسارات الشروط:'
               : 'Our mediation and dispute resolution specialists are available to review transaction claims and answer legal inquiries:'}
           </p>
@@ -278,7 +249,7 @@ Sellers must dispatch sold items via our integrated courier partner within 48 ho
               href="/privacy"
               className="bg-white hover:bg-gray-50 text-emerald-700 border border-emerald-200 text-xs font-bold px-5 py-2.5 rounded-xl transition-all shadow-sm flex items-center gap-2"
             >
-              {activeTab === 'ar' ? 'عرض سياسة الخصوصية' : 'View Privacy Policy →'}
+              {isRTL ? 'عرض سياسة الخصوصية' : 'View Privacy Policy →'}
             </Link>
           </div>
         </div>

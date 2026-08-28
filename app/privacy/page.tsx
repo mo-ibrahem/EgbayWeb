@@ -1,17 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { Shield, Lock, Eye, Trash2, Mail, FileText, CheckCircle2, Globe, Building2, AlertTriangle } from 'lucide-react';
 import { useLanguage } from '@/components/LanguageProvider';
 
 export default function PrivacyPage() {
-  const { isRTL, language, changeLanguage } = useLanguage();
-  const [activeTab, setActiveTab] = useState<'en' | 'ar'>(language === 'ar' ? 'ar' : 'en');
-
-  useEffect(() => {
-    setActiveTab(language === 'ar' ? 'ar' : 'en');
-  }, [language]);
+  const { isRTL } = useLanguage();
 
   const enSections = [
     {
@@ -177,7 +172,7 @@ Data is shared strictly with authorized infrastructure partners necessary to ful
     },
   ];
 
-  const sections = activeTab === 'ar' ? arSections : enSections;
+  const sections = isRTL ? arSections : enSections;
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-12">
@@ -187,37 +182,13 @@ Data is shared strictly with authorized infrastructure partners necessary to ful
           <Shield className="w-7 h-7" />
         </div>
         <h1 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight mb-2">
-          {activeTab === 'ar' ? 'سياسة الخصوصية وحماية البيانات الشخصية' : 'Privacy Policy & Data Protection'}
+          {isRTL ? 'سياسة الخصوصية وحماية البيانات الشخصية' : 'Privacy Policy & Data Protection'}
         </h1>
         <p className="text-xs sm:text-sm text-gray-500 max-w-xl mx-auto mb-6">
-          {activeTab === 'ar'
+          {isRTL
             ? 'نلتزم بحماية بياناتك الشخصية ومعاملاتك المالية وفقاً للقانون المصري رقم ١٥١ لسنة ٢٠٢٠ والمعايير العالمية.'
             : 'Compliant with Egyptian Law No. 151 of 2020, Law No. 181 of 2018, and Apple App Store Review Guidelines.'}
         </p>
-
-        {/* Bilingual Document Switcher */}
-        <div className="inline-flex p-1 bg-gray-100 rounded-2xl border border-gray-200 shadow-inner">
-          <button
-            onClick={() => setActiveTab('ar')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-              activeTab === 'ar'
-                ? 'bg-[#3665F3] text-white shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            🇪🇬 الوثيقة بالعربية
-          </button>
-          <button
-            onClick={() => setActiveTab('en')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-              activeTab === 'en'
-                ? 'bg-[#3665F3] text-white shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            🇺🇸 English Policy
-          </button>
-        </div>
       </div>
 
       {/* Compliance Highlights Ribbon */}
@@ -226,10 +197,10 @@ Data is shared strictly with authorized infrastructure partners necessary to ful
           <Building2 className="w-6 h-6 text-emerald-600 flex-shrink-0" />
           <div>
             <h4 className="text-xs font-bold text-gray-900">
-              {activeTab === 'ar' ? 'قانون ١٥١ لسنة ٢٠٢٠' : 'Egyptian Law 151/2020'}
+              {isRTL ? 'قانون ١٥١ لسنة ٢٠٢٠' : 'Egyptian Law 151/2020'}
             </h4>
             <p className="text-[11px] text-gray-500">
-              {activeTab === 'ar' ? 'حماية تامة للبيانات الشخصية' : 'Personal data protection compliant'}
+              {isRTL ? 'حماية تامة للبيانات الشخصية' : 'Personal data protection compliant'}
             </p>
           </div>
         </div>
@@ -238,10 +209,10 @@ Data is shared strictly with authorized infrastructure partners necessary to ful
           <Lock className="w-6 h-6 text-blue-600 flex-shrink-0" />
           <div>
             <h4 className="text-xs font-bold text-gray-900">
-              {activeTab === 'ar' ? 'معايير Apple 5.1' : 'Apple 5.1 Privacy Ready'}
+              {isRTL ? 'معايير Apple 5.1' : 'Apple 5.1 Privacy Ready'}
             </h4>
             <p className="text-[11px] text-gray-500">
-              {activeTab === 'ar' ? 'حذف فوري للحساب والبيانات' : 'Instant account & data deletion'}
+              {isRTL ? 'حذف فوري للحساب والبيانات' : 'Instant account & data deletion'}
             </p>
           </div>
         </div>
@@ -250,17 +221,17 @@ Data is shared strictly with authorized infrastructure partners necessary to ful
           <Shield className="w-6 h-6 text-purple-600 flex-shrink-0" />
           <div>
             <h4 className="text-xs font-bold text-gray-900">
-              {activeTab === 'ar' ? 'تشفير AES-256' : 'AES-256 TLS Encryption'}
+              {isRTL ? 'تشفير AES-256' : 'AES-256 TLS Encryption'}
             </h4>
             <p className="text-[11px] text-gray-500">
-              {activeTab === 'ar' ? 'أعلى معايير الأمان المصرفي' : 'Bank-grade SSL transmission'}
+              {isRTL ? 'أعلى معايير الأمان المصرفي' : 'Bank-grade SSL transmission'}
             </p>
           </div>
         </div>
       </div>
 
       {/* Main Content Sections */}
-      <div className={`bg-white rounded-3xl border border-gray-200/80 shadow-sm divide-y divide-gray-100 overflow-hidden ${activeTab === 'ar' ? 'text-right' : 'text-left'}`}>
+      <div className={`bg-white rounded-3xl border border-gray-200/80 shadow-sm divide-y divide-gray-100 overflow-hidden ${isRTL ? 'text-right' : 'text-left'}`}>
         {sections.map((section) => {
           const Icon = section.icon;
           return (
@@ -285,11 +256,11 @@ Data is shared strictly with authorized infrastructure partners necessary to ful
           <div className="flex items-center gap-2 mb-2">
             <Mail className="w-5 h-5 text-blue-600" />
             <h3 className="text-base font-bold text-gray-900">
-              {activeTab === 'ar' ? 'التواصل مع مسؤول الخصوصية وحماية البيانات' : 'Data Protection Officer & Privacy Inquiries'}
+              {isRTL ? 'التواصل مع مسؤول الخصوصية وحماية البيانات' : 'Data Protection Officer & Privacy Inquiries'}
             </h3>
           </div>
           <p className="text-gray-600 text-xs sm:text-sm mb-4 leading-relaxed">
-            {activeTab === 'ar'
+            {isRTL
               ? 'إذا كان لديك أي استفسار أو طلب لتعديل أو حذف بياناتك الشخصية، يسعدنا تواصلك مع فريق الامتثال القانوني:'
               : 'For data access requests, deletion verifications, or regulatory inquiries, contact our dedicated legal & privacy team:'}
           </p>
@@ -304,7 +275,7 @@ Data is shared strictly with authorized infrastructure partners necessary to ful
               href="/terms"
               className="bg-white hover:bg-gray-50 text-indigo-600 border border-indigo-200 text-xs font-bold px-5 py-2.5 rounded-xl transition-all shadow-sm flex items-center gap-2"
             >
-              {activeTab === 'ar' ? 'عرض الشروط والأحكام' : 'View Terms of Service →'}
+              {isRTL ? 'عرض الشروط والأحكام' : 'View Terms of Service →'}
             </Link>
           </div>
         </div>
