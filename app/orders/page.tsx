@@ -12,6 +12,7 @@ import { useAuth } from '@/components/AuthProvider';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { getUserOrders, verifyAndReleaseOrder, type MarketplaceOrder } from '@/lib/orderService';
 import { formatEGP } from '@/lib/products';
+import SmartImage from '@/components/SmartImage';
 
 function OrdersContent() {
   const router = useRouter();
@@ -73,7 +74,7 @@ function OrdersContent() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-black text-gray-900 flex items-center gap-2">
@@ -99,23 +100,49 @@ function OrdersContent() {
             href="/"
             className="bg-blue-600 text-white text-xs font-bold px-5 py-2.5 rounded-xl hover:bg-blue-700 transition-colors inline-block"
           >
-            Explore Marketplace
+            Start Shopping
           </Link>
         </div>
       ) : (
         <div className="space-y-4">
-          {orders.map(order => {
-            const isBuyer = order.buyer_id === user?.id;
+          {orders.map((order) => {
+            const isBuyer = user?.id === order.buyer_id;
             const isCompleted = order.status === 'completed';
 
             return (
               <div
                 key={order.id}
-                className="bg-white rounded-3xl border border-gray-100 p-6 shadow-sm hover:shadow-md transition-all space-y-4"
+                className="bg-white rounded-3xl border border-gray-100 p-6 shadow-sm hover:shadow-md transition-all flex flex-col md:flex-row gap-6 items-start md:items-center justify-between"
               >
-                <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-gray-50">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono font-bold text-gray-400">Order #{order.id.slice(-8).toUpperCase()}</span>
+                {/* Product details */}
+                <div className="flex items-center gap-4">
+                  <div className="w-20 h-20 rounded-2xl bg-gray-100 overflow-hidden relative flex-shrink-0">
+                    {order.product?.images?.[0] ? (
+                      <SmartImage
+                        src={order.product.images[0]}
+                        alt={order.product.title || ''}
+                        fill
+                        className="object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-300">
+                        <Package className="w-8 h-8" />
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-bold text-gray-900 text-sm truncate">{order.product?.title || 'Marketplace Item'}</p>
+                    <p className="text-blue-600 font-black text-sm mt-0.5">{formatEGP(order.amount)}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {order.handover_method === 'courier' ? '🚚 Bosta Express' : '🤝 Meetup Handover'} · {isBuyer ? 'You are Buyer' : 'You are Seller'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Actions / PIN Display */}
+                <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
+                  <div className="text-right hidden md:block">
+                    <span className="block text-xs font-mono font-bold text-gray-400">#{order.id.slice(-8).toUpperCase()}</span>
                     <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
                       isCompleted
                         ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
@@ -125,31 +152,7 @@ function OrdersContent() {
                     </span>
                   </div>
 
-                  <span className="text-xs text-gray-400">
-                    {new Date(order.created_at).toLocaleDateString('en-EG', { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </span>
-                </div>
-
-                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-                  <div className="flex gap-3 min-w-0">
-                    <div className="w-16 h-16 rounded-xl bg-gray-50 relative overflow-hidden flex-shrink-0">
-                      {order.product?.images?.[0] ? (
-                        <Image src={order.product.images[0]} alt={order.product.title || ''} fill className="object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-2xl">📦</div>
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-bold text-gray-900 text-sm truncate">{order.product?.title || 'Marketplace Item'}</p>
-                      <p className="text-blue-600 font-black text-sm mt-0.5">{formatEGP(order.amount)}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        {order.handover_method === 'courier' ? '🚚 Bosta Express' : '🤝 Meetup Handover'} · {isBuyer ? 'You are Buyer' : 'You are Seller'}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Actions / PIN Display */}
-                  <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                  <div className="flex items-center gap-2">
                     {isBuyer && !isCompleted && order.meetup_pin && (
                       <div className="bg-blue-50 border border-blue-200 rounded-2xl px-4 py-2 text-center">
                         <span className="block text-[10px] uppercase tracking-wider font-bold text-blue-700">Release PIN</span>
