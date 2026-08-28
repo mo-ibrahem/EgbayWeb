@@ -144,6 +144,13 @@ export default function Footer() {
             <a href="mailto:support@egbay.market" className="hover:text-gray-600 transition-colors">{isRTL ? 'المساعدة' : 'Help'}</a>
           </div>
         </div>
+
+        {/* ─── Disclaimer Note for Search Engines & Security Scanners ─── */}
+        <div className="mt-4 text-[10px] text-gray-400 text-center leading-relaxed">
+          {isRTL
+            ? 'إيجي باي (egbay.shop) هي منصة تجارة إلكترونية مصرية مستقلة تعمل داخل جمهورية مصر العربية ولا تتبع أي جهات تجارية خارجية.'
+            : 'EgyBay (egbay.shop) is an independent peer-to-peer marketplace operating in Egypt. EgyBay is not affiliated with, endorsed by, or sponsored by eBay Inc. or any international entities.'}
+        </div>
       </div>
     </footer>
   );
