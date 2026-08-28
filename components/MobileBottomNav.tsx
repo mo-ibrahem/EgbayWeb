@@ -3,21 +3,35 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Compass, Plus, Package, User, Wallet } from 'lucide-react';
+import { Home, Video, Plus, Package, User } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { useLanguage } from '@/components/LanguageProvider';
 
 export default function MobileBottomNav() {
   const pathname = usePathname();
   const { user } = useAuth();
-  const { isRTL, t } = useLanguage();
+  const { isRTL } = useLanguage();
 
-  // Hide bottom nav on full-screen checkout or individual chat view if needed
-  if (pathname.startsWith('/checkout') || pathname.startsWith('/chat/')) {
+  // Hide on full-screen pages that have their own UI
+  if (
+    pathname.startsWith('/checkout') ||
+    pathname.startsWith('/chat/') ||
+    pathname.startsWith('/live/studio') ||
+    pathname.startsWith('/live/')
+  ) {
     return null;
   }
 
-  const navItems = [
+  type NavItem = {
+    href: string;
+    label: string;
+    icon: React.ElementType;
+    isPrimary?: boolean;
+    isActive: boolean;
+    isLive?: boolean;
+  };
+
+  const navItems: NavItem[] = [
     {
       href: '/',
       label: isRTL ? 'الرئيسية' : 'Home',
@@ -25,10 +39,11 @@ export default function MobileBottomNav() {
       isActive: pathname === '/',
     },
     {
-      href: '/?browse=1',
-      label: isRTL ? 'الأقسام' : 'Explore',
-      icon: Compass,
-      isActive: pathname.startsWith('/products') && pathname !== '/products/new',
+      href: '/live',
+      label: isRTL ? 'بث مباشر' : 'Live',
+      icon: Video,
+      isActive: pathname === '/live',
+      isLive: true,
     },
     {
       href: user ? '/sell' : '/login?redirect=/sell',
@@ -52,7 +67,7 @@ export default function MobileBottomNav() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-white/95 backdrop-blur-lg border-t border-gray-200/80 px-2 py-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] safe-area-pb">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-white/95 backdrop-blur-lg border-t border-gray-200/80 px-2 py-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
       <div className="flex items-center justify-around max-w-md mx-auto">
         {navItems.map((item, idx) => {
           const Icon = item.icon;
@@ -80,17 +95,22 @@ export default function MobileBottomNav() {
               href={item.href}
               className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all ${
                 item.isActive
-                  ? 'text-[#3665F3] font-bold'
+                  ? item.isLive ? 'text-red-600 font-bold' : 'text-[#3665F3] font-bold'
                   : 'text-gray-400 hover:text-gray-700'
               }`}
             >
               <div className="relative">
                 <Icon className={`w-5 h-5 transition-transform ${item.isActive ? 'scale-110' : ''}`} />
-                {item.isActive && (
+                {/* Pulsing red dot for Live tab always */}
+                {item.isLive && (
+                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-600 rounded-full border border-white animate-pulse" />
+                )}
+                {/* Active dot for non-live tabs */}
+                {item.isActive && !item.isLive && (
                   <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-[#3665F3] rounded-full" />
                 )}
               </div>
-              <span className={`text-[10px] mt-1 ${item.isActive ? 'font-black' : 'font-medium'}`}>
+              <span className={`text-[10px] mt-1 ${item.isActive ? 'font-black' : 'font-medium'} ${item.isLive ? 'text-red-600' : ''}`}>
                 {item.label}
               </span>
             </Link>
