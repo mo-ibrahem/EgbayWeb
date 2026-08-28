@@ -6,6 +6,7 @@ import { LanguageProvider } from '@/components/LanguageProvider';
 import { MarketplaceJsonLd } from '@/components/JsonLd';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import MobileBottomNav from '@/components/MobileBottomNav';
 import PageTransition from '@/components/PageTransition';
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://egbay.shop';
@@ -112,12 +113,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             }>
               <Navbar />
             </Suspense>
-            <main className="flex-1 flex flex-col">
+            <main className="flex-1 flex flex-col pb-16 md:pb-0">
               <PageTransition>
                 {children}
               </PageTransition>
             </main>
             <Footer />
+            <Suspense fallback={null}>
+              <MobileBottomNav />
+            </Suspense>
           </AuthProvider>
         </LanguageProvider>
       </body>

@@ -534,6 +534,25 @@ export default function ProductDetailPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Mobile Sticky Bottom CTA Bar */}
+      {!isOwner && (
+        <div className="fixed bottom-14 left-0 right-0 z-30 md:hidden bg-white/95 backdrop-blur-md border-t border-slate-200 px-3 py-2.5 shadow-lg flex items-center gap-2">
+          <button
+            onClick={() => setOfferOpen(true)}
+            className="flex-1 py-3 px-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl text-center transition-colors"
+          >
+            {isRTL ? 'تقديم عرض' : 'Make Offer'}
+          </button>
+          <Link
+            href={`/checkout/${product.id}`}
+            className="flex-[2] py-3 px-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-xs font-black rounded-xl text-center shadow-md shadow-blue-500/20 flex items-center justify-center gap-1.5"
+          >
+            <ShoppingBag className="w-3.5 h-3.5" />
+            <span>{isRTL ? 'شراء بالضمان' : 'Buy with Escrow'}</span>
+          </Link>
+        </div>
+      )}
     </div>
   );
 }

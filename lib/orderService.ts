@@ -29,6 +29,13 @@ export interface MarketplaceOrder {
   };
   tracking_number?: string;
   courier_name?: string;
+  bosta_tracking_url?: string;
+  delivered_at?: string;
+  inspection_expiry_at?: string;
+  dispute_reason?: string;
+  dispute_notes?: string;
+  dispute_created_at?: string;
+  estimated_delivery?: string;
   product?: {
     id: string;
     title: string;
@@ -43,6 +50,22 @@ export interface MarketplaceOrder {
 
 const inMemoryOrders: Record<string, MarketplaceOrder> = {};
 
+export function getBostaTrackingUrl(trackingNumber: string): string {
+  if (!trackingNumber) return 'https://bosta.co/tracking';
+  return `https://bosta.co/tracking/?trackingNumber=${encodeURIComponent(trackingNumber.trim())}`;
+}
+
+export function calculateEstimatedDelivery(governorate?: string): string {
+  const gov = (governorate || '').toLowerCase();
+  if (gov.includes('cairo') || gov.includes('giza') || gov.includes('القاهرة') || gov.includes('الجيزة')) {
+    return '24–48 Hours (توصيل خلال ٢٤ إلى ٤٨ ساعة)';
+  }
+  if (gov.includes('alexandria') || gov.includes('الإسكندرية') || gov.includes('mansoura') || gov.includes('tanta') || gov.includes('الدلتا')) {
+    return '48 Hours (توصيل خلال يومين عمل)';
+  }
+  return '2–3 Business Days (توصيل خلال ٢ إلى ٣ أيام عمل)';
+}
+
 export async function createMarketplaceOrder(orderData: {
   product_id: string;
   buyer_id: string;
@@ -54,6 +77,7 @@ export async function createMarketplaceOrder(orderData: {
 }): Promise<MarketplaceOrder> {
   const orderId = `ord_${Date.now()}`;
   const randomPin = Math.floor(100000 + Math.random() * 900000).toString();
+  const estimated = calculateEstimatedDelivery(orderData.shipping_address?.governorate);
 
   const newOrder: MarketplaceOrder = {
     id: orderId,
@@ -67,6 +91,8 @@ export async function createMarketplaceOrder(orderData: {
     meetup_pin: randomPin,
     shipping_address: orderData.shipping_address,
     product: orderData.product_snapshot,
+    courier_name: 'Bosta Express (بوسطة مصر)',
+    estimated_delivery: estimated,
     created_at: new Date().toISOString(),
   };
 
@@ -83,6 +109,8 @@ export async function createMarketplaceOrder(orderData: {
           handover_method: orderData.handover_method,
           meetup_pin: randomPin,
           amount: orderData.amount,
+          courier_name: 'Bosta Express',
+          estimated_delivery: estimated,
         }),
         shipping_address: orderData.shipping_address,
         created_at: new Date().toISOString(),
@@ -114,25 +142,35 @@ export async function getOrderById(orderId: string): Promise<MarketplaceOrder | 
 
     if (data && !error) {
       const order = data as any;
-      let notesData = {};
+      let notesData: any = {};
       try {
         notesData = typeof order.notes === 'string' ? JSON.parse(order.notes) : order.notes || {};
       } catch {}
+
+      const trackingNum = notesData.tracking_number;
 
       return {
         id: order.id,
         product_id: order.product_id,
         buyer_id: order.buyer_id,
         seller_id: order.seller_id,
-        amount: (notesData as any).amount || 0,
+        amount: notesData.amount || 0,
         currency: 'EGP',
         status: order.status,
-        handover_method: (notesData as any).handover_method || 'courier',
-        meetup_pin: (notesData as any).meetup_pin,
+        handover_method: notesData.handover_method || 'courier',
+        meetup_pin: notesData.meetup_pin,
         shipping_address: order.shipping_address,
-        tracking_number: (notesData as any).tracking_number,
-        courier_name: (notesData as any).courier_name || 'Bosta Express',
+        tracking_number: trackingNum,
+        courier_name: notesData.courier_name || 'Bosta Express (بوسطة مصر)',
+        bosta_tracking_url: trackingNum ? getBostaTrackingUrl(trackingNum) : undefined,
+        delivered_at: notesData.delivered_at,
+        inspection_expiry_at: notesData.inspection_expiry_at,
+        dispute_reason: notesData.dispute_reason,
+        dispute_notes: notesData.dispute_notes,
+        dispute_created_at: notesData.dispute_created_at,
+        estimated_delivery: notesData.estimated_delivery,
         created_at: order.created_at,
+        updated_at: order.updated_at,
       };
     }
   } catch (err) {
@@ -152,25 +190,35 @@ export async function getUserOrders(userId: string): Promise<MarketplaceOrder[]>
 
     if (data && !error && data.length > 0) {
       return data.map((order: any) => {
-        let notesData = {};
+        let notesData: any = {};
         try {
           notesData = typeof order.notes === 'string' ? JSON.parse(order.notes) : order.notes || {};
         } catch {}
+
+        const trackingNum = notesData.tracking_number;
 
         return {
           id: order.id,
           product_id: order.product_id,
           buyer_id: order.buyer_id,
           seller_id: order.seller_id,
-          amount: (notesData as any).amount || 0,
+          amount: notesData.amount || 0,
           currency: 'EGP',
           status: order.status,
-          handover_method: (notesData as any).handover_method || 'courier',
-          meetup_pin: (notesData as any).meetup_pin,
+          handover_method: notesData.handover_method || 'courier',
+          meetup_pin: notesData.meetup_pin,
           shipping_address: order.shipping_address,
-          tracking_number: (notesData as any).tracking_number,
-          courier_name: (notesData as any).courier_name || 'Bosta Express',
+          tracking_number: trackingNum,
+          courier_name: notesData.courier_name || 'Bosta Express (بوسطة مصر)',
+          bosta_tracking_url: trackingNum ? getBostaTrackingUrl(trackingNum) : undefined,
+          delivered_at: notesData.delivered_at,
+          inspection_expiry_at: notesData.inspection_expiry_at,
+          dispute_reason: notesData.dispute_reason,
+          dispute_notes: notesData.dispute_notes,
+          dispute_created_at: notesData.dispute_created_at,
+          estimated_delivery: notesData.estimated_delivery,
           created_at: order.created_at,
+          updated_at: order.updated_at,
         };
       });
     }
@@ -183,10 +231,164 @@ export async function getUserOrders(userId: string): Promise<MarketplaceOrder[]>
   );
 }
 
+/**
+ * Update shipment tracking number (e.g. Bosta AWB) and courier status
+ */
+export async function updateOrderTracking(
+  orderId: string,
+  trackingData: {
+    tracking_number: string;
+    courier_name?: string;
+    status?: MarketplaceOrder['status'];
+  }
+): Promise<MarketplaceOrder> {
+  const order = await getOrderById(orderId);
+  if (!order) throw new Error('Order not found');
+
+  const newStatus = trackingData.status || 'shipped';
+  const courier = trackingData.courier_name || 'Bosta Express (بوسطة مصر)';
+  const bostaUrl = getBostaTrackingUrl(trackingData.tracking_number);
+
+  let deliveredAt: string | undefined = undefined;
+  let inspectionExpiry: string | undefined = undefined;
+
+  if (newStatus === 'delivered') {
+    deliveredAt = new Date().toISOString();
+    inspectionExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  }
+
+  const updatedNotes = {
+    amount: order.amount,
+    handover_method: order.handover_method,
+    meetup_pin: order.meetup_pin,
+    tracking_number: trackingData.tracking_number,
+    courier_name: courier,
+    bosta_tracking_url: bostaUrl,
+    delivered_at: deliveredAt || order.delivered_at,
+    inspection_expiry_at: inspectionExpiry || order.inspection_expiry_at,
+    estimated_delivery: order.estimated_delivery,
+  };
+
+  try {
+    await supabase
+      .from('orders')
+      .update({
+        status: newStatus,
+        notes: JSON.stringify(updatedNotes),
+        updated_at: new Date().toISOString(),
+      } as any)
+      .eq('id', orderId);
+  } catch (err) {
+    console.warn('[OrderService] updateOrderTracking fallback:', err);
+  }
+
+  const updatedOrder: MarketplaceOrder = {
+    ...order,
+    status: newStatus,
+    tracking_number: trackingData.tracking_number,
+    courier_name: courier,
+    bosta_tracking_url: bostaUrl,
+    delivered_at: deliveredAt || order.delivered_at,
+    inspection_expiry_at: inspectionExpiry || order.inspection_expiry_at,
+    updated_at: new Date().toISOString(),
+  };
+
+  inMemoryOrders[orderId] = updatedOrder;
+  return updatedOrder;
+}
+
+/**
+ * Buyer confirms delivery satisfaction, immediately releasing escrow funds to seller
+ */
+export async function approveOrderDelivery(
+  orderId: string,
+  buyerId: string
+): Promise<{ success: boolean; message: string }> {
+  const order = await getOrderById(orderId);
+  if (!order) throw new Error('Order not found');
+  if (order.buyer_id !== buyerId) throw new Error('Unauthorized action');
+
+  try {
+    await supabase
+      .from('orders')
+      .update({
+        status: 'completed',
+        updated_at: new Date().toISOString(),
+      } as any)
+      .eq('id', orderId);
+  } catch (err) {
+    console.warn('[OrderService] approveOrderDelivery fallback:', err);
+  }
+
+  if (inMemoryOrders[orderId]) {
+    inMemoryOrders[orderId].status = 'completed';
+  }
+
+  await releaseEscrowToSeller(orderId, order.seller_id, order.amount);
+
+  return {
+    success: true,
+    message: '🎉 Order confirmed & closed! Escrow funds released to Seller.',
+  };
+}
+
+/**
+ * File an official return request / dispute within the 24-hour inspection window
+ */
+export async function fileOrderDispute(
+  orderId: string,
+  disputeData: {
+    buyer_id: string;
+    reason: string;
+    notes: string;
+    evidence_urls?: string[];
+  }
+): Promise<{ success: boolean; message: string }> {
+  const order = await getOrderById(orderId);
+  if (!order) throw new Error('Order not found');
+  if (order.buyer_id !== disputeData.buyer_id) throw new Error('Unauthorized action');
+
+  const disputeRecord = {
+    amount: order.amount,
+    handover_method: order.handover_method,
+    meetup_pin: order.meetup_pin,
+    tracking_number: order.tracking_number,
+    courier_name: order.courier_name,
+    dispute_reason: disputeData.reason,
+    dispute_notes: disputeData.notes,
+    dispute_created_at: new Date().toISOString(),
+  };
+
+  try {
+    await supabase
+      .from('orders')
+      .update({
+        status: 'disputed',
+        notes: JSON.stringify(disputeRecord),
+        updated_at: new Date().toISOString(),
+      } as any)
+      .eq('id', orderId);
+  } catch (err) {
+    console.warn('[OrderService] fileOrderDispute fallback:', err);
+  }
+
+  if (inMemoryOrders[orderId]) {
+    inMemoryOrders[orderId].status = 'disputed';
+    inMemoryOrders[orderId].dispute_reason = disputeData.reason;
+    inMemoryOrders[orderId].dispute_notes = disputeData.notes;
+    inMemoryOrders[orderId].dispute_created_at = new Date().toISOString();
+  }
+
+  return {
+    success: true,
+    message: '⚠️ Dispute claim filed successfully. Escrow funds are safely frozen. Compliance team is reviewing within 24 hours.',
+  };
+}
+
 export async function verifyAndReleaseOrder(
   orderId: string,
   enteredPin: string,
-  buyerId: string
+  sellerId: string
 ): Promise<{ success: boolean; message: string }> {
   const order = await getOrderById(orderId);
   if (!order) throw new Error('Order not found');
