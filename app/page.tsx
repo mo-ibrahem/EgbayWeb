@@ -373,28 +373,28 @@ function HomeFeedContent() {
 
   return (
     <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-6 space-y-4 sm:space-y-6 pb-28 sm:pb-12 overflow-hidden">
-      {/* ─── Unified Story-Style Category & Live Rail (eBay / Noon Pattern) ─── */}
+      {/* ─── Category Discovery Squircle Rail (eBay Evo Pattern) ─── */}
       <div>
-        <div className="flex items-center gap-3.5 sm:gap-4 overflow-x-auto no-scrollbar py-1">
-          {/* 🔴 Live Stream Story Circle */}
+        <div className="flex items-center gap-3 sm:gap-4 overflow-x-auto no-scrollbar py-1">
+          {/* Live Stream Story Pill */}
           <Link
             href="/live"
-            className="flex flex-col items-center gap-1.5 flex-shrink-0 group w-[68px]"
+            className="flex flex-col items-center gap-1.5 flex-shrink-0 group w-[72px] sm:w-[84px]"
           >
-            <div className="w-14 h-14 rounded-full p-[2.5px] bg-gradient-to-tr from-red-600 via-rose-500 to-amber-500 flex items-center justify-center relative shadow-sm group-hover:scale-105 transition-transform">
-              <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
-                <Video className="w-5 h-5 text-red-600" />
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl p-[2.5px] bg-gradient-to-tr from-red-600 via-rose-500 to-amber-500 flex items-center justify-center relative shadow-sm group-hover:scale-105 transition-transform">
+              <div className="w-full h-full rounded-[14px] bg-white flex items-center justify-center">
+                <Video className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />
               </div>
               <span className="absolute -bottom-1 bg-red-600 text-white text-[8px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded-full border border-white">
                 LIVE
               </span>
             </div>
-            <span className="text-[11px] font-extrabold text-red-600 text-center leading-tight">
-              {isRTL ? 'بث مباشر' : 'Live'}
+            <span className="text-[11px] font-black text-red-600 text-center leading-tight">
+              {isRTL ? 'بث مباشر' : 'Live Shows'}
             </span>
           </Link>
 
-          {/* Category Story Circles */}
+          {/* Category Squircle Tiles */}
           {CATEGORIES_WITH_ICONS.map((cat) => {
             const Icon = cat.icon;
             const isSelected = activeCategory === cat.id || (!activeCategory && cat.id === '');
@@ -404,19 +404,19 @@ function HomeFeedContent() {
               <button
                 key={cat.id || 'all'}
                 onClick={() => handleCategorySelect(cat.id)}
-                className="flex flex-col items-center gap-1.5 flex-shrink-0 group w-[68px]"
+                className="flex flex-col items-center gap-1.5 flex-shrink-0 group w-[72px] sm:w-[84px]"
               >
                 <div
-                  className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-200 shadow-sm group-hover:scale-105 ${
+                  className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-sm group-hover:scale-105 ${
                     isSelected
-                      ? 'ring-2 ring-[#3665F3] ring-offset-2 bg-blue-50 text-[#3665F3]'
+                      ? 'ring-2 ring-[#3665F3] ring-offset-2 bg-blue-50 text-[#3665F3] border-transparent'
                       : 'border border-slate-200 bg-white hover:border-slate-300'
                   }`}
                   style={!isSelected ? { backgroundColor: cat.bg, color: cat.color } : {}}
                 >
-                  <Icon className="w-5 h-5" />
+                  <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
-                <span className={`text-[10px] sm:text-[11px] font-bold text-center leading-tight line-clamp-2 max-w-[68px] ${
+                <span className={`text-[10px] sm:text-xs font-bold text-center leading-tight line-clamp-2 max-w-[76px] ${
                   isSelected ? 'text-blue-700 font-black' : 'text-slate-700'
                 }`}>
                   {label}
@@ -461,7 +461,7 @@ function HomeFeedContent() {
                   }}
                   className="mt-1 sm:mt-2 inline-flex items-center gap-1.5 bg-white text-slate-900 text-xs font-bold px-3.5 py-1.5 sm:py-2 rounded-xl hover:bg-slate-100 transition-all shadow-md"
                 >
-                  <span>{banner.category === '__live__' ? (isRTL ? 'دخول البث المباشر 🔴' : 'Watch Live Shows 🔴') : (isRTL ? 'تصفح العروض' : 'Browse Deals')}</span>
+                  <span>{banner.category === '__live__' ? (isRTL ? 'دخول البث المباشر' : 'Watch Live Shows') : (isRTL ? 'تصفح العروض' : 'Browse Deals')}</span>
                   <ArrowRight className={`w-3.5 h-3.5 ${isRTL ? 'rotate-180' : ''}`} />
                 </button>
               )}
