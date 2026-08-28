@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient: Deep Royal Blue to Electric Cobalt -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3665F3" />
+      <stop offset="100%" stop-color="#1E40AF" />
+    </linearGradient>
+
+    <!-- Glossy Sphere Highlight -->
+    <linearGradient id="glossGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.25" />
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.0" />
+    </linearGradient>
+
+    <!-- Letter Gradient for g -->
+    <linearGradient id="gGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F59E0B" />
+      <stop offset="100%" stop-color="#EF4444" />
+    </linearGradient>
+
+    <filter id="dropShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#0F172A" flood-opacity="0.35" />
+    </filter>
+  </defs>
+
+  <!-- App Icon Squircle Container -->
+  <rect width="512" height="512" rx="128" fill="url(#bgGrad)" />
+
+  <!-- Top Glass Highlight -->
+  <path d="M 0,128 C 0,57.3 57.3,0 128,0 L 384,0 C 454.7,0 512,57.3 512,128 L 512,240 C 350,210 162,210 0,240 Z" fill="url(#glossGrad)" />
+
+  <!-- Inner Stroke -->
+  <rect x="8" y="8" width="496" height="496" rx="120" fill="none" stroke="#FFFFFF" stroke-width="8" stroke-opacity="0.2" />
+
+  <!-- Monogram Letters "eg" -->
+  <g filter="url(#dropShadow)" transform="translate(256, 260)">
+    <!-- Letter "e" (Crisp White) -->
+    <text
+      x="-85"
+      y="65"
+      font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif"
+      font-size="240"
+      font-weight="900"
+      fill="#FFFFFF"
+      text-anchor="middle"
+      letter-spacing="-10"
+    >e</text>
+
+    <!-- Letter "g" (Vibrant Amber/Coral Gradient with Gold Glow) -->
+    <text
+      x="75"
+      y="65"
+      font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif"
+      font-size="240"
+      font-weight="900"
+      fill="url(#gGrad)"
+      text-anchor="middle"
+      letter-spacing="-10"
+    >g</text>
+
+    <!-- Little Egyptian Gold Dot / Marketplace Badge Sparkle -->
+    <circle cx="170" cy="-60" r="18" fill="#FDE047" stroke="#3665F3" stroke-width="5" />
+  </g>
+</svg>
