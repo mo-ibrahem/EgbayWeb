@@ -10,21 +10,36 @@ import {
   Lock, ChevronRight, Package, User
 } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
+import { useLanguage } from '@/components/LanguageProvider';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { productService, formatEGP, type Product } from '@/lib/products';
 import { getUserWallet, deductWalletSpendableFunds, type UserWallet } from '@/lib/walletService';
 import { createMarketplaceOrder } from '@/lib/orderService';
+import SmartImage from '@/components/SmartImage';
 
 const GOVERNORATES = [
-  'Cairo', 'Giza', 'Alexandria', 'Dakahlia', 'Sharqia',
-  'Qalyubia', 'Gharbia', 'Red Sea', 'Suez', 'Port Said',
-  'Luxor', 'Aswan', 'Asyut', 'Beheira', 'Beni Suef'
+  { en: 'Cairo', ar: 'القاهرة' },
+  { en: 'Giza', ar: 'الجيزة' },
+  { en: 'Alexandria', ar: 'الإسكندرية' },
+  { en: 'Dakahlia', ar: 'الدقهلية' },
+  { en: 'Sharqia', ar: 'الشرقية' },
+  { en: 'Qalyubia', ar: 'القليوبية' },
+  { en: 'Gharbia', ar: 'الغربية' },
+  { en: 'Red Sea', ar: 'البحر الأحمر' },
+  { en: 'Suez', ar: 'السويس' },
+  { en: 'Port Said', ar: 'بورسعيد' },
+  { en: 'Luxor', ar: 'الأقصر' },
+  { en: 'Aswan', ar: 'أسوان' },
+  { en: 'Asyut', ar: 'أسيوط' },
+  { en: 'Beheira', ar: 'البحيرة' },
+  { en: 'Beni Suef', ar: 'بني سويف' },
 ];
 
 function CheckoutContent() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
+  const { isRTL } = useLanguage();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [wallet, setWallet] = useState<UserWallet | null>(null);
@@ -41,7 +56,7 @@ function CheckoutContent() {
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [governorate, setGovernorate] = useState('Cairo');
-  const [city, setCity] = useState('New Cairo');
+  const [city, setCity] = useState('');
   const [streetAddress, setStreetAddress] = useState('');
 
   useEffect(() => {
@@ -79,7 +94,7 @@ function CheckoutContent() {
     e.preventDefault();
     if (!product || !user) return;
     if (deliveryMethod === 'courier' && (!phoneNumber || !streetAddress || !city)) {
-      setErrorMsg('Please complete your shipping address and contact number');
+      setErrorMsg(isRTL ? 'يرجى إكمال بيانات العنوان ورقم الهاتف للتوصيل' : 'Please complete your shipping address and contact number');
       return;
     }
 
@@ -100,15 +115,9 @@ function CheckoutContent() {
           city,
           street: streetAddress,
         },
-        product_snapshot: {
-          id: product.id,
-          title: product.title,
-          price: product.price,
-          images: product.images,
-          condition: product.condition,
-          category: product.category,
-        },
       });
+
+      if (!order) throw new Error(isRTL ? 'تعذر إنشاء الطلب، يرجى المحاولة ثانية' : 'Failed to create order');
 
       if (walletDeduction > 0) {
         await deductWalletSpendableFunds(user.id, walletDeduction, order.id, product.title);
@@ -117,12 +126,14 @@ function CheckoutContent() {
       setCreatedOrderId(order.id);
       setOrderComplete(true);
     } catch (err: any) {
-      setErrorMsg(err?.message || 'Failed to place order. Please try again.');
+      console.error(err);
+      setErrorMsg(err.message || (isRTL ? 'حدث خطأ أثناء معالجة الطلب' : 'Failed to place order. Please try again.'));
+    } finally {
       setSubmitting(false);
     }
   };
 
-  if (authLoading || loading) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
@@ -130,302 +141,391 @@ function CheckoutContent() {
     );
   }
 
+  if (!product) return null;
+
   if (orderComplete) {
     return (
-      <div className="max-w-xl mx-auto px-4 py-16 text-center">
-        <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-500/20">
-          <CheckCircle2 className="w-8 h-8" />
-        </div>
-        <h1 className="text-2xl font-black text-gray-900 mb-2">Order Confirmed & Escrow Secured! 🎉</h1>
-        <p className="text-sm text-gray-500 mb-6 leading-relaxed">
-          Your payment of <strong>{formatEGP(totalPrice)}</strong> is held in safe escrow. Funds will only be released to the seller once you inspect and receive the item.
-        </p>
+      <div className="min-h-[75vh] flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-3xl border border-slate-200/80 p-8 text-center shadow-xl space-y-5">
+          <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/20">
+            <CheckCircle2 className="w-8 h-8" />
+          </div>
 
-        <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm text-left mb-6 space-y-2">
-          <div className="flex justify-between text-xs text-gray-500">
-            <span>Order Reference:</span>
-            <span className="font-mono font-bold text-gray-900">{createdOrderId}</span>
+          <div>
+            <h2 className="text-2xl font-black text-slate-900 mb-1">
+              {isRTL ? 'تم تأكيد طلبك بنجاح! 🎉' : 'Order Confirmed! 🎉'}
+            </h2>
+            <p className="text-xs text-slate-500">
+              {isRTL
+                ? 'تم حجز المبلغ بأمان في حساب الضمان، وسيتم إشعار البائع لتجهيز وشحن السلعة فوراً.'
+                : 'Funds are held safely in escrow. The seller has been notified to dispatch your package.'}
+            </p>
           </div>
-          <div className="flex justify-between text-xs text-gray-500">
-            <span>Handover Mode:</span>
-            <span className="font-bold text-gray-900">{deliveryMethod === 'courier' ? '🚚 Bosta Express Courier' : '🤝 In-Person QR / PIN Meetup'}</span>
-          </div>
-          <div className="flex justify-between text-xs text-gray-500">
-            <span>Escrow Status:</span>
-            <span className="font-bold text-emerald-600">🛡️ Protected in Escrow</span>
-          </div>
-        </div>
 
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Link
-            href="/orders"
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-3 rounded-xl text-sm transition-all shadow-md"
-          >
-            Track My Orders
-          </Link>
-          <Link
-            href="/"
-            className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold px-6 py-3 rounded-xl text-sm transition-all"
-          >
-            Back to Marketplace
-          </Link>
+          <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 text-xs space-y-2 text-left rtl:text-right">
+            <div className="flex justify-between">
+              <span className="text-slate-500">{isRTL ? 'رقم الطلب:' : 'Order ID:'}</span>
+              <span className="font-mono font-bold text-slate-800">{createdOrderId.slice(0, 8)}...</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-500">{isRTL ? 'المبلغ المحجوز في الضمان:' : 'Total Locked in Escrow:'}</span>
+              <span className="font-black text-emerald-700">{formatEGP(totalPrice)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-500">{isRTL ? 'طريقة الاستلام:' : 'Handover:'}</span>
+              <span className="font-bold text-slate-800">
+                {deliveryMethod === 'courier'
+                  ? (isRTL ? 'شحن لباب البيت (بوسطة)' : 'Doorstep Courier (Bosta)')
+                  : (isRTL ? 'تسليم يدوي بكود PIN' : 'In-Person PIN Meetup')}
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-2 pt-2">
+            <Link
+              href="/orders"
+              className="block w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 text-white font-bold py-3.5 rounded-2xl text-xs shadow-md transition-all text-center"
+            >
+              {isRTL ? 'تتبع حالة الطلب والضمان' : 'View in My Orders'}
+            </Link>
+            <Link
+              href="/"
+              className="block w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-2xl text-xs transition-colors text-center"
+            >
+              {isRTL ? 'العودة للتسوق' : 'Back to Marketplace'}
+            </Link>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8">
-      <div className="flex items-center gap-2 mb-6">
-        <button onClick={() => router.back()} className="text-gray-500 hover:text-gray-900">
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <h1 className="text-xl font-black text-gray-900">Secure Escrow Checkout</h1>
-      </div>
-
-      {errorMsg && (
-        <div className="mb-6 bg-red-50 text-red-700 text-sm p-4 rounded-2xl border border-red-200 flex items-center gap-2">
-          <AlertCircle className="w-5 h-5 flex-shrink-0" />
-          {errorMsg}
+    <div className="min-h-screen bg-slate-50 py-8">
+      <div className="max-w-4xl mx-auto px-4">
+        {/* Navigation Breadcrumb */}
+        <div className="mb-6">
+          <Link
+            href={`/products/${product.id}`}
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 transition-colors"
+          >
+            <ArrowLeft className={`w-4 h-4 ${isRTL ? 'rotate-180' : ''}`} />
+            {isRTL ? 'الرجوع للإعلان' : 'Back to Product'}
+          </Link>
         </div>
-      )}
 
-      <form onSubmit={handlePlaceOrder}>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left 2 Cols: Form Options */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Delivery Method */}
-            <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
-              <h2 className="text-sm font-bold uppercase tracking-wider text-gray-400 mb-4 flex items-center gap-2">
-                <Truck className="w-4 h-4 text-blue-600" /> 1. Delivery & Handover Method
+          {/* Main Checkout Form (2 cols) */}
+          <form onSubmit={handlePlaceOrder} className="lg:col-span-2 space-y-6">
+            {errorMsg && (
+              <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 text-rose-700 text-xs font-medium flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                {errorMsg}
+              </div>
+            )}
+
+            {/* 1. Delivery / Handover Method */}
+            <div className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-sm space-y-4">
+              <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
+                <Truck className="w-4 h-4 text-blue-600" />
+                {isRTL ? '١. طريقة الاستلام والتوصيل' : '1. Delivery & Handover Method'}
               </h2>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
                   type="button"
                   onClick={() => setDeliveryMethod('courier')}
-                  className={`p-4 rounded-2xl border-2 text-left transition-all ${
+                  className={`p-4 rounded-2xl border-2 text-left rtl:text-right transition-all flex flex-col justify-between ${
                     deliveryMethod === 'courier'
-                      ? 'border-blue-600 bg-blue-50/50'
-                      : 'border-gray-100 hover:border-gray-200'
+                      ? 'border-blue-600 bg-blue-50/40 ring-2 ring-blue-500/20'
+                      : 'border-slate-200 hover:border-slate-300'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <span className="font-bold text-gray-900 text-sm">🚚 Courier Delivery (Bosta)</span>
-                    <span className="text-xs font-bold text-blue-600">+EGP 65</span>
+                    <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center">
+                      <Truck className="w-4 h-4" />
+                    </div>
+                    <span className="text-xs font-black text-blue-700">65 EGP</span>
                   </div>
-                  <p className="text-xs text-gray-500">Doorstep delivery across all Egypt governorates with live tracking.</p>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-900">
+                      {isRTL ? 'شحن سريع لباب البيت' : 'Doorstep Courier (Bosta)'}
+                    </h4>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      {isRTL ? 'تغطية لكافة محافظات مصر مع مهلة فحص ٢٤ ساعة' : 'All Egyptian Governorates + 24h inspection'}
+                    </p>
+                  </div>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setDeliveryMethod('qr_meetup')}
-                  className={`p-4 rounded-2xl border-2 text-left transition-all ${
+                  className={`p-4 rounded-2xl border-2 text-left rtl:text-right transition-all flex flex-col justify-between ${
                     deliveryMethod === 'qr_meetup'
-                      ? 'border-blue-600 bg-blue-50/50'
-                      : 'border-gray-100 hover:border-gray-200'
+                      ? 'border-blue-600 bg-blue-50/40 ring-2 ring-blue-500/20'
+                      : 'border-slate-200 hover:border-slate-300'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <span className="font-bold text-gray-900 text-sm">🤝 In-Person Meetup</span>
-                    <span className="text-xs font-bold text-emerald-600">FREE</span>
+                    <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                      <QrCode className="w-4 h-4" />
+                    </div>
+                    <span className="text-xs font-black text-emerald-700">{isRTL ? 'مجاناً' : 'FREE'}</span>
                   </div>
-                  <p className="text-xs text-gray-500">Meet in public, inspect item, release escrow with 6-digit PIN.</p>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-900">
+                      {isRTL ? 'تسليم يدوي بكود PIN' : 'In-Person Meetup (PIN)'}
+                    </h4>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      {isRTL ? 'معاينة السلعة وتسليم كود PIN للبائع عند الرضا' : 'Inspect item physically, share PIN to release funds'}
+                    </p>
+                  </div>
                 </button>
               </div>
             </div>
 
-            {/* Shipping Address (Courier only) */}
+            {/* 2. Shipping Address (Courier Only) */}
             {deliveryMethod === 'courier' && (
-              <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-4">
-                <h2 className="text-sm font-bold uppercase tracking-wider text-gray-400 mb-2 flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-blue-600" /> 2. Shipping Address in Egypt
+              <div className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-sm space-y-4">
+                <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-blue-600" />
+                  {isRTL ? '٢. عنوان التوصيل وبيانات الاتصال' : '2. Shipping Address & Contact'}
                 </h2>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1">Full Name</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      {isRTL ? 'الاسم بالكامل' : 'Full Name'}
+                    </label>
                     <input
                       type="text"
                       value={fullName}
                       onChange={e => setFullName(e.target.value)}
-                      placeholder="Receiver's name"
-                      className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-blue-500"
+                      placeholder={isRTL ? 'الاسم المستلم' : 'Recipient full name'}
+                      className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs outline-none focus:border-blue-500"
                       required
                     />
                   </div>
+
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1">Phone Number (+20)</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      {isRTL ? 'رقم الهاتف (للتواصل مع المندوب)' : 'Mobile Phone Number'}
+                    </label>
                     <input
                       type="tel"
                       value={phoneNumber}
                       onChange={e => setPhoneNumber(e.target.value)}
-                      placeholder="010XXXXXXXX"
-                      className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-blue-500"
+                      placeholder="01012345678"
+                      className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs outline-none focus:border-blue-500 font-mono"
                       required
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1">Governorate</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      {isRTL ? 'المحافظة' : 'Governorate'}
+                    </label>
                     <select
                       value={governorate}
                       onChange={e => setGovernorate(e.target.value)}
-                      className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-blue-500 bg-white"
+                      className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs outline-none focus:border-blue-500 bg-white"
                     >
-                      {GOVERNORATES.map(g => <option key={g} value={g}>{g}</option>)}
+                      {GOVERNORATES.map(g => (
+                        <option key={g.en} value={g.en}>
+                          {isRTL ? g.ar : g.en}
+                        </option>
+                      ))}
                     </select>
                   </div>
+
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1">City / District</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      {isRTL ? 'المدينة / الحي' : 'City / District'}
+                    </label>
                     <input
                       type="text"
                       value={city}
                       onChange={e => setCity(e.target.value)}
-                      placeholder="e.g. Nasr City, Maadi, Dokki"
-                      className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-blue-500"
+                      placeholder={isRTL ? 'مثال: التجمع الخامس، المعادي، الشيخ زايد' : 'e.g. New Cairo, Maadi, Dokki'}
+                      className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs outline-none focus:border-blue-500"
                       required
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Street Address, Building & Apt</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    {isRTL ? 'اسم الشارع، رقم العمارة والشقة' : 'Detailed Street Address'}
+                  </label>
                   <input
                     type="text"
                     value={streetAddress}
                     onChange={e => setStreetAddress(e.target.value)}
-                    placeholder="e.g. Street 9, Bldg 14, Apt 3"
-                    className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-blue-500"
+                    placeholder={isRTL ? 'مثال: شارع التسعين، عمارة ١٢، شقة ٤' : 'Street name, building number, floor/apartment'}
+                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs outline-none focus:border-blue-500"
                     required
                   />
                 </div>
               </div>
             )}
 
-            {/* Payment Method */}
-            <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-4">
-              <h2 className="text-sm font-bold uppercase tracking-wider text-gray-400 mb-2 flex items-center gap-2">
-                <CreditCard className="w-4 h-4 text-blue-600" /> 3. Payment Option
+            {/* 3. Escrow Payment Method */}
+            <div className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-sm space-y-4">
+              <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
+                <CreditCard className="w-4 h-4 text-blue-600" />
+                {isRTL ? '٣. طريقة الدفع لحساب الضمان' : '3. Escrow Payment Method'}
               </h2>
 
-              {/* Wallet Balance Deduction Option */}
+              {/* Wallet deduction toggle if available */}
               {walletAvailable > 0 && (
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-4 flex items-center justify-between">
+                <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200/80 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      id="wallet-deduct"
-                      checked={useWalletBalance}
-                      onChange={e => setUseWalletBalance(e.target.checked)}
-                      className="w-4 h-4 text-blue-600 rounded"
-                    />
-                    <label htmlFor="wallet-deduct" className="text-xs font-bold text-blue-900 cursor-pointer">
-                      Use Spendable Wallet Balance
-                      <span className="block text-[11px] font-normal text-blue-700">
-                        Available: EGP {walletAvailable.toLocaleString('en-EG')} (Deducts up to {formatEGP(Math.min(walletAvailable, totalPrice))})
-                      </span>
-                    </label>
+                    <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center">
+                      <Wallet className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-emerald-950">
+                        {isRTL ? 'استخدام رصيد محفظة إيجي باي' : 'Use EgyBay Wallet Balance'}
+                      </h4>
+                      <p className="text-[11px] text-emerald-700">
+                        {isRTL ? `المتاح: ${formatEGP(walletAvailable)}` : `Available: ${formatEGP(walletAvailable)}`}
+                      </p>
+                    </div>
                   </div>
-                  <span className="text-xs font-black text-blue-600">
-                    -{formatEGP(walletDeduction)}
-                  </span>
+                  <input
+                    type="checkbox"
+                    checked={useWalletBalance}
+                    onChange={e => setUseWalletBalance(e.target.checked)}
+                    className="w-4 h-4 accent-emerald-600 rounded"
+                  />
                 </div>
               )}
 
               {remainingDue > 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {[
-                    { id: 'card', label: 'Debit / Credit Card', icon: '💳', sub: 'Visa & MasterCard' },
-                    { id: 'instapay', label: 'InstaPay Transfer', icon: '⚡', sub: 'Instant Central Bank' },
-                    { id: 'cod', label: 'Cash On Delivery', icon: '💵', sub: 'Pay upon receipt' },
-                  ].map(pm => (
+                <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-3">
                     <button
                       type="button"
-                      key={pm.id}
-                      onClick={() => setPaymentMethod(pm.id as any)}
-                      className={`p-3.5 rounded-2xl border-2 text-left transition-all ${
-                        paymentMethod === pm.id
+                      onClick={() => setPaymentMethod('card')}
+                      className={`p-3.5 rounded-2xl border-2 flex items-center gap-3 transition-all ${
+                        paymentMethod === 'card'
                           ? 'border-blue-600 bg-blue-50/50'
-                          : 'border-gray-100 hover:border-gray-200'
+                          : 'border-slate-200 hover:border-slate-300'
                       }`}
                     >
-                      <div className="text-lg mb-1">{pm.icon}</div>
-                      <p className="font-bold text-gray-900 text-xs">{pm.label}</p>
-                      <p className="text-[11px] text-gray-400 mt-0.5">{pm.sub}</p>
+                      <CreditCard className="w-5 h-5 text-blue-600" />
+                      <div className="text-left rtl:text-right">
+                        <p className="text-xs font-bold text-slate-900">
+                          {isRTL ? 'بطاقة بنكية' : 'Bank Card'}
+                        </p>
+                        <p className="text-[10px] text-slate-400">Visa / Mastercard</p>
+                      </div>
                     </button>
-                  ))}
+
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('instapay')}
+                      className={`p-3.5 rounded-2xl border-2 flex items-center gap-3 transition-all ${
+                        paymentMethod === 'instapay'
+                          ? 'border-blue-600 bg-blue-50/50'
+                          : 'border-slate-200 hover:border-slate-300'
+                      }`}
+                    >
+                      <Smartphone className="w-5 h-5 text-indigo-600" />
+                      <div className="text-left rtl:text-right">
+                        <p className="text-xs font-bold text-slate-900">InstaPay</p>
+                        <p className="text-[10px] text-slate-400">{isRTL ? 'تحويل فوري' : 'Direct IPA Transfer'}</p>
+                      </div>
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
-          </div>
 
-          {/* Right Col: Order Summary & Place Order */}
-          <div className="lg:col-span-1 space-y-4">
-            <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm sticky top-28">
-              <h3 className="font-black text-gray-900 text-base mb-4">Order Summary</h3>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:from-blue-700 text-white font-black py-4 rounded-2xl transition-all shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 text-sm"
+            >
+              <ShieldCheck className="w-5 h-5" />
+              {submitting
+                ? (isRTL ? 'جاري تأكيد وحجز المبلغ في الضمان...' : 'Securing Funds in Escrow...')
+                : (isRTL ? `تأكيد الطلب — ${formatEGP(totalPrice)} بنظام الضمان` : `CONFIRM ORDER — ${formatEGP(totalPrice)} IN ESCROW`)}
+            </button>
+          </form>
 
-              {/* Product mini card */}
-              {product && (
-                <div className="flex gap-3 pb-4 border-b border-gray-100 mb-4">
-                  <div className="w-16 h-16 rounded-xl bg-gray-50 relative overflow-hidden flex-shrink-0">
-                    {product.images?.[0] ? (
-                      <Image src={product.images[0]} alt={product.title} fill className="object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-xl">📦</div>
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="font-bold text-gray-900 text-xs line-clamp-2">{product.title}</p>
-                    <p className="text-blue-600 font-black text-sm mt-1">{formatEGP(product.price)}</p>
-                  </div>
-                </div>
-              )}
+          {/* Summary Sidebar (1 col) */}
+          <div className="space-y-4">
+            <div className="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-sm space-y-4">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                {isRTL ? 'ملخص الطلب' : 'Order Summary'}
+              </h3>
 
-              {/* Breakdown */}
-              <div className="space-y-2 text-xs text-gray-600 pb-4 border-b border-gray-100">
-                <div className="flex justify-between">
-                  <span>Item Subtotal</span>
-                  <span className="font-bold text-gray-900">{formatEGP(itemPrice)}</span>
+              {/* Product Preview */}
+              <div className="flex gap-3 pb-4 border-b border-slate-100">
+                <div className="w-16 h-16 rounded-2xl bg-slate-100 relative overflow-hidden flex-shrink-0">
+                  {product.images?.[0] ? (
+                    <SmartImage src={product.images[0]} alt={product.title} fill className="object-cover" sizes="64px" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-slate-300">
+                      <Package className="w-6 h-6" />
+                    </div>
+                  )}
                 </div>
-                <div className="flex justify-between">
-                  <span>Delivery ({deliveryMethod === 'courier' ? 'Bosta' : 'Meetup'})</span>
-                  <span className="font-bold text-gray-900">{deliveryFee === 0 ? 'FREE' : formatEGP(deliveryFee)}</span>
+                <div className="min-w-0 flex-1">
+                  <h4 className="text-xs font-bold text-slate-900 line-clamp-2 leading-snug">{product.title}</h4>
+                  <p className="text-xs font-black text-slate-900 mt-1">{formatEGP(itemPrice)}</p>
                 </div>
+              </div>
+
+              {/* Financial Calculation */}
+              <div className="space-y-2 text-xs">
+                <div className="flex justify-between text-slate-600">
+                  <span>{isRTL ? 'سعر السلعة:' : 'Item Subtotal:'}</span>
+                  <span className="font-bold text-slate-900">{formatEGP(itemPrice)}</span>
+                </div>
+                <div className="flex justify-between text-slate-600">
+                  <span>{isRTL ? 'مصاريف التوصيل:' : 'Delivery Fee:'}</span>
+                  <span className="font-bold text-slate-900">
+                    {deliveryFee > 0 ? formatEGP(deliveryFee) : (isRTL ? 'مجاناً' : 'FREE')}
+                  </span>
+                </div>
+
                 {walletDeduction > 0 && (
                   <div className="flex justify-between text-emerald-600">
-                    <span>Wallet Applied</span>
+                    <span>{isRTL ? 'خصم المحفظة:' : 'Wallet Deduction:'}</span>
                     <span className="font-bold">-{formatEGP(walletDeduction)}</span>
                   </div>
                 )}
-              </div>
 
-              {/* Total */}
-              <div className="flex justify-between items-center py-4">
-                <span className="text-sm font-black text-gray-900">Total Due</span>
-                <span className="text-xl font-black text-blue-600">{formatEGP(remainingDue)}</span>
+                <div className="pt-2 border-t border-slate-100 flex justify-between text-sm font-black text-slate-900">
+                  <span>{isRTL ? 'إجمالي المطلوب:' : 'Total Due:'}</span>
+                  <span className="text-blue-600">{formatEGP(totalPrice)}</span>
+                </div>
               </div>
+            </div>
 
-              {/* Escrow Guarantee */}
-              <div className="bg-emerald-50 rounded-xl p-3 text-[11px] text-emerald-800 flex items-start gap-2 mb-4">
-                <ShieldCheck className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
-                <span>Protected by EgyBay Escrow. Funds held safe until you verify delivery.</span>
+            {/* Escrow Guarantee Box */}
+            <div className="bg-emerald-50/80 border border-emerald-200/80 rounded-3xl p-5 shadow-sm text-emerald-950">
+              <div className="flex items-start gap-3">
+                <ShieldCheck className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                <div className="text-xs leading-relaxed">
+                  <h4 className="font-bold text-emerald-900 mb-1">
+                    {isRTL ? 'حماية الضمان المالي ١٠٠٪' : '100% Escrow Protection'}
+                  </h4>
+                  <p className="text-emerald-800 text-[11px]">
+                    {isRTL
+                      ? 'أموالك لا تُحول للبائع إلا بعد فحص واستلام السلعة بنفسك.'
+                      : 'Funds are never released directly to the seller until you inspect your item upon delivery.'}
+                  </p>
+                </div>
               </div>
-
-              <button
-                type="submit"
-                disabled={submitting}
-                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 text-white font-bold py-3.5 rounded-xl transition-all text-sm shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2"
-              >
-                <Lock className="w-4 h-4" />
-                {submitting ? 'Securing Escrow...' : `Pay ${formatEGP(remainingDue)} with Escrow`}
-              </button>
             </div>
           </div>
         </div>
-      </form>
+      </div>
     </div>
   );
 }

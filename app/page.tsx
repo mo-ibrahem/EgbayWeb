@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useEffect, useState, useCallback, Suspense } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
-import Image from 'next/image';
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import {
-  Search, SlidersHorizontal, Heart, ShieldCheck, Truck, Zap,
+  Search, ShieldCheck, Zap, ArrowUpDown, Filter, Heart,
   Star, MapPin, Clock, TrendingUp, X, ChevronRight, Sparkles,
   LayoutGrid, Smartphone, Shirt, Home, Baby, Dumbbell, BookOpen,
   Car, Tag, CheckCircle2, Flame, ArrowRight, Package
@@ -18,22 +18,25 @@ import AnimatedNumber from '@/components/AnimatedNumber';
 import SmartImage from '@/components/SmartImage';
 
 const CATEGORIES_WITH_ICONS = [
-  { id: '',            label: 'All Items',    icon: LayoutGrid,  color: '#4F46E5', bg: '#EEF2FF' },
-  { id: 'Electronics', label: 'Electronics',  icon: Smartphone,  color: '#0284C7', bg: '#E0F2FE' },
-  { id: 'Fashion',     label: 'Fashion',      icon: Shirt,       color: '#DB2777', bg: '#FCE7F3' },
-  { id: 'Home',        label: 'Home & Living',icon: Home,        color: '#059669', bg: '#D1FAE5' },
-  { id: 'Toys',        label: 'Toys & Kids',  icon: Baby,        color: '#D97706', bg: '#FEF3C7' },
-  { id: 'Sports',      label: 'Sports',       icon: Dumbbell,    color: '#DC2626', bg: '#FEE2E2' },
-  { id: 'Books',       label: 'Books & Media',icon: BookOpen,    color: '#7C3AED', bg: '#EDE9FE' },
-  { id: 'Automotive',  label: 'Automotive',   icon: Car,         color: '#475569', bg: '#F1F5F9' },
+  { id: '',            key: 'all',        label: 'All Items',     label_ar: 'جميع الأقسام',  icon: LayoutGrid,  color: '#4F46E5', bg: '#EEF2FF' },
+  { id: 'Electronics', key: 'electronics',label: 'Electronics',   label_ar: 'إلكترونيات',    icon: Smartphone,  color: '#0284C7', bg: '#E0F2FE' },
+  { id: 'Fashion',     key: 'fashion',    label: 'Fashion',       label_ar: 'أزياء وكوتشيات', icon: Shirt,       color: '#DB2777', bg: '#FCE7F3' },
+  { id: 'Home',        key: 'home',       label: 'Home & Living', label_ar: 'أثاث ومنزل',    icon: Home,        color: '#059669', bg: '#D1FAE5' },
+  { id: 'Toys',        key: 'toys',       label: 'Toys & Kids',   label_ar: 'ألعاب وأطفال',  icon: Baby,        color: '#D97706', bg: '#FEF3C7' },
+  { id: 'Sports',      key: 'sports',     label: 'Sports',        label_ar: 'رياضة ولياقة',  icon: Dumbbell,    color: '#DC2626', bg: '#FEE2E2' },
+  { id: 'Books',       key: 'books',      label: 'Books & Media', label_ar: 'كتب وميديا',    icon: BookOpen,    color: '#7C3AED', bg: '#EDE9FE' },
+  { id: 'Automotive',  key: 'automotive', label: 'Automotive',    label_ar: 'سيارات ومركبات',icon: Car,         color: '#475569', bg: '#F1F5F9' },
 ] as const;
 
 const DEAL_BANNERS = [
   {
     key: 'b1',
     title: 'Flash Deals & Tech Steals',
+    title_ar: 'عروض حصرية وخصومات الأجهزة',
     sub: 'Verified electronics up to 40% below retail with Escrow Guarantee',
+    sub_ar: 'إلكترونيات وموبايلات موثقة بخصم يصل إلى ٤٠٪ مع حماية الضمان المالي',
     badge: 'HOT DEALS',
+    badge_ar: 'عروض اليوم',
     colors: ['#0F172A', '#1E3A8A'],
     accentColor: '#3B82F6',
     category: 'Electronics',
@@ -42,8 +45,11 @@ const DEAL_BANNERS = [
   {
     key: 'b2',
     title: 'Egypt Escrow Protection',
+    title_ar: 'حماية الضمان المالي المصري ١٠٠٪',
     sub: 'Funds held securely until you inspect & approve delivery at your doorstep',
+    sub_ar: 'أموالك محفوظة في أمان تام حتى تستلم وتفحص السلعة بنفسك',
     badge: '100% SECURE',
+    badge_ar: 'حماية وأمان',
     colors: ['#064E3B', '#065F46'],
     accentColor: '#10B981',
     category: '',
@@ -52,8 +58,11 @@ const DEAL_BANNERS = [
   {
     key: 'b3',
     title: 'Fashion & Sneakers Vault',
+    title_ar: 'خزينة الأزياء والكوتشيات الأصلية',
     sub: 'Authenticated streetwear, Jordans & designer pieces directly from collectors',
+    sub_ar: 'أشهر البراندات وجوردن وملابس الشارع الأصلية مباشرة من أصحابها',
     badge: 'CURATED',
+    badge_ar: 'براندات أصلية',
     colors: ['#3B0764', '#581C87'],
     accentColor: '#A855F7',
     category: 'Fashion',
@@ -61,9 +70,14 @@ const DEAL_BANNERS = [
   },
 ];
 
-const TRENDING_TAGS = [
+const TRENDING_TAGS_EN = [
   'iPhone 15 Pro', 'PlayStation 5', 'Nike Air Jordan', 'MacBook M3',
   'Air Fryer', 'Sony WH-1000XM5', 'Toyota Corolla', 'Gaming PC'
+];
+
+const TRENDING_TAGS_AR = [
+  'آيفون ١٥ برو', 'بلايستيشن ٥', 'نايكي جوردن', 'ماك بوك M3',
+  'قلاية هوائية', 'سماعات سوني', 'تويوتا كورولا', 'تجميعة جيمنج'
 ];
 
 const containerVariants: Variants = {
@@ -86,15 +100,16 @@ const itemVariants: Variants = {
   },
 };
 
-function timeAgo(dateStr?: string): string {
+function timeAgo(dateStr?: string, isRTL?: boolean): string {
   if (!dateStr) return '';
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'Just now';
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 1) return isRTL ? 'الآن' : 'Just now';
+  if (mins < 60) return isRTL ? `منذ ${mins} دقيقة` : `${mins}m ago`;
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
+  if (hrs < 24) return isRTL ? `منذ ${hrs} ساعة` : `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return isRTL ? `منذ ${days} يوم` : `${days}d ago`;
 }
 
 function getCountdown(): string {
@@ -116,6 +131,7 @@ function ProductCard({
   onWishlistToggle: (id: string, current: boolean) => void;
 }) {
   const [wishlisted, setWishlisted] = useState(product.isWishlisted ?? false);
+  const { isRTL, t } = useLanguage();
 
   const handleWishlist = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -151,7 +167,9 @@ function ProductCard({
             ) : (
               <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 text-slate-400">
                 <Package className="w-10 h-10 stroke-[1.5]" />
-                <span className="text-[11px] font-semibold mt-1">Listing Image</span>
+                <span className="text-[11px] font-semibold mt-1">
+                  {isRTL ? 'صورة الإعلان' : 'Listing Image'}
+                </span>
               </div>
             )}
 
@@ -159,12 +177,12 @@ function ProductCard({
             <div className="absolute top-2.5 left-2.5 flex flex-col gap-1.5 z-10">
               {product.is_promoted && (
                 <span className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
-                  <Zap className="w-3 h-3 fill-current" /> BOOSTED
+                  <Zap className="w-3 h-3 fill-current" /> {isRTL ? 'مميز' : 'BOOSTED'}
                 </span>
               )}
               {product.condition === 'New' && (
                 <span className="bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
-                  BRAND NEW
+                  {isRTL ? 'جديد تماماً' : 'BRAND NEW'}
                 </span>
               )}
             </div>
@@ -187,8 +205,14 @@ function ProductCard({
           <div className="p-3.5 flex flex-col flex-1 justify-between">
             <div>
               <div className="flex items-center justify-between text-[11px] text-slate-400 font-semibold mb-1">
-                <span className="uppercase tracking-wider truncate">{product.category}</span>
-                <span className="capitalize text-slate-500">{product.condition}</span>
+                <span className="uppercase tracking-wider truncate">
+                  {t(`categories.${product.category?.toLowerCase()}`, product.category)}
+                </span>
+                <span className="capitalize text-slate-500">
+                  {product.condition === 'New'
+                    ? isRTL ? 'جديد' : 'New'
+                    : isRTL ? 'مستعمل' : 'Used'}
+                </span>
               </div>
 
               <h3 className="text-xs font-bold text-slate-900 line-clamp-2 leading-snug group-hover:text-blue-600 transition-colors mb-2">
@@ -200,11 +224,11 @@ function ProductCard({
               {/* Price & Escrow */}
               <div className="flex items-baseline justify-between gap-1 mb-2">
                 <span className="text-sm sm:text-base font-black text-slate-900">
-                  <AnimatedNumber value={product.price} prefix="EGP " />
+                  <AnimatedNumber value={product.price} prefix={isRTL ? 'ج.م ' : 'EGP '} />
                 </span>
                 <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
                   <ShieldCheck className="w-3 h-3 flex-shrink-0" />
-                  Escrow
+                  {isRTL ? 'ضمان' : 'Escrow'}
                 </span>
               </div>
 
@@ -212,11 +236,11 @@ function ProductCard({
               <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-[11px] text-slate-400">
                 <span className="flex items-center gap-1 truncate max-w-[100px]">
                   <MapPin className="w-3 h-3 text-slate-400 flex-shrink-0" />
-                  {product.location || 'Egypt'}
+                  {product.location || (isRTL ? 'مصر' : 'Egypt')}
                 </span>
                 <span className="flex items-center gap-1 flex-shrink-0" suppressHydrationWarning>
                   <Clock className="w-3 h-3 text-slate-400 flex-shrink-0" />
-                  {timeAgo(product.created_at)}
+                  {timeAgo(product.created_at, isRTL)}
                 </span>
               </div>
             </div>
@@ -274,25 +298,24 @@ function HomeFeedContent() {
     setSearchQuery(searchParams.get('search') || '');
   }, [searchParams]);
 
-  const fetchProducts = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await productService.getProducts({
-        category: activeCategory || undefined,
-        search: searchQuery || undefined,
-        condition: conditionFilter !== 'all' ? [conditionFilter] : undefined,
-      });
-      setProducts(data);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  }, [activeCategory, searchQuery, conditionFilter]);
-
   useEffect(() => {
+    const fetchProducts = async () => {
+      setLoading(true);
+      try {
+        const data = await productService.getProducts({
+          category: activeCategory || undefined,
+          search: searchQuery || undefined,
+          condition: conditionFilter === 'all' ? undefined : [conditionFilter],
+        });
+        setProducts(data);
+      } catch (err) {
+        console.error('Failed to load products:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchProducts();
-  }, [fetchProducts]);
+  }, [activeCategory, searchQuery, conditionFilter]);
 
   const handleCategorySelect = (catId: string) => {
     setActiveCategory(catId);
@@ -318,6 +341,7 @@ function HomeFeedContent() {
 
   const banner = DEAL_BANNERS[bannerIdx];
   const BannerIcon = banner.icon;
+  const trendingTags = isRTL ? TRENDING_TAGS_AR : TRENDING_TAGS_EN;
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 space-y-8">
@@ -326,9 +350,9 @@ function HomeFeedContent() {
         <AnimatePresence mode="wait">
           <motion.div
             key={banner.key}
-            initial={{ opacity: 0, x: 20 }}
+            initial={{ opacity: 0, x: isRTL ? -20 : 20 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
+            exit={{ opacity: 0, x: isRTL ? 20 : -20 }}
             transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
             className="w-full h-full min-h-[160px] sm:min-h-[190px] p-6 sm:p-8 flex items-center justify-between relative text-white"
             style={{ background: `linear-gradient(135deg, ${banner.colors[0]}, ${banner.colors[1]})` }}
@@ -336,29 +360,29 @@ function HomeFeedContent() {
             <div className="z-10 max-w-xl space-y-2">
               <div className="inline-flex items-center gap-1.5 text-[11px] font-black tracking-wider uppercase bg-white/15 backdrop-blur-md px-3 py-1 rounded-full border border-white/20">
                 <BannerIcon className="w-3.5 h-3.5 text-amber-300" />
-                <span>{banner.badge}</span>
+                <span>{isRTL ? banner.badge_ar : banner.badge}</span>
               </div>
               <h2 className="text-xl sm:text-3xl font-black tracking-tight leading-tight">
-                {banner.title}
+                {isRTL ? banner.title_ar : banner.title}
               </h2>
               <p className="text-xs sm:text-sm text-white/80 leading-relaxed">
-                {banner.sub}
+                {isRTL ? banner.sub_ar : banner.sub}
               </p>
               {banner.category && (
                 <button
                   onClick={() => handleCategorySelect(banner.category)}
                   className="mt-2 inline-flex items-center gap-1.5 bg-white text-slate-900 text-xs font-bold px-4 py-2 rounded-xl hover:bg-slate-100 transition-all shadow-md"
                 >
-                  <span>Browse Deals</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
+                  <span>{isRTL ? 'تصفح العروض' : 'Browse Deals'}</span>
+                  <ArrowRight className={`w-3.5 h-3.5 ${isRTL ? 'rotate-180' : ''}`} />
                 </button>
               )}
             </div>
 
             {/* Flash Sale Live Timer */}
-            <div className="hidden md:flex flex-col items-end z-10 text-right bg-black/20 backdrop-blur-md border border-white/10 p-4 rounded-2xl">
+            <div className={`hidden md:flex flex-col ${isRTL ? 'items-start text-left' : 'items-end text-right'} z-10 bg-black/20 backdrop-blur-md border border-white/10 p-4 rounded-2xl`}>
               <span className="text-[11px] font-bold text-white/60 uppercase tracking-wider mb-1 flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5 text-amber-300" /> Daily Deals Reset In
+                <Clock className="w-3.5 h-3.5 text-amber-300" /> {isRTL ? 'تحديث العروض اليومية خلال' : 'Daily Deals Reset In'}
               </span>
               <span className="font-mono font-black text-2xl text-white tracking-widest" suppressHydrationWarning>
                 {mounted ? countdown : '08:00:00'}
@@ -385,14 +409,15 @@ function HomeFeedContent() {
       <div>
         <div className="flex items-center justify-between mb-3.5">
           <h2 className="text-sm font-black uppercase tracking-wider text-slate-800 flex items-center gap-2">
-            <LayoutGrid className="w-4 h-4 text-blue-600" /> Explore Categories
+            <LayoutGrid className="w-4 h-4 text-blue-600" />
+            {isRTL ? 'تصفح حسب القسم' : 'Explore Categories'}
           </h2>
           {activeCategory && (
             <button
               onClick={() => handleCategorySelect('')}
               className="text-xs text-blue-600 hover:underline font-semibold"
             >
-              Reset to All
+              {isRTL ? 'عرض الكل' : 'Reset to All'}
             </button>
           )}
         </div>
@@ -401,6 +426,7 @@ function HomeFeedContent() {
           {CATEGORIES_WITH_ICONS.map((cat) => {
             const Icon = cat.icon;
             const isSelected = activeCategory === cat.id || (!activeCategory && cat.id === '');
+            const label = isRTL ? cat.label_ar : cat.label;
 
             return (
               <motion.button
@@ -423,7 +449,7 @@ function HomeFeedContent() {
                 <span className={`text-[11px] font-bold text-center leading-tight truncate w-full ${
                   isSelected ? 'text-blue-700' : 'text-slate-700'
                 }`}>
-                  {cat.label}
+                  {label}
                 </span>
               </motion.button>
             );
@@ -433,12 +459,13 @@ function HomeFeedContent() {
 
       {/* ─── Trending Tags & Condition Filter Bar ─── */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pt-2 border-t border-slate-200/60">
-        {/* Quick Trending Tags with Tap Animation */}
+        {/* Quick Trending Tags */}
         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar max-w-full pb-1">
           <span className="flex items-center gap-1 text-xs font-bold text-slate-400 uppercase tracking-wider flex-shrink-0">
-            <TrendingUp className="w-3.5 h-3.5 text-blue-600" /> Trending:
+            <TrendingUp className="w-3.5 h-3.5 text-blue-600" />
+            {isRTL ? 'الأكثر بحثاً:' : 'Trending:'}
           </span>
-          {TRENDING_TAGS.map((tag) => (
+          {trendingTags.map((tag) => (
             <motion.button
               key={tag}
               whileTap={{ scale: 0.93 }}
@@ -484,7 +511,7 @@ function HomeFeedContent() {
               {activeCategory
                 ? t(`categories.${activeCategory.toLowerCase()}`, activeCategory)
                 : searchQuery
-                ? (isRTL ? `نتائج البحث: "${searchQuery}"` : `Search: "${searchQuery}"`)
+                ? (isRTL ? `نتائج البحث عن: "${searchQuery}"` : `Search: "${searchQuery}"`)
                 : (isRTL ? 'جميع الإعلانات الموثقة' : 'All Verified Listings')}
             </h2>
             {!loading && (
@@ -504,7 +531,7 @@ function HomeFeedContent() {
               }}
               className="text-xs text-blue-600 hover:underline font-semibold"
             >
-              Clear all filters
+              {isRTL ? 'مسح جميع الفلاتر' : 'Clear all filters'}
             </button>
           )}
         </div>
@@ -515,26 +542,7 @@ function HomeFeedContent() {
               <SkeletonCard key={i} />
             ))}
           </div>
-        ) : products.length === 0 ? (
-          <div className="bg-white rounded-3xl border border-slate-200/80 p-12 text-center my-6 shadow-sm">
-            <Package className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-            <h3 className="text-base font-black text-slate-900 mb-1">No matching listings found</h3>
-            <p className="text-xs text-slate-500 mb-5 max-w-sm mx-auto">
-              Try adjusting your search terms, removing filters, or browsing other categories.
-            </p>
-            <button
-              onClick={() => {
-                setActiveCategory('');
-                setSearchQuery('');
-                setConditionFilter('all');
-                router.push('/', { scroll: false });
-              }}
-              className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition-colors shadow-sm"
-            >
-              View All Marketplace Items
-            </button>
-          </div>
-        ) : (
+        ) : products.length > 0 ? (
           <motion.div
             variants={containerVariants}
             initial="hidden"
@@ -549,6 +557,41 @@ function HomeFeedContent() {
               />
             ))}
           </motion.div>
+        ) : (
+          <div className="bg-white rounded-3xl border border-slate-200/80 p-12 text-center max-w-md mx-auto my-8 shadow-sm">
+            <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-400">
+              <Search className="w-8 h-8 stroke-[1.5]" />
+            </div>
+            <h3 className="text-base font-bold text-slate-900 mb-1">
+              {isRTL ? 'لم نتمكن من إيجاد نتائج مطابقة' : 'No listings found'}
+            </h3>
+            <p className="text-xs text-slate-500 mb-6 leading-relaxed">
+              {isRTL
+                ? 'جرب البحث بكلمات مختلفة أو إزالة الفلاتر لعرض المزيد من المنتجات.'
+                : 'Try adjusting your search terms, changing the category, or clearing active filters.'}
+            </p>
+            <div className="flex justify-center gap-3">
+              {(activeCategory || searchQuery || conditionFilter !== 'all') && (
+                <button
+                  onClick={() => {
+                    setActiveCategory('');
+                    setSearchQuery('');
+                    setConditionFilter('all');
+                    router.push('/', { scroll: false });
+                  }}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors"
+                >
+                  {isRTL ? 'إعادة ضبط البحث' : 'Clear Filters'}
+                </button>
+              )}
+              <Link
+                href="/sell"
+                className="px-5 py-2 bg-[#3665F3] hover:bg-[#2B54D4] text-white text-xs font-bold rounded-xl transition-all shadow-sm"
+              >
+                {isRTL ? 'أضف أول إعلان الآن' : 'List an Item Now'}
+              </Link>
+            </div>
+          </div>
         )}
       </div>
     </div>
@@ -558,8 +601,10 @@ function HomeFeedContent() {
 export default function HomePage() {
   return (
     <Suspense fallback={
-      <div className="max-w-7xl mx-auto px-4 py-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
-        {Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)}
+      <div className="max-w-7xl mx-auto px-4 py-8 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        {Array.from({ length: 10 }).map((_, i) => (
+          <SkeletonCard key={i} />
+        ))}
       </div>
     }>
       <HomeFeedContent />

@@ -8,6 +8,7 @@ import {
   AlertCircle, ChevronRight, Lock, Sparkles, RefreshCw, X, Loader2
 } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
+import { useLanguage } from '@/components/LanguageProvider';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import AnimatedNumber from '@/components/AnimatedNumber';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -27,6 +28,7 @@ import {
 
 function WalletContent() {
   const { user } = useAuth();
+  const { isRTL } = useLanguage();
 
   const [wallet, setWallet] = useState<UserWallet | null>(null);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
@@ -93,7 +95,7 @@ function WalletContent() {
         await loadData();
       }, 1500);
     } catch (err: any) {
-      setErrorMsg(err?.message || 'Failed to process deposit');
+      setErrorMsg(err?.message || (isRTL ? 'فشلت عملية الإيداع' : 'Failed to process deposit'));
     } finally {
       setToppingUp(false);
     }
@@ -102,6 +104,10 @@ function WalletContent() {
   const handleWithdraw = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !withdrawAmount || Number(withdrawAmount) <= 0) return;
+    if (!selectedPayoutMethod) {
+      setErrorMsg(isRTL ? 'يرجى اختيار طريقة استلام الأرباح' : 'Please select a payout destination');
+      return;
+    }
     setWithdrawing(true);
     setErrorMsg('');
     try {
@@ -114,41 +120,43 @@ function WalletContent() {
         await loadData();
       }, 1500);
     } catch (err: any) {
-      setErrorMsg(err?.message || 'Failed to request payout');
+      setErrorMsg(err?.message || (isRTL ? 'تعذر إتمام طلب السحب' : 'Failed to submit withdrawal request'));
     } finally {
       setWithdrawing(false);
     }
   };
 
-  const filteredTransactions = transactions.filter(tx => {
+  const available = wallet?.available_balance || 0;
+  const pending = wallet?.pending_balance || 0;
+
+  const filteredTransactions = transactions.filter(t => {
     if (txFilter === 'all') return true;
-    if (txFilter === 'escrow') return tx.type === 'escrow_hold' || tx.type === 'escrow_release';
-    if (txFilter === 'payout') return tx.type === 'payout';
-    if (txFilter === 'top_up') return tx.type === 'top_up' || tx.type === 'deposit';
+    if (txFilter === 'escrow') return t.type === 'escrow_hold' || t.type === 'escrow_release';
+    if (txFilter === 'top_up') return t.type === 'top_up';
+    if (txFilter === 'payout') return t.type === 'payout';
     return true;
   });
 
   if (loading) {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3">
-        <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
-        <p className="text-xs font-semibold text-slate-400">Loading wallet balances...</p>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
-  const available = Number(wallet?.available_balance || 0);
-  const pending = Number(wallet?.pending_balance || 0);
-
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Title & Tier Badge */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+    <div className="max-w-6xl mx-auto px-4 py-8">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-black text-slate-900 flex items-center gap-2">
-            <Wallet className="w-6 h-6 text-blue-600" /> My EgyBay Wallet
+            <Wallet className="w-6 h-6 text-blue-600" />
+            {isRTL ? 'محفظة إيجي باي والأرباح' : 'EgyBay Wallet & Payouts'}
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">Manage spendable balance, pending escrow funds & instant payouts</p>
+          <p className="text-xs text-slate-500 mt-0.5">
+            {isRTL ? 'إدارة الرصيد المتاح، الأرباح المحجوزة في الضمان وسحب الأرباح الفوري' : 'Manage spendable balance, pending escrow funds & instant payouts'}
+          </p>
         </div>
 
         <Link
@@ -156,7 +164,7 @@ function WalletContent() {
           className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 text-blue-800 px-4 py-2 rounded-xl text-xs font-bold hover:shadow-sm transition-all"
         >
           <span>{sellerTier.badge}</span>
-          <span className="text-blue-600">Upgrade Tier ›</span>
+          <span className="text-blue-600">{isRTL ? 'ترقية الباقة ›' : 'Upgrade Tier ›'}</span>
         </Link>
       </div>
 
@@ -170,18 +178,22 @@ function WalletContent() {
               <span className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm">
                 <CreditCard className="w-4 h-4" />
               </span>
-              <span className="text-xs font-bold text-slate-300 tracking-wider uppercase">Available Balance</span>
+              <span className="text-xs font-bold text-slate-300 tracking-wider uppercase">
+                {isRTL ? 'الرصيد المتاح' : 'Available Balance'}
+              </span>
             </div>
             <span className="text-xs bg-emerald-500/20 text-emerald-300 font-semibold px-2.5 py-1 rounded-full flex items-center gap-1">
-              <CheckCircle2 className="w-3 h-3" /> Ready to Spend
+              <CheckCircle2 className="w-3 h-3" /> {isRTL ? 'جاهز للاستخدام' : 'Ready to Spend'}
             </span>
           </div>
 
           <div className="mb-6">
             <div className="text-3xl sm:text-4xl font-black tracking-tight">
-              <AnimatedNumber value={available} prefix="EGP " />
+              <AnimatedNumber value={available} prefix={isRTL ? 'ج.م ' : 'EGP '} />
             </div>
-            <p className="text-xs text-slate-400 mt-1">Available for direct marketplace checkout & instant payout</p>
+            <p className="text-xs text-slate-400 mt-1">
+              {isRTL ? 'متاح للشراء المباشر في السوق وسحب الأرباح الفوري' : 'Available for direct marketplace checkout & instant payout'}
+            </p>
           </div>
 
           <div className="flex gap-3">
@@ -189,14 +201,14 @@ function WalletContent() {
               onClick={() => { setTopUpOpen(true); setErrorMsg(''); }}
               className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition-all shadow-lg shadow-blue-500/30 flex items-center justify-center gap-2"
             >
-              <Plus className="w-4 h-4" /> Top-Up
+              <Plus className="w-4 h-4" /> {isRTL ? 'شحن الرصيد' : 'Top-Up'}
             </button>
             <button
               onClick={() => { setWithdrawOpen(true); setErrorMsg(''); }}
               disabled={available <= 0}
               className="flex-1 bg-white/15 hover:bg-white/25 disabled:opacity-40 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition-all border border-white/20 flex items-center justify-center gap-2"
             >
-              <ArrowUpRight className="w-4 h-4" /> Withdraw
+              <ArrowUpRight className="w-4 h-4" /> {isRTL ? 'سحب الأرباح' : 'Withdraw'}
             </button>
           </div>
         </div>
@@ -208,26 +220,31 @@ function WalletContent() {
               <span className="w-8 h-8 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center font-bold text-sm">
                 <ShieldCheck className="w-4 h-4" />
               </span>
-              <span className="text-xs font-bold text-slate-400 tracking-wider uppercase">Pending in Escrow</span>
+              <span className="text-xs font-bold text-slate-400 tracking-wider uppercase">
+                {isRTL ? 'الأرباح المحجوزة في الضمان' : 'Pending in Escrow'}
+              </span>
             </div>
             <span className="text-xs bg-amber-50 text-amber-700 font-semibold px-2.5 py-1 rounded-full flex items-center gap-1">
-              <Clock className="w-3 h-3" /> Protected
+              <Clock className="w-3 h-3" /> {isRTL ? 'مؤمّنة بالضمان' : 'Protected'}
             </span>
           </div>
 
           <div className="mb-6">
             <div className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
-              <AnimatedNumber value={pending} prefix="EGP " />
+              <AnimatedNumber value={pending} prefix={isRTL ? 'ج.م ' : 'EGP '} />
             </div>
             <p className="text-xs text-slate-400 mt-1">
-              Held securely in escrow until buyers verify and receive their orders
+              {isRTL ? 'محفوظة بأمان في حساب الضمان حتى يستلم المشتري ويفحص طلبه' : 'Held securely in escrow until buyers verify and receive their orders'}
             </p>
           </div>
 
           <div className="bg-blue-50/70 border border-blue-100 rounded-2xl p-3.5 flex items-start gap-2.5">
             <ShieldCheck className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
             <p className="text-xs text-blue-900 leading-relaxed">
-              <strong>Escrow Protection:</strong> Funds auto-clear into your available balance immediately once the buyer scans your pickup QR or delivery courier finishes drop-off.
+              <strong>{isRTL ? 'حماية الضمان المالي:' : 'Escrow Protection:'}</strong>{' '}
+              {isRTL
+                ? 'تتحول الأموال فوراً إلى رصيدك المتاح بمجرد مسح كود QR أو تأكيد مندوب الشحن لتسليم السلعة.'
+                : 'Funds auto-clear into your available balance immediately once the buyer scans your pickup QR or delivery courier finishes drop-off.'}
             </p>
           </div>
         </div>
@@ -239,11 +256,13 @@ function WalletContent() {
           <div>
             <div className="flex items-center gap-2 mb-1">
               <Sparkles className="w-4 h-4 text-amber-300" />
-              <span className="text-xs font-bold uppercase tracking-wider text-white/80">Active Seller Plan</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-white/80">
+                {isRTL ? 'باقة البائع الحالية' : 'Active Seller Plan'}
+              </span>
             </div>
             <h3 className="text-lg font-black">{sellerTier.name} ({sellerTier.badge})</h3>
             <p className="text-xs text-white/80 mt-0.5">
-              Commission Fee: <strong>{(sellerTier.commissionFeePercent * 100).toFixed(1)}%</strong> · Payout Speed: <strong>{sellerTier.payoutSpeed}</strong>
+              {isRTL ? 'نسبة العمولة:' : 'Commission Fee:'} <strong>{(sellerTier.commissionFeePercent * 100).toFixed(1)}%</strong> · {isRTL ? 'سرعة السحب:' : 'Payout Speed:'} <strong>{sellerTier.payoutSpeed}</strong>
             </p>
           </div>
 
@@ -251,7 +270,7 @@ function WalletContent() {
             href="/seller-verification"
             className="bg-white text-blue-900 font-bold px-4 py-2 rounded-xl text-xs hover:bg-blue-50 transition-colors self-start sm:self-auto"
           >
-            Upgrade to Pro
+            {isRTL ? 'الترقية للباقة الاحترافية' : 'Upgrade to Pro'}
           </Link>
         </div>
       </div>
@@ -261,9 +280,11 @@ function WalletContent() {
         {/* Left: Saved Payout Methods */}
         <div className="lg:col-span-1 space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="font-bold text-slate-900 text-xs uppercase tracking-wider">Payout Channels</h3>
+            <h3 className="font-bold text-slate-900 text-xs uppercase tracking-wider">
+              {isRTL ? 'وجهات استلام الأرباح' : 'Payout Channels'}
+            </h3>
             <Link href="/seller-verification" className="text-xs text-blue-600 hover:underline font-semibold">
-              + Add
+              {isRTL ? '+ إضافة' : '+ Add'}
             </Link>
           </div>
 
@@ -278,13 +299,13 @@ function WalletContent() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-bold text-slate-900 truncate">
-                    {pm.type === 'instapay_ipa' ? 'InstaPay IPA' : pm.type === 'vodafone_cash' ? 'Vodafone Cash' : 'Bank Account'}
+                    {pm.type === 'instapay_ipa' ? 'InstaPay IPA' : pm.type === 'vodafone_cash' ? 'Vodafone Cash' : (isRTL ? 'حساب بنكي' : 'Bank Account')}
                   </p>
                   <p className="text-[11px] text-slate-400 truncate">{pm.account_identifier}</p>
                 </div>
                 {pm.is_default && (
                   <span className="text-[10px] bg-emerald-50 text-emerald-600 font-bold px-2 py-0.5 rounded-full">
-                    Default
+                    {isRTL ? 'الافتراضية' : 'Default'}
                   </span>
                 )}
               </div>
@@ -295,13 +316,15 @@ function WalletContent() {
         {/* Right: Transaction Log */}
         <div className="lg:col-span-2">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-            <h3 className="font-bold text-slate-900 text-xs uppercase tracking-wider">Transaction Activity</h3>
+            <h3 className="font-bold text-slate-900 text-xs uppercase tracking-wider">
+              {isRTL ? 'سجل المعاملات والتحويلات' : 'Transaction Activity'}
+            </h3>
             <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
               {[
-                { id: 'all', label: 'All' },
-                { id: 'escrow', label: 'Escrow' },
-                { id: 'top_up', label: 'Deposits' },
-                { id: 'payout', label: 'Withdrawals' },
+                { id: 'all', label: isRTL ? 'الكل' : 'All' },
+                { id: 'escrow', label: isRTL ? 'الضمان' : 'Escrow' },
+                { id: 'top_up', label: isRTL ? 'شحن رصيد' : 'Deposits' },
+                { id: 'payout', label: isRTL ? 'سحب أرباح' : 'Withdrawals' },
               ].map(f => (
                 <button
                   key={f.id}
@@ -321,7 +344,7 @@ function WalletContent() {
           {filteredTransactions.length === 0 ? (
             <div className="bg-white rounded-2xl border border-slate-200/80 p-8 text-center text-slate-400">
               <Clock className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-              <p className="text-xs">No transactions found in this category.</p>
+              <p className="text-xs">{isRTL ? 'لا توجد معاملات مسجلة في هذا القسم.' : 'No transactions found in this category.'}</p>
             </div>
           ) : (
             <div className="bg-white rounded-2xl border border-slate-200/80 divide-y divide-slate-100 shadow-sm overflow-hidden">
@@ -340,15 +363,15 @@ function WalletContent() {
                         {tx.description || tx.type.replace('_', ' ').toUpperCase()}
                       </p>
                       <p className="text-[11px] text-slate-400">
-                        {new Date(tx.created_at).toLocaleDateString('en-EG', {
+                        {new Date(tx.created_at).toLocaleDateString(isRTL ? 'ar-EG' : 'en-EG', {
                           month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
                         })}
                       </p>
                     </div>
 
-                    <div className="text-right">
+                    <div className="text-right rtl:text-left">
                       <p className={`text-xs sm:text-sm font-black ${isPositive ? 'text-emerald-600' : 'text-slate-900'}`}>
-                        {isPositive ? '+' : ''}EGP {Math.abs(tx.amount).toLocaleString('en-EG')}
+                        {isPositive ? '+' : ''}{isRTL ? 'ج.م ' : 'EGP '}{Math.abs(tx.amount).toLocaleString(isRTL ? 'ar-EG' : 'en-EG')}
                       </p>
                       <span className="text-[10px] text-slate-400 capitalize">{tx.status}</span>
                     </div>
@@ -379,8 +402,12 @@ function WalletContent() {
               onClick={e => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-base font-black text-slate-900">Top-Up Spendable Balance</h3>
-                <button onClick={() => setTopUpOpen(false)} className="text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button>
+                <h3 className="text-base font-black text-slate-900">
+                  {isRTL ? 'شحن رصيد المحفظة' : 'Top-Up Spendable Balance'}
+                </h3>
+                <button onClick={() => setTopUpOpen(false)} className="text-slate-400 hover:text-slate-600">
+                  <X className="w-5 h-5" />
+                </button>
               </div>
 
               {errorMsg && <div className="mb-4 bg-rose-50 text-rose-700 text-xs p-3 rounded-xl border border-rose-200">{errorMsg}</div>}
@@ -388,30 +415,38 @@ function WalletContent() {
               {topUpSuccess ? (
                 <div className="py-8 text-center">
                   <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-2" />
-                  <h4 className="text-base font-black text-slate-900">Funds Added! 🎉</h4>
-                  <p className="text-xs text-slate-500">Your available balance has been updated.</p>
+                  <h4 className="text-base font-black text-slate-900">
+                    {isRTL ? 'تم شحن الرصيد بنجاح! 🎉' : 'Funds Added! 🎉'}
+                  </h4>
+                  <p className="text-xs text-slate-500">
+                    {isRTL ? 'تم تحديث رصيدك المتاح في المحفظة.' : 'Your available balance has been updated.'}
+                  </p>
                 </div>
               ) : (
                 <form onSubmit={handleTopUp} className="space-y-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Deposit Amount (EGP)</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      {isRTL ? 'مبلغ الإيداع (بالجنيه المصري)' : 'Deposit Amount (EGP)'}
+                    </label>
                     <input
                       type="number"
                       value={topUpAmount}
                       onChange={e => setTopUpAmount(e.target.value)}
-                      placeholder="e.g. 500"
+                      placeholder="500"
                       min="10"
-                      className="w-full border border-slate-200 rounded-xl px-4 py-3 text-lg font-bold outline-none focus:border-blue-500"
+                      className="w-full border border-slate-200 rounded-xl px-4 py-3 text-lg font-bold outline-none focus:border-blue-500 text-center"
                       autoFocus
                       required
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Payment Method</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      {isRTL ? 'طريقة الدفع' : 'Payment Method'}
+                    </label>
                     <div className="grid grid-cols-3 gap-2">
                       {[
-                        { id: 'card', label: 'Debit/Credit Card', icon: CreditCard },
+                        { id: 'card', label: isRTL ? 'بطاقة بنكية' : 'Debit/Credit Card', icon: CreditCard },
                         { id: 'instapay', label: 'InstaPay IPA', icon: Smartphone },
                         { id: 'vodafone_cash', label: 'Vodafone Cash', icon: Smartphone },
                       ].map(m => {
@@ -440,7 +475,7 @@ function WalletContent() {
                     disabled={toppingUp || !topUpAmount}
                     className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-3.5 rounded-xl transition-colors text-xs shadow-md"
                   >
-                    {toppingUp ? 'Processing Deposit...' : `Add EGP ${Number(topUpAmount || 0).toLocaleString('en-EG')} Now`}
+                    {toppingUp ? (isRTL ? 'جاري معالجة الإيداع...' : 'Processing Deposit...') : (isRTL ? `إيداع ${Number(topUpAmount || 0).toLocaleString('ar-EG')} ج.م الآن` : `Add EGP ${Number(topUpAmount || 0).toLocaleString('en-EG')} Now`)}
                   </button>
                 </form>
               )}
@@ -468,8 +503,12 @@ function WalletContent() {
               onClick={e => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-base font-black text-slate-900">Withdraw Earnings</h3>
-                <button onClick={() => setWithdrawOpen(false)} className="text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button>
+                <h3 className="text-base font-black text-slate-900">
+                  {isRTL ? 'سحب الأرباح' : 'Withdraw Earnings'}
+                </h3>
+                <button onClick={() => setWithdrawOpen(false)} className="text-slate-400 hover:text-slate-600">
+                  <X className="w-5 h-5" />
+                </button>
               </div>
 
               {errorMsg && <div className="mb-4 bg-rose-50 text-rose-700 text-xs p-3 rounded-xl border border-rose-200">{errorMsg}</div>}
@@ -477,32 +516,41 @@ function WalletContent() {
               {withdrawSuccess ? (
                 <div className="py-8 text-center">
                   <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-2" />
-                  <h4 className="text-base font-black text-slate-900">Payout Submitted! 🚀</h4>
-                  <p className="text-xs text-slate-500">Funds are being transferred to your selected account.</p>
+                  <h4 className="text-base font-black text-slate-900">
+                    {isRTL ? 'تم إرسال طلب السحب! 🚀' : 'Payout Submitted! 🚀'}
+                  </h4>
+                  <p className="text-xs text-slate-500">
+                    {isRTL ? 'جاري تحويل المبلغ إلى الوجهة المختارة.' : 'Funds are being transferred to your selected account.'}
+                  </p>
                 </div>
               ) : (
                 <form onSubmit={handleWithdraw} className="space-y-4">
                   <div className="bg-slate-50 p-3 rounded-xl text-xs text-slate-600">
-                    Available for withdrawal: <strong className="text-slate-900">EGP {available.toLocaleString('en-EG')}</strong>
+                    {isRTL ? 'الرصيد المتاح للسحب:' : 'Available for withdrawal:'}{' '}
+                    <strong className="text-slate-900">{isRTL ? `${available.toLocaleString('ar-EG')} ج.م` : `EGP ${available.toLocaleString('en-EG')}`}</strong>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Withdrawal Amount (EGP)</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      {isRTL ? 'مبلغ السحب (بالجنيه المصري)' : 'Withdrawal Amount (EGP)'}
+                    </label>
                     <input
                       type="number"
                       value={withdrawAmount}
                       onChange={e => setWithdrawAmount(e.target.value)}
-                      placeholder="e.g. 1000"
+                      placeholder="1000"
                       max={available}
                       min="50"
-                      className="w-full border border-slate-200 rounded-xl px-4 py-3 text-lg font-bold outline-none focus:border-blue-500"
+                      className="w-full border border-slate-200 rounded-xl px-4 py-3 text-lg font-bold outline-none focus:border-blue-500 text-center"
                       autoFocus
                       required
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Payout Channel</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      {isRTL ? 'جهة استلام الأرباح' : 'Payout Channel'}
+                    </label>
                     <select
                       value={selectedPayoutMethod}
                       onChange={e => setSelectedPayoutMethod(e.target.value)}
@@ -510,7 +558,7 @@ function WalletContent() {
                     >
                       {payoutMethods.map(pm => (
                         <option key={pm.id} value={pm.id}>
-                          {pm.type === 'instapay_ipa' ? 'InstaPay' : pm.type === 'vodafone_cash' ? 'Vodafone Cash' : 'Bank'} — {pm.account_identifier}
+                          {pm.type === 'instapay_ipa' ? 'InstaPay' : pm.type === 'vodafone_cash' ? 'Vodafone Cash' : (isRTL ? 'حساب بنكي' : 'Bank')} — {pm.account_identifier}
                         </option>
                       ))}
                     </select>
@@ -521,7 +569,7 @@ function WalletContent() {
                     disabled={withdrawing || !withdrawAmount || Number(withdrawAmount) > available}
                     className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 disabled:opacity-50 text-white font-bold py-3.5 rounded-xl transition-colors text-xs shadow-md"
                   >
-                    {withdrawing ? 'Submitting Request...' : `Withdraw EGP ${Number(withdrawAmount || 0).toLocaleString('en-EG')}`}
+                    {withdrawing ? (isRTL ? 'جاري إرسال الطلب...' : 'Submitting Request...') : (isRTL ? `سحب ${Number(withdrawAmount || 0).toLocaleString('ar-EG')} ج.م` : `Withdraw EGP ${Number(withdrawAmount || 0).toLocaleString('en-EG')}`)}
                   </button>
                 </form>
               )}

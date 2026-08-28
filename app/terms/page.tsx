@@ -6,7 +6,7 @@ import { Scale, ShieldCheck, AlertOctagon, HelpCircle, Mail, FileText, CheckCirc
 import { useLanguage } from '@/components/LanguageProvider';
 
 export default function TermsPage() {
-  const { isRTL } = useLanguage ? useLanguage() : { isRTL: false };
+  const { isRTL } = useLanguage();
   const [activeTab, setActiveTab] = useState<'en' | 'ar'>(isRTL ? 'ar' : 'en');
 
   const enSections = [

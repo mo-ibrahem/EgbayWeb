@@ -4,6 +4,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Send, Loader2 } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
+import { useLanguage } from '@/components/LanguageProvider';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { supabase } from '@/lib/supabase';
 
@@ -20,14 +21,15 @@ interface ChatDetails {
   other_user_avatar?: string;
 }
 
-function timeStr(dateStr: string) {
+function timeStr(dateStr: string, isRTL?: boolean) {
   const d = new Date(dateStr);
-  return d.toLocaleTimeString('en-EG', { hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleTimeString(isRTL ? 'ar-EG' : 'en-EG', { hour: '2-digit', minute: '2-digit' });
 }
 
 function ChatContent() {
   const { roomId } = useParams<{ roomId: string }>();
   const { user, loading: authLoading } = useAuth();
+  const { isRTL } = useLanguage();
   const router = useRouter();
 
   const [messages, setMessages] = useState<Message[]>([]);
@@ -57,7 +59,7 @@ function ChatContent() {
         if (otherId) {
           const { data: profile } = await supabase.from('user_profiles').select('full_name, avatar_url').eq('id', otherId).single();
           setChatDetails({
-            other_user_name: profile?.full_name || 'Unknown User',
+            other_user_name: profile?.full_name || (isRTL ? 'مستخدم إيجي باي' : 'EgyBay User'),
             other_user_avatar: profile?.avatar_url,
           });
         }
@@ -68,7 +70,7 @@ function ChatContent() {
       } catch { router.push('/profile?tab=chats'); }
       finally { setLoading(false); }
     })();
-  }, [user, authLoading, roomId, router]);
+  }, [user, authLoading, roomId, router, isRTL]);
 
   // Subscribe to real-time messages
   useEffect(() => {
@@ -125,14 +127,14 @@ function ChatContent() {
       {/* Chat header */}
       <div className="bg-white border-b border-gray-100 px-4 py-4 flex items-center gap-4 shadow-sm">
         <button onClick={() => router.push('/profile?tab=chats')} className="text-gray-600 hover:text-gray-900 transition-colors">
-          <ArrowLeft className="w-5 h-5" />
+          <ArrowLeft className={`w-5 h-5 ${isRTL ? 'rotate-180' : ''}`} />
         </button>
         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-violet-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
           {chatDetails?.other_user_name?.[0]?.toUpperCase() || '?'}
         </div>
         <div className="min-w-0">
-          <p className="font-bold text-gray-900">{chatDetails?.other_user_name || 'Chat'}</p>
-          <p className="text-xs text-emerald-500 font-medium">Active now</p>
+          <p className="font-bold text-gray-900">{chatDetails?.other_user_name || (isRTL ? 'محادثة' : 'Chat')}</p>
+          <p className="text-xs text-emerald-500 font-medium">{isRTL ? 'متصل الآن' : 'Active now'}</p>
         </div>
       </div>
 
@@ -140,7 +142,9 @@ function ChatContent() {
       <div className="flex-1 overflow-y-auto px-4 py-5 space-y-3">
         {messages.length === 0 && (
           <div className="text-center py-16 text-gray-400">
-            <p className="text-sm">No messages yet. Start the conversation!</p>
+            <p className="text-sm">
+              {isRTL ? 'لا توجد رسائل بعد. ابدأ المحادثة الآن!' : 'No messages yet. Start the conversation!'}
+            </p>
           </div>
         )}
         {messages.map((msg, idx) => {
@@ -151,7 +155,7 @@ function ChatContent() {
             <div key={msg.id}>
               {showTime && (
                 <div className="text-center text-xs text-gray-400 my-2">
-                  {new Date(msg.created_at).toLocaleDateString('en-EG', { weekday: 'short', hour: '2-digit', minute: '2-digit' })}
+                  {new Date(msg.created_at).toLocaleDateString(isRTL ? 'ar-EG' : 'en-EG', { weekday: 'short', hour: '2-digit', minute: '2-digit' })}
                 </div>
               )}
               <div className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
@@ -161,7 +165,7 @@ function ChatContent() {
                     : 'bg-white text-gray-900 border border-gray-100 rounded-bl-sm'
                 }`}>
                   <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{msg.content}</p>
-                  <p className={`text-xs mt-1 ${isMine ? 'text-white/60' : 'text-gray-400'}`}>{timeStr(msg.created_at)}</p>
+                  <p className={`text-xs mt-1 ${isMine ? 'text-white/60' : 'text-gray-400'}`}>{timeStr(msg.created_at, isRTL)}</p>
                 </div>
               </div>
             </div>
@@ -178,7 +182,7 @@ function ChatContent() {
             type="text"
             value={newMessage}
             onChange={e => setNewMessage(e.target.value)}
-            placeholder="Type a message..."
+            placeholder={isRTL ? 'اكتب رسالتك هنا...' : 'Type a message...'}
             className="flex-1 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all"
           />
           <button
@@ -186,7 +190,7 @@ function ChatContent() {
             disabled={!newMessage.trim() || sending}
             className="w-11 h-11 bg-gradient-to-br from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 disabled:opacity-40 text-white rounded-2xl flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-sm shadow-blue-500/30"
           >
-            {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+            {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className={`w-4 h-4 ${isRTL ? 'rotate-180' : ''}`} />}
           </button>
         </form>
       </div>

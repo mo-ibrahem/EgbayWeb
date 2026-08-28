@@ -6,7 +6,7 @@ import { Shield, Lock, Eye, Trash2, Mail, FileText, CheckCircle2, Globe, Buildin
 import { useLanguage } from '@/components/LanguageProvider';
 
 export default function PrivacyPage() {
-  const { isRTL, language, setLanguage } = useLanguage ? useLanguage() : { isRTL: false, language: 'en', setLanguage: () => {} };
+  const { isRTL, language, changeLanguage } = useLanguage();
   const [activeTab, setActiveTab] = useState<'en' | 'ar'>(isRTL ? 'ar' : 'en');
 
   const enSections = [

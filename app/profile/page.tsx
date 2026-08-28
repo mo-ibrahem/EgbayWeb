@@ -10,16 +10,17 @@ import {
   Lock, AlertCircle, ShoppingBag, ChevronRight
 } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
+import { useLanguage } from '@/components/LanguageProvider';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { productService, profileService, formatEGP, type Product, type UserProfile } from '@/lib/products';
 import { supabase } from '@/lib/supabase';
 import SmartImage from '@/components/SmartImage';
 
 const TABS = [
-  { id: 'products', label: 'My Listings', icon: Package },
-  { id: 'wishlist', label: 'Saved Items', icon: Heart },
-  { id: 'chats', label: 'Messages', icon: MessageCircle },
-  { id: 'settings', label: 'Account Settings', icon: Settings },
+  { id: 'products', label: 'My Listings', label_ar: 'إعلاناتي', icon: Package },
+  { id: 'wishlist', label: 'Saved Items', label_ar: 'المفضلة', icon: Heart },
+  { id: 'chats', label: 'Messages', label_ar: 'المحادثات', icon: MessageCircle },
+  { id: 'settings', label: 'Account Settings', label_ar: 'إعدادات الحساب', icon: Settings },
 ] as const;
 
 type TabId = typeof TABS[number]['id'];
@@ -32,21 +33,22 @@ interface ChatRoom {
   last_message_time?: string;
 }
 
-function timeAgo(dateStr?: string): string {
+function timeAgo(dateStr?: string, isRTL?: boolean): string {
   if (!dateStr) return '';
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'Just now';
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 1) return isRTL ? 'الآن' : 'Just now';
+  if (mins < 60) return isRTL ? `منذ ${mins} دقيقة` : `${mins}m ago`;
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
+  if (hrs < 24) return isRTL ? `منذ ${hrs} ساعة` : `${hrs}h ago`;
+  return isRTL ? `منذ ${Math.floor(hrs / 24)} يوم` : `${Math.floor(hrs / 24)}d ago`;
 }
 
 function ProfileContent() {
   const { user, loading: authLoading, signOut } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { isRTL } = useLanguage();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -99,28 +101,31 @@ function ProfileContent() {
               .eq('room_id', room.id).order('created_at', { ascending: false }).limit(1);
             return {
               room_id: room.id,
-              other_user_name: (otherProfile as {full_name?: string})?.full_name || 'User',
-              other_user_avatar_url: (otherProfile as {avatar_url?: string})?.avatar_url,
+              other_user_name: otherProfile?.full_name || (isRTL ? 'مستخدم إيجي باي' : 'EgyBay User'),
+              other_user_avatar_url: otherProfile?.avatar_url,
               last_message: msgs?.[0]?.content,
               last_message_time: msgs?.[0]?.created_at,
             };
           }));
           setChats(chatList);
         }
-      } catch (e) {
-        console.error(e);
+      } catch (err) {
+        console.error(err);
       } finally {
         setLoading(false);
       }
     })();
-  }, [user, authLoading, router]);
+  }, [user, authLoading, router, isRTL]);
 
   const handleSaveProfile = async () => {
-    if (!user || !profile) return;
+    if (!user) return;
     setSaving(true);
+    setSaveSuccess(false);
     try {
-      const updated = await profileService.updateProfile(user.id, { full_name: editName, phone: editPhone });
-      setProfile(updated);
+      await profileService.updateProfile(user.id, {
+        full_name: editName.trim(),
+        phone: editPhone.trim(),
+      });
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 2500);
     } catch { /* ignore */ }
@@ -128,12 +133,22 @@ function ProfileContent() {
   };
 
   const handleChangePassword = async () => {
-    if (newPassword !== confirmPassword) { setPwError('Passwords do not match.'); return; }
-    if (newPassword.length < 6) { setPwError('Password must be at least 6 characters.'); return; }
-    setPwSaving(true); setPwError('');
+    setPwError('');
+    setPwSuccess(false);
+    if (!newPassword) { setPwError(isRTL ? 'يرجى إدخال كلمة المرور الجديدة' : 'Please enter a new password'); return; }
+    if (newPassword.length < 6) { setPwError(isRTL ? 'يجب ألا تقل كلمة المرور عن ٦ أحرف' : 'Password must be at least 6 characters'); return; }
+    if (newPassword !== confirmPassword) { setPwError(isRTL ? 'كلمات المرور غير متطابقة' : 'Passwords do not match'); return; }
+
+    setPwSaving(true);
     const { error } = await supabase.auth.updateUser({ password: newPassword });
-    if (error) { setPwError(error.message); }
-    else { setPwSuccess(true); setNewPassword(''); setConfirmPassword(''); setTimeout(() => setPwSuccess(false), 3000); }
+    if (error) {
+      setPwError(error.message);
+    } else {
+      setPwSuccess(true);
+      setNewPassword('');
+      setConfirmPassword('');
+      setTimeout(() => setPwSuccess(false), 3000);
+    }
     setPwSaving(false);
   };
 
@@ -142,17 +157,18 @@ function ProfileContent() {
     if (!file || !user) return;
     setAvatarUploading(true);
     try {
-      const path = `avatars/${user.id}.${file.name.split('.').pop()}`;
+      const ext = file.name.split('.').pop() || 'jpg';
+      const path = `${user.id}/avatar.${ext}`;
       await supabase.storage.from('product-images').upload(path, file, { upsert: true });
-      const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(path);
-      const updated = await profileService.updateProfile(user.id, { avatar_url: urlData.publicUrl });
-      setProfile(updated);
+      const { data } = supabase.storage.from('product-images').getPublicUrl(path);
+      await profileService.updateProfile(user.id, { avatar_url: data.publicUrl });
+      setProfile(p => p ? { ...p, avatar_url: data.publicUrl } : null);
     } catch { /* ignore */ }
     setAvatarUploading(false);
   };
 
   const handleDeleteProduct = async (productId: string) => {
-    if (!confirm('Are you sure you want to remove this listing?')) return;
+    if (!confirm(isRTL ? 'هل أنت متأكد من رغبتك في حذف هذا الإعلان؟' : 'Are you sure you want to remove this listing?')) return;
     await productService.deleteProduct(productId);
     setListings(prev => prev.filter(p => p.id !== productId));
   };
@@ -175,7 +191,7 @@ function ProfileContent() {
         <div className="absolute -left-20 -bottom-20 w-80 h-80 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative flex flex-col md:flex-row items-center md:items-start justify-between gap-6">
-          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 text-center sm:text-left">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 text-center sm:text-left rtl:sm:text-right">
             {/* Avatar with Camera Overlay */}
             <div className="relative group flex-shrink-0">
               <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl overflow-hidden bg-white/20 ring-4 ring-white/30 shadow-xl relative">
@@ -195,7 +211,7 @@ function ProfileContent() {
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={avatarUploading}
-                title="Change Avatar"
+                title={isRTL ? 'تغيير الصورة الشخصية' : 'Change Avatar'}
                 className="absolute inset-0 bg-black/40 rounded-3xl opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition-opacity text-white text-xs font-semibold gap-1"
               >
                 {avatarUploading ? (
@@ -203,7 +219,7 @@ function ProfileContent() {
                 ) : (
                   <>
                     <Camera className="w-6 h-6" />
-                    <span>Upload</span>
+                    <span>{isRTL ? 'رفع صورة' : 'Upload'}</span>
                   </>
                 )}
               </button>
@@ -213,9 +229,11 @@ function ProfileContent() {
             {/* Profile Info */}
             <div>
               <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 mb-1.5">
-                <h1 className="text-2xl sm:text-3xl font-black tracking-tight">{profile?.full_name || 'Marketplace Member'}</h1>
+                <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
+                  {profile?.full_name || (isRTL ? 'عضو إيجي باي' : 'Marketplace Member')}
+                </h1>
                 <span className="bg-white/20 backdrop-blur-md text-white text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1 border border-white/20">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-300" /> Verified Seller
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-300" /> {isRTL ? 'بائع موثق' : 'Verified Seller'}
                 </span>
               </div>
               <p className="text-white/80 text-sm">{user?.email}</p>
@@ -224,15 +242,15 @@ function ProfileContent() {
               <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 mt-4">
                 <div className="bg-white/15 backdrop-blur-sm px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-2 border border-white/10">
                   <Package className="w-3.5 h-3.5 text-blue-200" />
-                  <span>{listings.length} Active {listings.length === 1 ? 'Listing' : 'Listings'}</span>
+                  <span>{listings.length} {isRTL ? 'إعلان نشط' : `Active ${listings.length === 1 ? 'Listing' : 'Listings'}`}</span>
                 </div>
                 <div className="bg-white/15 backdrop-blur-sm px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-2 border border-white/10">
                   <Heart className="w-3.5 h-3.5 text-rose-200" />
-                  <span>{wishlist.length} Saved {wishlist.length === 1 ? 'Item' : 'Items'}</span>
+                  <span>{wishlist.length} {isRTL ? 'عنصر بالمفضلة' : `Saved ${wishlist.length === 1 ? 'Item' : 'Items'}`}</span>
                 </div>
                 <div className="bg-white/15 backdrop-blur-sm px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-2 border border-white/10">
                   <Clock className="w-3.5 h-3.5 text-emerald-200" />
-                  <span>Egyptian Escrow Protected</span>
+                  <span>{isRTL ? 'محمي بالضمان المالي المصري' : 'Egyptian Escrow Protected'}</span>
                 </div>
               </div>
             </div>
@@ -245,14 +263,14 @@ function ProfileContent() {
               className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-white text-blue-700 hover:bg-blue-50 font-bold text-xs px-5 py-3 rounded-2xl shadow-md transition-all active:scale-95"
             >
               <Wallet className="w-4 h-4" />
-              <span>Wallet & Payouts</span>
+              <span>{isRTL ? 'المحفظة والأرباح' : 'Wallet & Payouts'}</span>
             </Link>
             <Link
               href="/sell"
               className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-blue-900/60 hover:bg-blue-900/80 text-white font-bold text-xs px-5 py-3 rounded-2xl border border-white/20 shadow-md transition-all active:scale-95"
             >
               <Plus className="w-4 h-4" />
-              <span>Post New Item</span>
+              <span>{isRTL ? 'أضف إعلان جديد' : 'Post New Item'}</span>
             </Link>
           </div>
         </div>
@@ -271,7 +289,7 @@ function ProfileContent() {
             }`}
           >
             <tab.icon className="w-4 h-4" />
-            <span>{tab.label}</span>
+            <span>{isRTL ? tab.label_ar : tab.label}</span>
             {tab.id === 'products' && (
               <span className={`text-xs px-2 py-0.5 rounded-full ${activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600'}`}>
                 {listings.length}
@@ -293,29 +311,31 @@ function ProfileContent() {
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-black text-gray-900">Active Listings</h2>
-              <p className="text-xs text-gray-500 mt-0.5">Manage your items for sale across Egypt</p>
+              <h2 className="text-xl font-black text-gray-900">{isRTL ? 'إعلاناتي النشطة' : 'Active Listings'}</h2>
+              <p className="text-xs text-gray-500 mt-0.5">{isRTL ? 'إدارة السلع والمنتجات المعروضة للبيع' : 'Manage your items for sale across Egypt'}</p>
             </div>
             <Link
               href="/sell"
               className="bg-[#3665F3] hover:bg-[#2B54D4] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm transition-all flex items-center gap-1.5"
             >
               <Plus className="w-4 h-4" />
-              <span>New Listing</span>
+              <span>{isRTL ? 'إعلان جديد' : 'New Listing'}</span>
             </Link>
           </div>
 
           {listings.length === 0 ? (
             <div className="text-center py-20 bg-white rounded-3xl border border-gray-200 shadow-sm max-w-md mx-auto">
               <Package className="w-14 h-14 text-gray-300 mx-auto mb-3 stroke-[1.5]" />
-              <h3 className="font-bold text-gray-900 text-base mb-1">No listings yet</h3>
-              <p className="text-gray-500 text-xs mb-5 max-w-xs mx-auto">Turn your unused items, gadgets, or products into cash with Egyptian escrow.</p>
+              <h3 className="font-bold text-gray-900 text-base mb-1">{isRTL ? 'لا توجد إعلانات بعد' : 'No listings yet'}</h3>
+              <p className="text-gray-500 text-xs mb-5 max-w-xs mx-auto">
+                {isRTL ? 'اعرض أجهزتك ومقتنياتك غير المستخدمة للبيع بأمان عبر الضمان المالي.' : 'Turn your unused items, gadgets, or products into cash with Egyptian escrow.'}
+              </p>
               <Link
                 href="/sell"
                 className="inline-flex items-center gap-2 bg-[#3665F3] text-white px-6 py-3 rounded-xl font-bold text-xs shadow-md shadow-blue-500/20 hover:bg-[#2B54D4] transition-all"
               >
                 <Plus className="w-4 h-4" />
-                <span>List an Item Now</span>
+                <span>{isRTL ? 'أضف أول إعلان الآن' : 'List an Item Now'}</span>
               </Link>
             </div>
           ) : (
@@ -337,7 +357,7 @@ function ProfileContent() {
                       <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-full shadow-sm ${
                         product.status === 'active' ? 'bg-emerald-500 text-white' : 'bg-gray-600 text-white'
                       }`}>
-                        {product.status}
+                        {product.status === 'active' ? (isRTL ? 'نشط' : 'active') : product.status}
                       </span>
                     </div>
                   </div>
@@ -352,7 +372,7 @@ function ProfileContent() {
                       </p>
                       <p className="text-[11px] text-gray-400 mt-1 flex items-center gap-1">
                         <Clock className="w-3 h-3" />
-                        <span>{timeAgo(product.created_at)}</span>
+                        <span>{timeAgo(product.created_at, isRTL)}</span>
                       </p>
                     </div>
 
@@ -362,12 +382,12 @@ function ProfileContent() {
                         className="flex-1 flex items-center justify-center gap-1 text-xs font-bold text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 py-2 rounded-xl transition-colors"
                       >
                         <Eye className="w-3.5 h-3.5" />
-                        <span>View</span>
+                        <span>{isRTL ? 'عرض' : 'View'}</span>
                       </Link>
                       <button
                         onClick={() => handleDeleteProduct(product.id)}
                         className="flex items-center justify-center text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 px-3 py-2 rounded-xl transition-colors"
-                        title="Delete Listing"
+                        title={isRTL ? 'حذف الإعلان' : 'Delete Listing'}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -384,21 +404,27 @@ function ProfileContent() {
       {activeTab === 'wishlist' && (
         <div className="space-y-6">
           <div>
-            <h2 className="text-xl font-black text-gray-900">Saved Items ({wishlist.length})</h2>
-            <p className="text-xs text-gray-500 mt-0.5">Items you bookmarked to buy or keep an eye on</p>
+            <h2 className="text-xl font-black text-gray-900">
+              {isRTL ? `السلع المحفوظة (${wishlist.length})` : `Saved Items (${wishlist.length})`}
+            </h2>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {isRTL ? 'المنتجات التي قمت بحفظها للشراء لاحقاً' : 'Items you bookmarked to buy or keep an eye on'}
+            </p>
           </div>
 
           {wishlist.length === 0 ? (
             <div className="text-center py-20 bg-white rounded-3xl border border-gray-200 shadow-sm max-w-md mx-auto">
               <Heart className="w-14 h-14 text-gray-300 mx-auto mb-3 stroke-[1.5]" />
-              <h3 className="font-bold text-gray-900 text-base mb-1">No saved items yet</h3>
-              <p className="text-gray-500 text-xs mb-5 max-w-xs mx-auto">Browse thousands of verified electronics, fashion, and motors items on EgyBay.</p>
+              <h3 className="font-bold text-gray-900 text-base mb-1">{isRTL ? 'لا توجد سلع محفوظة بالمفضلة' : 'No saved items yet'}</h3>
+              <p className="text-gray-500 text-xs mb-5 max-w-xs mx-auto">
+                {isRTL ? 'تصفح آلاف الإلكترونيات والأزياء الأصلية على إيجي باي.' : 'Browse thousands of verified electronics, fashion, and motors items on EgyBay.'}
+              </p>
               <Link
                 href="/"
                 className="inline-flex items-center gap-2 bg-[#3665F3] text-white px-6 py-3 rounded-xl font-bold text-xs shadow-md shadow-blue-500/20 hover:bg-[#2B54D4] transition-all"
               >
-                <span>Browse Marketplace</span>
-                <ArrowRight className="w-4 h-4" />
+                <span>{isRTL ? 'تصفح السوق' : 'Browse Marketplace'}</span>
+                <ArrowRight className={`w-4 h-4 ${isRTL ? 'rotate-180' : ''}`} />
               </Link>
             </div>
           ) : (
@@ -432,13 +458,13 @@ function ProfileContent() {
                       </p>
                       <p className="text-[11px] text-gray-400 mt-1 flex items-center gap-1">
                         <MapPin className="w-3 h-3" />
-                        <span>{product.location || 'Cairo, Egypt'}</span>
+                        <span>{product.location || (isRTL ? 'مصر' : 'Cairo, Egypt')}</span>
                       </p>
                     </div>
 
                     <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs font-bold text-[#3665F3]">
-                      <span>View Details</span>
-                      <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      <span>{isRTL ? 'عرض التفاصيل' : 'View Details'}</span>
+                      <ChevronRight className={`w-4 h-4 group-hover:translate-x-1 transition-transform ${isRTL ? 'rotate-180' : ''}`} />
                     </div>
                   </div>
                 </Link>
@@ -452,15 +478,19 @@ function ProfileContent() {
       {activeTab === 'chats' && (
         <div className="space-y-6 max-w-4xl">
           <div>
-            <h2 className="text-xl font-black text-gray-900">Direct Messages ({chats.length})</h2>
-            <p className="text-xs text-gray-500 mt-0.5">Chat with buyers & sellers regarding listings</p>
+            <h2 className="text-xl font-black text-gray-900">
+              {isRTL ? `المحادثات المباشرة (${chats.length})` : `Direct Messages (${chats.length})`}
+            </h2>
+            <p className="text-xs text-gray-500 mt-0.5">{isRTL ? 'تواصل مع البائعين والمشترين حول السلع والأسعار' : 'Chat with buyers & sellers regarding listings'}</p>
           </div>
 
           {chats.length === 0 ? (
             <div className="text-center py-20 bg-white rounded-3xl border border-gray-200 shadow-sm">
               <MessageCircle className="w-14 h-14 text-gray-300 mx-auto mb-3 stroke-[1.5]" />
-              <h3 className="font-bold text-gray-900 text-base mb-1">No active conversations</h3>
-              <p className="text-gray-500 text-xs max-w-xs mx-auto">When you inquire about a listing or receive an offer, conversations will appear here.</p>
+              <h3 className="font-bold text-gray-900 text-base mb-1">{isRTL ? 'لا توجد محادثات نشطة' : 'No active conversations'}</h3>
+              <p className="text-gray-500 text-xs max-w-xs mx-auto">
+                {isRTL ? 'عندما تتواصل مع بائع أو تتلقى عرضاً على إعلانك، ستظهر المحادثات هنا.' : 'When you inquire about a listing or receive an offer, conversations will appear here.'}
+              </p>
             </div>
           ) : (
             <div className="bg-white rounded-3xl border border-gray-200 shadow-sm divide-y divide-gray-100 overflow-hidden">
@@ -483,12 +513,12 @@ function ProfileContent() {
                         {chat.other_user_name}
                       </h4>
                       {chat.last_message_time && (
-                        <span className="text-[11px] text-gray-400">{timeAgo(chat.last_message_time)}</span>
+                        <span className="text-[11px] text-gray-400">{timeAgo(chat.last_message_time, isRTL)}</span>
                       )}
                     </div>
-                    <p className="text-xs text-gray-500 truncate">{chat.last_message || 'Start conversation...'}</p>
+                    <p className="text-xs text-gray-500 truncate">{chat.last_message || (isRTL ? 'ابدأ المحادثة...' : 'Start conversation...')}</p>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all" />
+                  <ChevronRight className={`w-4 h-4 text-gray-400 group-hover:text-blue-600 transition-all ${isRTL ? 'rotate-180' : ''}`} />
                 </Link>
               ))}
             </div>
@@ -502,41 +532,41 @@ function ProfileContent() {
           {/* Personal Info Card */}
           <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-200 shadow-sm space-y-5">
             <div>
-              <h3 className="text-lg font-black text-gray-900">Personal Information</h3>
-              <p className="text-xs text-gray-500 mt-0.5">Update your display name and contact phone</p>
+              <h3 className="text-lg font-black text-gray-900">{isRTL ? 'البيانات الشخصية' : 'Personal Information'}</h3>
+              <p className="text-xs text-gray-500 mt-0.5">{isRTL ? 'تعديل اسمك ورقم هاتفك للتواصل' : 'Update your display name and contact phone'}</p>
             </div>
 
             {saveSuccess && (
               <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3.5 text-emerald-700 text-xs flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                <span>Profile updated successfully!</span>
+                <span>{isRTL ? 'تم حفظ التعديلات بنجاح!' : 'Profile updated successfully!'}</span>
               </div>
             )}
 
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1.5">Full Name</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">{isRTL ? 'الاسم بالكامل' : 'Full Name'}</label>
                 <div className="relative">
-                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <User className={`absolute ${isRTL ? 'right-3.5' : 'left-3.5'} top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400`} />
                   <input
                     type="text"
                     value={editName}
                     onChange={e => setEditName(e.target.value)}
-                    className="w-full border border-gray-300 rounded-xl pl-10 pr-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                    className={`w-full border border-gray-300 rounded-xl ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all`}
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1.5">Phone Number</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">{isRTL ? 'رقم الهاتف' : 'Phone Number'}</label>
                 <div className="relative">
-                  <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Phone className={`absolute ${isRTL ? 'right-3.5' : 'left-3.5'} top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400`} />
                   <input
                     type="tel"
                     value={editPhone}
                     onChange={e => setEditPhone(e.target.value)}
                     placeholder="010XXXXXXXX"
-                    className="w-full border border-gray-300 rounded-xl pl-10 pr-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                    className={`w-full border border-gray-300 rounded-xl ${isRTL ? 'pr-10 pl-4 font-mono' : 'pl-10 pr-4 font-mono'} py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all`}
                   />
                 </div>
               </div>
@@ -546,7 +576,7 @@ function ProfileContent() {
                 disabled={saving}
                 className="w-full bg-[#3665F3] hover:bg-[#2B54D4] disabled:opacity-60 text-white font-bold text-xs py-3 rounded-xl shadow-md transition-all mt-2"
               >
-                {saving ? 'Saving Changes...' : 'Save Profile Changes'}
+                {saving ? (isRTL ? 'جاري الحفظ...' : 'Saving Changes...') : (isRTL ? 'حفظ تعديلات الملف الشخصي' : 'Save Profile Changes')}
               </button>
             </div>
           </div>
@@ -554,8 +584,8 @@ function ProfileContent() {
           {/* Security & Password */}
           <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-200 shadow-sm space-y-5">
             <div>
-              <h3 className="text-lg font-black text-gray-900">Security & Password</h3>
-              <p className="text-xs text-gray-500 mt-0.5">Update your account login password</p>
+              <h3 className="text-lg font-black text-gray-900">{isRTL ? 'الأمان وكلمة المرور' : 'Security & Password'}</h3>
+              <p className="text-xs text-gray-500 mt-0.5">{isRTL ? 'تغيير كلمة مرور تسجيل الدخول' : 'Update your account login password'}</p>
             </div>
 
             {pwError && (
@@ -568,35 +598,35 @@ function ProfileContent() {
             {pwSuccess && (
               <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3.5 text-emerald-700 text-xs flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                <span>Password changed successfully!</span>
+                <span>{isRTL ? 'تم تغيير كلمة المرور بنجاح!' : 'Password changed successfully!'}</span>
               </div>
             )}
 
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1.5">New Password</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">{isRTL ? 'كلمة المرور الجديدة' : 'New Password'}</label>
                 <div className="relative">
-                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Lock className={`absolute ${isRTL ? 'right-3.5' : 'left-3.5'} top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400`} />
                   <input
                     type="password"
                     value={newPassword}
                     onChange={e => setNewPassword(e.target.value)}
-                    placeholder="At least 6 characters"
-                    className="w-full border border-gray-300 rounded-xl pl-10 pr-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                    placeholder={isRTL ? '٦ أحرف على الأقل' : 'At least 6 characters'}
+                    className={`w-full border border-gray-300 rounded-xl ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all`}
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1.5">Confirm New Password</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">{isRTL ? 'تأكيد كلمة المرور الجديدة' : 'Confirm New Password'}</label>
                 <div className="relative">
-                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Lock className={`absolute ${isRTL ? 'right-3.5' : 'left-3.5'} top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400`} />
                   <input
                     type="password"
                     value={confirmPassword}
                     onChange={e => setConfirmPassword(e.target.value)}
-                    placeholder="Repeat new password"
-                    className="w-full border border-gray-300 rounded-xl pl-10 pr-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                    placeholder={isRTL ? 'أعد كتابة كلمة المرور' : 'Repeat new password'}
+                    className={`w-full border border-gray-300 rounded-xl ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all`}
                   />
                 </div>
               </div>
@@ -606,7 +636,7 @@ function ProfileContent() {
                 disabled={pwSaving || !newPassword}
                 className="w-full bg-gray-900 hover:bg-black disabled:opacity-50 text-white font-bold text-xs py-3 rounded-xl shadow-md transition-all mt-2"
               >
-                {pwSaving ? 'Updating Password...' : 'Update Password'}
+                {pwSaving ? (isRTL ? 'جاري التحديث...' : 'Updating Password...') : (isRTL ? 'تحديث كلمة المرور' : 'Update Password')}
               </button>
             </div>
 
@@ -616,7 +646,7 @@ function ProfileContent() {
                 onClick={signOut}
                 className="w-full text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 font-bold text-xs py-3 rounded-xl transition-all"
               >
-                Log Out of Account
+                {isRTL ? 'تسجيل الخروج من الحساب' : 'Log Out of Account'}
               </button>
             </div>
           </div>

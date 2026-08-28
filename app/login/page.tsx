@@ -6,11 +6,13 @@ import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Mail, Lock, Eye, EyeOff, AlertCircle, Loader2, ShieldCheck, ArrowRight } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { useLanguage } from '@/components/LanguageProvider';
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectUrl = searchParams.get('redirect') || '/';
+  const { isRTL } = useLanguage();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -20,7 +22,10 @@ function LoginForm() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) { setError('Please enter your email and password.'); return; }
+    if (!email || !password) {
+      setError(isRTL ? 'يرجى إدخال البريد الإلكتروني وكلمة المرور.' : 'Please enter your email and password.');
+      return;
+    }
     setLoading(true);
     setError('');
 
@@ -52,8 +57,12 @@ function LoginForm() {
               />
             </div>
           </Link>
-          <h1 className="text-2xl font-black text-gray-900 tracking-tight">Sign in to your account</h1>
-          <p className="text-gray-500 text-xs mt-1.5">Manage your marketplace orders, listings & wallet</p>
+          <h1 className="text-2xl font-black text-gray-900 tracking-tight">
+            {isRTL ? 'تسجيل الدخول إلى حسابك' : 'Sign in to your account'}
+          </h1>
+          <p className="text-gray-500 text-xs mt-1.5">
+            {isRTL ? 'إدارة إعلاناتك، طلباتك، ومحفظتك المالية' : 'Manage your marketplace orders, listings & wallet'}
+          </p>
         </div>
 
         {error && (
@@ -65,15 +74,17 @@ function LoginForm() {
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1.5">Email Address</label>
+            <label className="block text-xs font-bold text-gray-700 mb-1.5">
+              {isRTL ? 'البريد الإلكتروني' : 'Email Address'}
+            </label>
             <div className="relative">
-              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Mail className={`absolute ${isRTL ? 'right-3.5' : 'left-3.5'} top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400`} />
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="your.email@example.com"
-                className="w-full bg-white border border-gray-300 rounded-xl pl-10 pr-4 py-3 text-gray-900 placeholder-gray-400 text-xs outline-none focus:border-[#3665F3] focus:ring-2 focus:ring-blue-100 transition-all shadow-sm"
+                className={`w-full bg-white border border-gray-300 rounded-xl ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-3 text-gray-900 placeholder-gray-400 text-xs outline-none focus:border-[#3665F3] focus:ring-2 focus:ring-blue-100 transition-all shadow-sm`}
                 required
                 autoFocus
               />
@@ -82,22 +93,24 @@ function LoginForm() {
 
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-bold text-gray-700">Password</label>
+              <label className="block text-xs font-bold text-gray-700">
+                {isRTL ? 'كلمة المرور' : 'Password'}
+              </label>
             </div>
             <div className="relative">
-              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Lock className={`absolute ${isRTL ? 'right-3.5' : 'left-3.5'} top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400`} />
               <input
                 type={showPass ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full bg-white border border-gray-300 rounded-xl pl-10 pr-12 py-3 text-gray-900 placeholder-gray-400 text-xs outline-none focus:border-[#3665F3] focus:ring-2 focus:ring-blue-100 transition-all shadow-sm"
+                className={`w-full bg-white border border-gray-300 rounded-xl ${isRTL ? 'pr-10 pl-12' : 'pl-10 pr-12'} py-3 text-gray-900 placeholder-gray-400 text-xs outline-none focus:border-[#3665F3] focus:ring-2 focus:ring-blue-100 transition-all shadow-sm`}
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowPass(!showPass)}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                className={`absolute ${isRTL ? 'left-3.5' : 'right-3.5'} top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors`}
               >
                 {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -112,12 +125,12 @@ function LoginForm() {
             {loading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Signing in...</span>
+                <span>{isRTL ? 'جاري تسجيل الدخول...' : 'Signing in...'}</span>
               </>
             ) : (
               <>
-                <span>Sign In</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                <span>{isRTL ? 'تسجيل الدخول' : 'Sign In'}</span>
+                <ArrowRight className={`w-3.5 h-3.5 ${isRTL ? 'rotate-180' : ''}`} />
               </>
             )}
           </button>
@@ -125,12 +138,12 @@ function LoginForm() {
 
         <div className="mt-6 pt-6 border-t border-gray-100 text-center">
           <p className="text-xs text-gray-500">
-            Don&apos;t have an account yet?{' '}
+            {isRTL ? 'ليس لديك حساب بعد؟' : "Don't have an account yet?"}{' '}
             <Link
               href={`/signup?redirect=${encodeURIComponent(redirectUrl)}`}
               className="text-[#3665F3] hover:underline font-bold ml-1"
             >
-              Create Account
+              {isRTL ? 'إنشاء حساب جديد' : 'Create Account'}
             </Link>
           </p>
         </div>
@@ -138,7 +151,11 @@ function LoginForm() {
         {/* Escrow note */}
         <div className="mt-6 bg-gray-50 rounded-2xl p-3.5 flex items-center gap-2.5 text-[11px] text-gray-500 border border-gray-100">
           <ShieldCheck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-          <span>All marketplace orders and payments are protected by Egyptian escrow.</span>
+          <span>
+            {isRTL
+              ? 'جميع المعاملات والمدفوعات مؤمّنة بنظام الضمان المالي المصري.'
+              : 'All marketplace orders and payments are protected by Egyptian escrow.'}
+          </span>
         </div>
       </div>
     </div>

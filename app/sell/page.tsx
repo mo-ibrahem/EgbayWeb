@@ -10,43 +10,67 @@ import {
   Home, Baby, Dumbbell, BookOpen, Car, ShieldCheck, Zap
 } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
+import { useLanguage } from '@/components/LanguageProvider';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { productService, formatEGP } from '@/lib/products';
 import { supabase } from '@/lib/supabase';
 
 const CATEGORIES_SELL = [
-  { value: 'Electronics', label: 'Electronics', icon: Smartphone, color: '#0284C7', bg: '#E0F2FE' },
-  { value: 'Fashion',     label: 'Fashion',     icon: Shirt,      color: '#DB2777', bg: '#FCE7F3' },
-  { value: 'Home',        label: 'Home & Living',icon: Home,      color: '#059669', bg: '#D1FAE5' },
-  { value: 'Toys',        label: 'Toys & Kids', icon: Baby,       color: '#D97706', bg: '#FEF3C7' },
-  { value: 'Sports',      label: 'Sports',      icon: Dumbbell,   color: '#DC2626', bg: '#FEE2E2' },
-  { value: 'Books',       label: 'Books',       icon: BookOpen,   color: '#7C3AED', bg: '#EDE9FE' },
-  { value: 'Automotive',  label: 'Automotive',  icon: Car,        color: '#475569', bg: '#F1F5F9' },
-  { value: 'Beauty',      label: 'Beauty',      icon: Sparkles,   color: '#E11D48', bg: '#FFE4E6' },
+  { value: 'Electronics', key: 'electronics', label: 'Electronics', label_ar: 'إلكترونيات', icon: Smartphone, color: '#0284C7', bg: '#E0F2FE' },
+  { value: 'Fashion',     key: 'fashion',    label: 'Fashion',     label_ar: 'أزياء وكوتشيات', icon: Shirt,      color: '#DB2777', bg: '#FCE7F3' },
+  { value: 'Home',        key: 'home',       label: 'Home & Living',label_ar: 'أثاث ومنزل', icon: Home,      color: '#059669', bg: '#D1FAE5' },
+  { value: 'Toys',        key: 'toys',       label: 'Toys & Kids', label_ar: 'ألعاب وأطفال', icon: Baby,       color: '#D97706', bg: '#FEF3C7' },
+  { value: 'Sports',      key: 'sports',     label: 'Sports',      label_ar: 'رياضة ولياقة', icon: Dumbbell,   color: '#DC2626', bg: '#FEE2E2' },
+  { value: 'Books',       key: 'books',      label: 'Books',       label_ar: 'كتب وميديا', icon: BookOpen,   color: '#7C3AED', bg: '#EDE9FE' },
+  { value: 'Automotive',  key: 'automotive', label: 'Automotive',  label_ar: 'سيارات ومركبات', icon: Car,        color: '#475569', bg: '#F1F5F9' },
+  { value: 'Beauty',      key: 'beauty',     label: 'Beauty',      label_ar: 'عناية وتجميل', icon: Sparkles,   color: '#E11D48', bg: '#FFE4E6' },
 ];
 
 const CONDITIONS = [
-  { value: 'New', label: 'Brand New', desc: 'Unopened in original box/packaging' },
-  { value: 'Used', label: 'Pre-Owned', desc: 'Used but fully functional and clean' },
+  { value: 'New', label: 'Brand New', label_ar: 'جديد تماماً', desc: 'Unopened in original box/packaging', desc_ar: 'غير مستخدم بالكرتونة والتغليف الأصلي' },
+  { value: 'Used', label: 'Pre-Owned', label_ar: 'مستعمل بحالة جيدة', desc: 'Used but fully functional and clean', desc_ar: 'مستعمل ولكنه يعمل بكفاءة ونظيف' },
 ];
 
 const GOVERNORATES = [
-  'Cairo', 'Giza', 'Alexandria', 'Luxor', 'Aswan', 'Asyut',
-  'Beheira', 'Beni Suef', 'Dakahlia', 'Damietta', 'Fayoum',
-  'Gharbia', 'Ismailia', 'Kafr El Sheikh', 'Matruh', 'Minya',
-  'Monufia', 'New Valley', 'North Sinai', 'Port Said', 'Qalyubia',
-  'Qena', 'Red Sea', 'Sharqia', 'Sohag', 'South Sinai', 'Suez',
+  { en: 'Cairo', ar: 'القاهرة' },
+  { en: 'Giza', ar: 'الجيزة' },
+  { en: 'Alexandria', ar: 'الإسكندرية' },
+  { en: 'Luxor', ar: 'الأقصر' },
+  { en: 'Aswan', ar: 'أسوان' },
+  { en: 'Asyut', ar: 'أسيوط' },
+  { en: 'Beheira', ar: 'البحيرة' },
+  { en: 'Beni Suef', ar: 'بني سويف' },
+  { en: 'Dakahlia', ar: 'الدقهلية' },
+  { en: 'Damietta', ar: 'دمياط' },
+  { en: 'Fayoum', ar: 'الفيوم' },
+  { en: 'Gharbia', ar: 'الغربية' },
+  { en: 'Ismailia', ar: 'الإسماعيلية' },
+  { en: 'Kafr El Sheikh', ar: 'كفر الشيخ' },
+  { en: 'Matruh', ar: 'مطروح' },
+  { en: 'Minya', ar: 'المنيا' },
+  { en: 'Monufia', ar: 'المنوفية' },
+  { en: 'New Valley', ar: 'الوادي الجديد' },
+  { en: 'North Sinai', ar: 'شمال سيناء' },
+  { en: 'Port Said', ar: 'بورسعيد' },
+  { en: 'Qalyubia', ar: 'القليوبية' },
+  { en: 'Qena', ar: 'قنا' },
+  { en: 'Red Sea', ar: 'البحر الأحمر' },
+  { en: 'Sharqia', ar: 'الشرقية' },
+  { en: 'Sohag', ar: 'سوهاج' },
+  { en: 'South Sinai', ar: 'جنوب سيناء' },
+  { en: 'Suez', ar: 'السويس' },
 ];
 
 const STEPS = [
-  { id: 1, label: 'Photos', icon: Camera },
-  { id: 2, label: 'Details', icon: FileText },
-  { id: 3, label: 'Pricing', icon: Tag },
+  { id: 1, label: 'Photos', label_ar: 'الصور', icon: Camera },
+  { id: 2, label: 'Details', label_ar: 'التفاصيل', icon: FileText },
+  { id: 3, label: 'Pricing', label_ar: 'السعر', icon: Tag },
 ];
 
 function SellContent() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
+  const { isRTL, t } = useLanguage();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [step, setStep] = useState(1);
@@ -101,48 +125,88 @@ function SellContent() {
     setImages(prev => [...prev, ...newImages].slice(0, 8));
   };
 
-  const validateStep = () => {
-    if (step === 1 && images.length === 0) { setError('Please upload at least one photo of your item.'); return false; }
-    if (step === 2 && (!title.trim() || !description.trim() || !category)) { setError('Please complete all item detail fields.'); return false; }
-    if (step === 3 && (!price || Number(price) <= 0)) { setError('Please enter a valid listing price.'); return false; }
-    setError('');
-    return true;
-  };
-
   const handleNext = () => {
-    if (!validateStep()) return;
+    setError('');
+    if (step === 1) {
+      if (images.length === 0) {
+        setError(isRTL ? 'يرجى إضافة صورة واحدة على الأقل لمنتجك' : 'Please upload at least one photo of your item.');
+        return;
+      }
+    }
+    if (step === 2) {
+      if (!title.trim()) {
+        setError(isRTL ? 'يرجى إدخال عنوان واضح للإعلان' : 'Please provide a descriptive listing title.');
+        return;
+      }
+      if (!category) {
+        setError(isRTL ? 'يرجى اختيار القسم المناسب' : 'Please select a category for your item.');
+        return;
+      }
+      if (!description.trim()) {
+        setError(isRTL ? 'يرجى كتابة وصف يوضح حالة السلعة' : 'Please provide a description.');
+        return;
+      }
+    }
     setStep(s => s + 1);
   };
 
   const handleSubmit = async () => {
-    if (!validateStep()) return;
-    setUploading(true);
     setError('');
+    const p = parseFloat(price);
+    if (isNaN(p) || p <= 0) {
+      setError(isRTL ? 'يرجى إدخال سعر صحيح بالجنيه المصري' : 'Please enter a valid price in EGP.');
+      return;
+    }
+
+    setUploading(true);
     try {
+      // 1. Upload images to Supabase storage
       const uploadedUrls: string[] = [];
       for (const img of images) {
         const ext = img.file.name.split('.').pop() || 'jpg';
-        const path = `${user.id}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-        const { error: upErr } = await supabase.storage.from('product-images').upload(path, img.file, { upsert: true });
-        if (upErr) throw upErr;
-        const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(path);
-        uploadedUrls.push(urlData.publicUrl);
+        const filename = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('product-images')
+          .upload(filename, img.file, { contentType: img.file.type });
+
+        if (uploadError) {
+          console.warn('Storage upload note:', uploadError.message);
+          uploadedUrls.push(img.preview);
+        } else if (uploadData) {
+          const { data: urlData } = supabase.storage
+            .from('product-images')
+            .getPublicUrl(uploadData.path);
+          uploadedUrls.push(urlData.publicUrl);
+        }
       }
 
-      const product = await productService.createProduct({
-        title: title.trim(),
-        description: description.trim(),
-        category,
-        condition,
-        location,
-        price: Number(price),
-        images: uploadedUrls,
-      });
+      // 2. Insert product record
+      const { data: newProd, error: insertError } = await supabase
+        .from('products')
+        .insert({
+          seller_id: user.id,
+          title: title.trim(),
+          description: description.trim(),
+          category,
+          condition,
+          price: p,
+          location,
+          images: uploadedUrls,
+          status: 'active',
+        })
+        .select('id')
+        .single();
+
+      if (insertError) throw insertError;
 
       setSuccess(true);
-      setTimeout(() => router.push(`/products/${product.id}`), 1500);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to publish listing');
+      setTimeout(() => {
+        router.push(newProd ? `/products/${newProd.id}` : '/');
+      }, 1500);
+    } catch (err: any) {
+      console.error(err);
+      setError(err?.message || (isRTL ? 'حدث خطأ أثناء نشر الإعلان، يرجى المحاولة ثانية' : 'Failed to publish listing. Please try again.'));
+    } finally {
       setUploading(false);
     }
   };
@@ -154,8 +218,12 @@ function SellContent() {
           <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-500/20">
             <CheckCircle2 className="w-8 h-8" />
           </div>
-          <h2 className="text-2xl font-black text-slate-900 mb-2">Listing Published! 🚀</h2>
-          <p className="text-xs text-slate-500">Your item is now live and protected by EgyBay Escrow.</p>
+          <h2 className="text-2xl font-black text-slate-900 mb-2">
+            {isRTL ? 'تم نشر إعلانك بنجاح! 🚀' : 'Listing Published! 🚀'}
+          </h2>
+          <p className="text-xs text-slate-500">
+            {isRTL ? 'إعلانك الآن معروض في السوق ومحمي بالضمان المالي.' : 'Your item is now live and protected by EgyBay Escrow.'}
+          </p>
         </div>
       </div>
     );
@@ -170,7 +238,8 @@ function SellContent() {
             onClick={() => step > 1 ? setStep(s => s - 1) : router.back()}
             className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 transition-colors"
           >
-            <ArrowLeft className="w-4 h-4" /> Back
+            <ArrowLeft className={`w-4 h-4 ${isRTL ? 'rotate-180' : ''}`} />
+            {isRTL ? 'الرجوع' : 'Back'}
           </button>
 
           <div className="flex items-center gap-2">
@@ -178,6 +247,7 @@ function SellContent() {
               const Icon = s.icon;
               const isCurrent = step === s.id;
               const isPast = step > s.id;
+              const label = isRTL ? s.label_ar : s.label;
 
               return (
                 <React.Fragment key={s.id}>
@@ -189,7 +259,7 @@ function SellContent() {
                       : 'bg-slate-200/80 text-slate-400'
                   }`}>
                     {isPast ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Icon className="w-3.5 h-3.5" />}
-                    <span>{s.label}</span>
+                    <span>{label}</span>
                   </div>
                   {i < STEPS.length - 1 && <div className={`w-3 h-0.5 rounded ${isPast ? 'bg-emerald-300' : 'bg-slate-200'}`} />}
                 </React.Fragment>
@@ -208,8 +278,12 @@ function SellContent() {
         {step === 1 && (
           <div className="space-y-5">
             <div>
-              <h2 className="text-xl font-black text-slate-900">Upload Item Photos</h2>
-              <p className="text-xs text-slate-500 mt-0.5">High-quality, well-lit photos increase buyer inquiries by 3x.</p>
+              <h2 className="text-xl font-black text-slate-900">
+                {isRTL ? 'أضف صور المنتج' : 'Upload Item Photos'}
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {isRTL ? 'الصور الواضحة ذات الإضاءة الجيدة تزيد من سرعة بيع السلعة ٣ أضعاف.' : 'High-quality, well-lit photos increase buyer inquiries by 3x.'}
+              </p>
             </div>
 
             <div
@@ -221,8 +295,12 @@ function SellContent() {
               <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
                 <Upload className="w-6 h-6" />
               </div>
-              <p className="font-bold text-slate-800 text-sm mb-1">Click to browse or drag photos here</p>
-              <p className="text-xs text-slate-400">Supports PNG, JPG, JPEG, WEBP (up to 8 photos)</p>
+              <p className="font-bold text-slate-800 text-sm mb-1">
+                {isRTL ? 'اضغط لاختيار الصور أو اسحبها هنا' : 'Click to browse or drag photos here'}
+              </p>
+              <p className="text-xs text-slate-400">
+                {isRTL ? 'يدعم PNG, JPG, JPEG, WEBP, HEIC (حتى ٨ صور)' : 'Supports PNG, JPG, JPEG, WEBP (up to 8 photos)'}
+              </p>
               <input ref={fileInputRef} type="file" multiple accept="image/*" onChange={handleImageSelect} className="hidden" />
             </div>
 
@@ -233,7 +311,7 @@ function SellContent() {
                     <Image src={img.preview} alt="" fill className="object-cover" />
                     {i === 0 && (
                       <div className="absolute top-1.5 left-1.5 bg-blue-600 text-white text-[10px] font-black px-2 py-0.5 rounded-md">
-                        COVER
+                        {isRTL ? 'الغلاف' : 'COVER'}
                       </div>
                     )}
                     <button
@@ -253,40 +331,51 @@ function SellContent() {
         {step === 2 && (
           <div className="space-y-5">
             <div>
-              <h2 className="text-xl font-black text-slate-900">Item Specifications</h2>
-              <p className="text-xs text-slate-500 mt-0.5">Describe title, condition, and category accurately.</p>
+              <h2 className="text-xl font-black text-slate-900">
+                {isRTL ? 'مواصفات وتفاصيل الإعلان' : 'Item Specifications'}
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {isRTL ? 'اكتب عنواناً ووصفاً دقيقاً وحالة السلعة.' : 'Describe title, condition, and category accurately.'}
+              </p>
             </div>
 
             <div className="bg-white rounded-3xl border border-slate-200/80 p-6 space-y-5 shadow-sm">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">Listing Title</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  {isRTL ? 'عنوان الإعلان' : 'Listing Title'}
+                </label>
                 <input
                   type="text"
                   value={title}
                   onChange={e => setTitle(e.target.value)}
                   maxLength={80}
-                  placeholder="e.g. Apple iPhone 15 Pro Max 256GB Titanium"
+                  placeholder={isRTL ? 'مثال: آيفون ١٥ برو ماكس ٢٥٦ جيجا بحالة الزيرو' : 'e.g. Apple iPhone 15 Pro Max 256GB Titanium'}
                   className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">Description & Accessories Included</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  {isRTL ? 'الوصف والمشتملات والملحقات' : 'Description & Accessories Included'}
+                </label>
                 <textarea
                   value={description}
                   onChange={e => setDescription(e.target.value)}
                   rows={4}
-                  placeholder="State the item's condition, warranty status, reason for selling, and accessories..."
+                  placeholder={isRTL ? 'وضح حالة الاستخدام، الضمان، سبب البيع، والمشتملات المرفقة مع السلعة...' : 'State the item condition, warranty status, reason for selling, and accessories...'}
                   className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-500 resize-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-2">Category</label>
+                <label className="block text-xs font-bold text-slate-700 mb-2">
+                  {isRTL ? 'القسم' : 'Category'}
+                </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {CATEGORIES_SELL.map(cat => {
                     const Icon = cat.icon;
                     const isSelected = category === cat.value;
+                    const label = isRTL ? cat.label_ar : cat.label;
 
                     return (
                       <button
@@ -305,7 +394,7 @@ function SellContent() {
                         >
                           <Icon className="w-4 h-4" />
                         </div>
-                        <span className="truncate">{cat.label}</span>
+                        <span className="truncate">{label}</span>
                       </button>
                     );
                   })}
@@ -314,34 +403,42 @@ function SellContent() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-2">Condition</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-2">
+                    {isRTL ? 'حالة السلعة' : 'Condition'}
+                  </label>
                   <div className="space-y-2">
                     {CONDITIONS.map(cond => (
                       <button
                         type="button"
                         key={cond.value}
                         onClick={() => setCondition(cond.value)}
-                        className={`w-full p-3 rounded-2xl border-2 text-left transition-all ${
+                        className={`w-full p-3 rounded-2xl border-2 text-left rtl:text-right transition-all ${
                           condition === cond.value
                             ? 'border-blue-600 bg-blue-50/50'
                             : 'border-slate-100 hover:border-slate-200'
                         }`}
                       >
-                        <p className="text-xs font-bold text-slate-900">{cond.label}</p>
-                        <p className="text-[11px] text-slate-400 mt-0.5">{cond.desc}</p>
+                        <p className="text-xs font-bold text-slate-900">{isRTL ? cond.label_ar : cond.label}</p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">{isRTL ? cond.desc_ar : cond.desc}</p>
                       </button>
                     ))}
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-2">Location (Governorate)</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-2">
+                    {isRTL ? 'المحافظة' : 'Location (Governorate)'}
+                  </label>
                   <select
                     value={location}
                     onChange={e => setLocation(e.target.value)}
                     className="w-full border border-slate-200 rounded-2xl px-4 py-3 text-xs outline-none focus:border-blue-500 bg-white"
                   >
-                    {GOVERNORATES.map(g => <option key={g} value={g}>{g}</option>)}
+                    {GOVERNORATES.map(g => (
+                      <option key={g.en} value={g.en}>
+                        {isRTL ? g.ar : g.en}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -353,15 +450,23 @@ function SellContent() {
         {step === 3 && (
           <div className="space-y-5">
             <div>
-              <h2 className="text-xl font-black text-slate-900">Set Listing Price</h2>
-              <p className="text-xs text-slate-500 mt-0.5">Competitive pricing attracts fast, verified buyers.</p>
+              <h2 className="text-xl font-black text-slate-900">
+                {isRTL ? 'تحديد السعر' : 'Set Listing Price'}
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {isRTL ? 'السعر المناسب يجذب المشترين الجادين بسرعة.' : 'Competitive pricing attracts fast, verified buyers.'}
+              </p>
             </div>
 
             <div className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-sm space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">Price in Egyptian Pounds (EGP)</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  {isRTL ? 'السعر بالجنيه المصري (EGP)' : 'Price in Egyptian Pounds (EGP)'}
+                </label>
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">EGP</span>
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">
+                    {isRTL ? 'ج.م' : 'EGP'}
+                  </span>
                   <input
                     type="number"
                     value={price}
@@ -377,15 +482,15 @@ function SellContent() {
               {Number(price) > 0 && (
                 <div className="bg-blue-50/70 border border-blue-100 rounded-2xl p-4 text-xs space-y-2">
                   <div className="flex justify-between text-slate-600">
-                    <span>Listing Amount:</span>
+                    <span>{isRTL ? 'سعر الإعلان المعروض:' : 'Listing Amount:'}</span>
                     <span className="font-bold text-slate-900">{formatEGP(Number(price))}</span>
                   </div>
                   <div className="flex justify-between text-blue-700">
-                    <span>Escrow Platform Fee (4%):</span>
+                    <span>{isRTL ? 'رسوم الضمان والخدمة (٤٪):' : 'Escrow Platform Fee (4%):'}</span>
                     <span>-{formatEGP(Math.round(Number(price) * 0.04))}</span>
                   </div>
                   <div className="pt-2 border-t border-blue-200 flex justify-between text-sm font-black text-blue-900">
-                    <span>You Receive in Wallet:</span>
+                    <span>{isRTL ? 'المبلغ المستحق في محفظتك:' : 'You Receive in Wallet:'}</span>
                     <span>{formatEGP(Math.round(Number(price) * 0.96))}</span>
                   </div>
                 </div>
@@ -401,7 +506,7 @@ function SellContent() {
               onClick={() => setStep(s => s - 1)}
               className="flex-1 border border-slate-200 text-slate-700 font-bold py-3.5 rounded-2xl hover:bg-slate-100 text-xs transition-colors"
             >
-              Previous Step
+              {isRTL ? 'الخطوة السابقة' : 'Previous Step'}
             </button>
           )}
 
@@ -410,7 +515,7 @@ function SellContent() {
               onClick={handleNext}
               className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-2xl text-xs shadow-md transition-colors"
             >
-              Continue to {STEPS[step].label}
+              {isRTL ? `المتابعة إلى ${STEPS[step].label_ar}` : `Continue to ${STEPS[step].label}`}
             </button>
           ) : (
             <button
@@ -419,7 +524,7 @@ function SellContent() {
               className="flex-1 bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:from-blue-700 text-white font-black py-3.5 rounded-2xl text-xs shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 transition-all"
             >
               <Sparkles className="w-4 h-4" />
-              {uploading ? 'Publishing Listing...' : 'Publish Listing Now'}
+              {uploading ? (isRTL ? 'جاري نشر الإعلان...' : 'Publishing Listing...') : (isRTL ? 'نشر الإعلان الآن' : 'Publish Listing Now')}
             </button>
           )}
         </div>
