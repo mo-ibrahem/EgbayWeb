@@ -17,7 +17,7 @@ import { useLanguage } from '@/components/LanguageProvider';
 import AnimatedNumber from '@/components/AnimatedNumber';
 import SmartImage from '@/components/SmartImage';
 
-export const CATEGORIES_WITH_ICONS = [
+const CATEGORIES_WITH_ICONS = [
   { id: '',            label: 'All Items',    icon: LayoutGrid,  color: '#4F46E5', bg: '#EEF2FF' },
   { id: 'Electronics', label: 'Electronics',  icon: Smartphone,  color: '#0284C7', bg: '#E0F2FE' },
   { id: 'Fashion',     label: 'Fashion',      icon: Shirt,       color: '#DB2777', bg: '#FCE7F3' },
