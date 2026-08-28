@@ -184,17 +184,17 @@ function ProfileContent() {
   const avatarUrl = profile?.avatar_url || user?.user_metadata?.avatar_url;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 w-full overflow-hidden">
       {/* ─── Profile Header Banner ─── */}
-      <div className="bg-gradient-to-r from-[#2563EB] via-[#3B82F6] to-[#6366F1] rounded-3xl p-6 sm:p-8 lg:p-10 mb-8 text-white relative overflow-hidden shadow-lg shadow-blue-500/10">
+      <div className="bg-gradient-to-r from-[#2563EB] via-[#3B82F6] to-[#6366F1] rounded-3xl p-4 sm:p-8 lg:p-10 mb-6 sm:mb-8 text-white relative overflow-hidden shadow-lg shadow-blue-500/10">
         <div className="absolute -right-20 -top-20 w-80 h-80 bg-white/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -left-20 -bottom-20 w-80 h-80 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="relative flex flex-col md:flex-row items-center md:items-start justify-between gap-6">
-          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 text-center sm:text-left rtl:sm:text-right">
+        <div className="relative flex flex-col md:flex-row items-center md:items-start justify-between gap-5 sm:gap-6">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 text-center sm:text-left rtl:sm:text-right w-full sm:w-auto">
             {/* Avatar with Camera Overlay */}
             <div className="relative group flex-shrink-0">
-              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl overflow-hidden bg-white/20 ring-4 ring-white/30 shadow-xl relative">
+              <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-3xl overflow-hidden bg-white/20 ring-4 ring-white/30 shadow-xl relative">
                 {avatarUrl ? (
                   <SmartImage
                     src={avatarUrl}
@@ -203,7 +203,7 @@ function ProfileContent() {
                     className="object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-4xl font-black text-white">
+                  <div className="w-full h-full flex items-center justify-center text-3xl sm:text-4xl font-black text-white">
                     {profile?.full_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
                   </div>
                 )}
@@ -215,10 +215,10 @@ function ProfileContent() {
                 className="absolute inset-0 bg-black/40 rounded-3xl opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition-opacity text-white text-xs font-semibold gap-1"
               >
                 {avatarUploading ? (
-                  <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 ) : (
                   <>
-                    <Camera className="w-6 h-6" />
+                    <Camera className="w-5 h-5" />
                     <span>{isRTL ? 'رفع صورة' : 'Upload'}</span>
                   </>
                 )}
@@ -227,76 +227,76 @@ function ProfileContent() {
             </div>
 
             {/* Profile Info */}
-            <div>
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 mb-1.5">
-                <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mb-1">
+                <h1 className="text-xl sm:text-3xl font-black tracking-tight truncate max-w-full">
                   {profile?.full_name || (isRTL ? 'عضو إيجي باي' : 'Marketplace Member')}
                 </h1>
-                <span className="bg-white/20 backdrop-blur-md text-white text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1 border border-white/20">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-300" /> {isRTL ? 'بائع موثق' : 'Verified Seller'}
+                <span className="bg-white/20 backdrop-blur-md text-white text-[10px] sm:text-xs font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 border border-white/20">
+                  <ShieldCheck className="w-3 h-3 text-emerald-300" /> {isRTL ? 'بائع موثق' : 'Verified Seller'}
                 </span>
               </div>
-              <p className="text-white/80 text-sm">{user?.email}</p>
+              <p className="text-white/80 text-xs sm:text-sm truncate">{user?.email}</p>
 
               {/* Quick Stat Badges */}
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 mt-4">
-                <div className="bg-white/15 backdrop-blur-sm px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-2 border border-white/10">
-                  <Package className="w-3.5 h-3.5 text-blue-200" />
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-1.5 sm:gap-3 mt-3 sm:mt-4">
+                <div className="bg-white/15 backdrop-blur-sm px-2.5 sm:px-3.5 py-1 rounded-xl text-[11px] sm:text-xs font-semibold flex items-center gap-1.5 border border-white/10">
+                  <Package className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-200" />
                   <span>{listings.length} {isRTL ? 'إعلان نشط' : `Active ${listings.length === 1 ? 'Listing' : 'Listings'}`}</span>
                 </div>
-                <div className="bg-white/15 backdrop-blur-sm px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-2 border border-white/10">
-                  <Heart className="w-3.5 h-3.5 text-rose-200" />
-                  <span>{wishlist.length} {isRTL ? 'عنصر بالمفضلة' : `Saved ${wishlist.length === 1 ? 'Item' : 'Items'}`}</span>
+                <div className="bg-white/15 backdrop-blur-sm px-2.5 sm:px-3.5 py-1 rounded-xl text-[11px] sm:text-xs font-semibold flex items-center gap-1.5 border border-white/10">
+                  <Heart className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-rose-200" />
+                  <span>{wishlist.length} {isRTL ? 'بالمفضلة' : `Saved ${wishlist.length === 1 ? 'Item' : 'Items'}`}</span>
                 </div>
-                <div className="bg-white/15 backdrop-blur-sm px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-2 border border-white/10">
-                  <Clock className="w-3.5 h-3.5 text-emerald-200" />
-                  <span>{isRTL ? 'محمي بالضمان المالي المصري' : 'Egyptian Escrow Protected'}</span>
+                <div className="bg-white/15 backdrop-blur-sm px-2.5 sm:px-3.5 py-1 rounded-xl text-[11px] sm:text-xs font-semibold flex items-center gap-1.5 border border-white/10">
+                  <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-200" />
+                  <span>{isRTL ? 'ضمان مالي ١٠٠٪' : '100% Escrow'}</span>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Quick Action Buttons */}
-          <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full sm:w-auto">
+          <div className="grid grid-cols-2 sm:flex items-center gap-2 sm:gap-3 w-full sm:w-auto pt-2 sm:pt-0 border-t border-white/10 sm:border-0">
             <Link
               href="/wallet"
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-white text-blue-700 hover:bg-blue-50 font-bold text-xs px-5 py-3 rounded-2xl shadow-md transition-all active:scale-95"
+              className="flex items-center justify-center gap-1.5 bg-white text-blue-700 hover:bg-blue-50 font-bold text-xs px-3 sm:px-5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl shadow-md transition-all active:scale-95"
             >
-              <Wallet className="w-4 h-4" />
+              <Wallet className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span>{isRTL ? 'المحفظة والأرباح' : 'Wallet & Payouts'}</span>
             </Link>
             <Link
               href="/sell"
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-blue-900/60 hover:bg-blue-900/80 text-white font-bold text-xs px-5 py-3 rounded-2xl border border-white/20 shadow-md transition-all active:scale-95"
+              className="flex items-center justify-center gap-1.5 bg-blue-900/70 hover:bg-blue-900/90 text-white font-bold text-xs px-3 sm:px-5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl border border-white/20 shadow-md transition-all active:scale-95"
             >
-              <Plus className="w-4 h-4" />
-              <span>{isRTL ? 'أضف إعلان جديد' : 'Post New Item'}</span>
+              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span>{isRTL ? 'إعلان جديد' : 'Post New Item'}</span>
             </Link>
           </div>
         </div>
       </div>
 
       {/* ─── Navigation Tabs Bar ─── */}
-      <div className="flex gap-2 overflow-x-auto no-scrollbar mb-8 border-b border-gray-200 pb-3">
+      <div className="flex gap-2 overflow-x-auto no-scrollbar mb-6 border-b border-gray-200 pb-3">
         {TABS.map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2.5 px-6 py-3 rounded-2xl text-sm font-bold transition-all flex-shrink-0 ${
+            className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-6 py-2 sm:py-3 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-bold transition-all flex-shrink-0 ${
               activeTab === tab.id
                 ? 'bg-[#3665F3] text-white shadow-md shadow-blue-500/20'
                 : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300 hover:bg-gray-50'
             }`}
           >
-            <tab.icon className="w-4 h-4" />
+            <tab.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             <span>{isRTL ? tab.label_ar : tab.label}</span>
             {tab.id === 'products' && (
-              <span className={`text-xs px-2 py-0.5 rounded-full ${activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600'}`}>
+              <span className={`text-[10px] sm:text-xs px-1.5 py-0.2 rounded-full ${activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600'}`}>
                 {listings.length}
               </span>
             )}
             {tab.id === 'wishlist' && (
-              <span className={`text-xs px-2 py-0.5 rounded-full ${activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600'}`}>
+              <span className={`text-[10px] sm:text-xs px-1.5 py-0.2 rounded-full ${activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600'}`}>
                 {wishlist.length}
               </span>
             )}
@@ -308,53 +308,53 @@ function ProfileContent() {
 
       {/* 1. My Listings */}
       {activeTab === 'products' && (
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-black text-gray-900">{isRTL ? 'إعلاناتي النشطة' : 'Active Listings'}</h2>
+              <h2 className="text-base sm:text-xl font-black text-gray-900">{isRTL ? 'إعلاناتي النشطة' : 'Active Listings'}</h2>
               <p className="text-xs text-gray-500 mt-0.5">{isRTL ? 'إدارة السلع والمنتجات المعروضة للبيع' : 'Manage your items for sale across Egypt'}</p>
             </div>
             <Link
               href="/sell"
-              className="bg-[#3665F3] hover:bg-[#2B54D4] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm transition-all flex items-center gap-1.5"
+              className="bg-[#3665F3] hover:bg-[#2B54D4] text-white text-xs font-bold px-3 sm:px-4 py-2 rounded-xl shadow-sm transition-all flex items-center gap-1.5"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-3.5 h-3.5" />
               <span>{isRTL ? 'إعلان جديد' : 'New Listing'}</span>
             </Link>
           </div>
 
           {listings.length === 0 ? (
-            <div className="text-center py-20 bg-white rounded-3xl border border-gray-200 shadow-sm max-w-md mx-auto">
-              <Package className="w-14 h-14 text-gray-300 mx-auto mb-3 stroke-[1.5]" />
-              <h3 className="font-bold text-gray-900 text-base mb-1">{isRTL ? 'لا توجد إعلانات بعد' : 'No listings yet'}</h3>
+            <div className="text-center py-16 bg-white rounded-3xl border border-gray-200 shadow-sm max-w-md mx-auto p-6">
+              <Package className="w-12 h-12 text-gray-300 mx-auto mb-3 stroke-[1.5]" />
+              <h3 className="font-bold text-gray-900 text-sm sm:text-base mb-1">{isRTL ? 'لا توجد إعلانات بعد' : 'No listings yet'}</h3>
               <p className="text-gray-500 text-xs mb-5 max-w-xs mx-auto">
                 {isRTL ? 'اعرض أجهزتك ومقتنياتك غير المستخدمة للبيع بأمان عبر الضمان المالي.' : 'Turn your unused items, gadgets, or products into cash with Egyptian escrow.'}
               </p>
               <Link
                 href="/sell"
-                className="inline-flex items-center gap-2 bg-[#3665F3] text-white px-6 py-3 rounded-xl font-bold text-xs shadow-md shadow-blue-500/20 hover:bg-[#2B54D4] transition-all"
+                className="inline-flex items-center gap-2 bg-[#3665F3] text-white px-5 py-2.5 rounded-xl font-bold text-xs shadow-md shadow-blue-500/20 hover:bg-[#2B54D4] transition-all"
               >
                 <Plus className="w-4 h-4" />
                 <span>{isRTL ? 'أضف أول إعلان الآن' : 'List an Item Now'}</span>
               </Link>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-6">
               {listings.map(product => (
                 <div
                   key={product.id}
-                  className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-all flex flex-col group"
+                  className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-all flex flex-col group min-w-0"
                 >
-                  <div className="relative aspect-square bg-gray-50 overflow-hidden">
+                  <div className="relative aspect-square bg-gray-50 overflow-hidden w-full">
                     <SmartImage
                       src={product.images?.[0]}
                       alt={product.title}
                       fill
                       className="object-cover group-hover:scale-105 transition-transform duration-300"
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
                     />
-                    <div className="absolute top-2.5 right-2.5">
-                      <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-full shadow-sm ${
+                    <div className="absolute top-2 right-2">
+                      <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full shadow-sm ${
                         product.status === 'active' ? 'bg-emerald-500 text-white' : 'bg-gray-600 text-white'
                       }`}>
                         {product.status === 'active' ? (isRTL ? 'نشط' : 'active') : product.status}
@@ -362,34 +362,34 @@ function ProfileContent() {
                     </div>
                   </div>
 
-                  <div className="p-4 flex-1 flex flex-col justify-between">
+                  <div className="p-2.5 sm:p-4 flex-1 flex flex-col justify-between">
                     <div>
-                      <h3 className="font-bold text-gray-900 text-sm line-clamp-1 group-hover:text-blue-600 transition-colors">
+                      <h3 className="font-bold text-gray-900 text-xs sm:text-sm line-clamp-1 group-hover:text-blue-600 transition-colors">
                         {product.title}
                       </h3>
-                      <p className="text-[#3665F3] font-black text-base mt-1">
+                      <p className="text-[#3665F3] font-black text-xs sm:text-base mt-0.5 sm:mt-1">
                         {formatEGP(product.price)}
                       </p>
-                      <p className="text-[11px] text-gray-400 mt-1 flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
+                      <p className="text-[10px] sm:text-[11px] text-gray-400 mt-0.5 sm:mt-1 flex items-center gap-1">
+                        <Clock className="w-3 h-3 flex-shrink-0" />
                         <span>{timeAgo(product.created_at, isRTL)}</span>
                       </p>
                     </div>
 
-                    <div className="flex gap-2 mt-4 pt-3 border-t border-gray-100">
+                    <div className="flex gap-1.5 sm:gap-2 mt-2.5 sm:mt-4 pt-2 sm:pt-3 border-t border-gray-100">
                       <Link
                         href={`/products/${product.id}`}
-                        className="flex-1 flex items-center justify-center gap-1 text-xs font-bold text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 py-2 rounded-xl transition-colors"
+                        className="flex-1 flex items-center justify-center gap-1 text-[11px] sm:text-xs font-bold text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 py-1.5 sm:py-2 rounded-lg sm:rounded-xl transition-colors"
                       >
-                        <Eye className="w-3.5 h-3.5" />
+                        <Eye className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                         <span>{isRTL ? 'عرض' : 'View'}</span>
                       </Link>
                       <button
                         onClick={() => handleDeleteProduct(product.id)}
-                        className="flex items-center justify-center text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 px-3 py-2 rounded-xl transition-colors"
+                        className="flex items-center justify-center text-[11px] sm:text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl transition-colors"
                         title={isRTL ? 'حذف الإعلان' : 'Delete Listing'}
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                       </button>
                     </div>
                   </div>
@@ -402,9 +402,9 @@ function ProfileContent() {
 
       {/* 2. Saved Items */}
       {activeTab === 'wishlist' && (
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           <div>
-            <h2 className="text-xl font-black text-gray-900">
+            <h2 className="text-base sm:text-xl font-black text-gray-900">
               {isRTL ? `السلع المحفوظة (${wishlist.length})` : `Saved Items (${wishlist.length})`}
             </h2>
             <p className="text-xs text-gray-500 mt-0.5">
@@ -413,58 +413,58 @@ function ProfileContent() {
           </div>
 
           {wishlist.length === 0 ? (
-            <div className="text-center py-20 bg-white rounded-3xl border border-gray-200 shadow-sm max-w-md mx-auto">
-              <Heart className="w-14 h-14 text-gray-300 mx-auto mb-3 stroke-[1.5]" />
-              <h3 className="font-bold text-gray-900 text-base mb-1">{isRTL ? 'لا توجد سلع محفوظة بالمفضلة' : 'No saved items yet'}</h3>
+            <div className="text-center py-16 bg-white rounded-3xl border border-gray-200 shadow-sm max-w-md mx-auto p-6">
+              <Heart className="w-12 h-12 text-gray-300 mx-auto mb-3 stroke-[1.5]" />
+              <h3 className="font-bold text-gray-900 text-sm sm:text-base mb-1">{isRTL ? 'لا توجد سلع محفوظة بالمفضلة' : 'No saved items yet'}</h3>
               <p className="text-gray-500 text-xs mb-5 max-w-xs mx-auto">
                 {isRTL ? 'تصفح آلاف الإلكترونيات والأزياء الأصلية على إيجي باي.' : 'Browse thousands of verified electronics, fashion, and motors items on EgyBay.'}
               </p>
               <Link
                 href="/"
-                className="inline-flex items-center gap-2 bg-[#3665F3] text-white px-6 py-3 rounded-xl font-bold text-xs shadow-md shadow-blue-500/20 hover:bg-[#2B54D4] transition-all"
+                className="inline-flex items-center gap-2 bg-[#3665F3] text-white px-5 py-2.5 rounded-xl font-bold text-xs shadow-md shadow-blue-500/20 hover:bg-[#2B54D4] transition-all"
               >
                 <span>{isRTL ? 'تصفح السوق' : 'Browse Marketplace'}</span>
                 <ArrowRight className={`w-4 h-4 ${isRTL ? 'rotate-180' : ''}`} />
               </Link>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-6">
               {wishlist.map(product => (
                 <Link
                   key={product.id}
                   href={`/products/${product.id}`}
-                  className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-all flex flex-col group"
+                  className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-all flex flex-col group min-w-0"
                 >
-                  <div className="relative aspect-square bg-gray-50 overflow-hidden">
+                  <div className="relative aspect-square bg-gray-50 overflow-hidden w-full">
                     <SmartImage
                       src={product.images?.[0]}
                       alt={product.title}
                       fill
                       className="object-cover group-hover:scale-105 transition-transform duration-300"
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
                     />
-                    <div className="absolute top-2.5 right-2.5 bg-rose-50 text-rose-600 p-1.5 rounded-full shadow-sm">
-                      <Heart className="w-4 h-4 fill-current" />
+                    <div className="absolute top-2 right-2 bg-rose-50 text-rose-600 p-1.5 rounded-full shadow-sm">
+                      <Heart className="w-3.5 h-3.5 fill-current" />
                     </div>
                   </div>
 
-                  <div className="p-4 flex-1 flex flex-col justify-between">
+                  <div className="p-2.5 sm:p-4 flex-1 flex flex-col justify-between">
                     <div>
-                      <h3 className="font-bold text-gray-900 text-sm line-clamp-1 group-hover:text-blue-600 transition-colors">
+                      <h3 className="font-bold text-gray-900 text-xs sm:text-sm line-clamp-1 group-hover:text-blue-600 transition-colors">
                         {product.title}
                       </h3>
-                      <p className="text-[#3665F3] font-black text-base mt-1">
+                      <p className="text-[#3665F3] font-black text-xs sm:text-base mt-0.5 sm:mt-1">
                         {formatEGP(product.price)}
                       </p>
-                      <p className="text-[11px] text-gray-400 mt-1 flex items-center gap-1">
-                        <MapPin className="w-3 h-3" />
-                        <span>{product.location || (isRTL ? 'مصر' : 'Cairo, Egypt')}</span>
+                      <p className="text-[10px] sm:text-[11px] text-gray-400 mt-0.5 sm:mt-1 flex items-center gap-1">
+                        <MapPin className="w-3 h-3 flex-shrink-0" />
+                        <span className="truncate">{product.location || (isRTL ? 'مصر' : 'Cairo, Egypt')}</span>
                       </p>
                     </div>
 
-                    <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs font-bold text-[#3665F3]">
+                    <div className="mt-2.5 sm:mt-4 pt-2 sm:pt-3 border-t border-gray-100 flex items-center justify-between text-xs font-bold text-[#3665F3]">
                       <span>{isRTL ? 'عرض التفاصيل' : 'View Details'}</span>
-                      <ChevronRight className={`w-4 h-4 group-hover:translate-x-1 transition-transform ${isRTL ? 'rotate-180' : ''}`} />
+                      <ChevronRight className={`w-3.5 h-3.5 group-hover:translate-x-1 transition-transform ${isRTL ? 'rotate-180' : ''}`} />
                     </div>
                   </div>
                 </Link>
