@@ -236,18 +236,29 @@ function ProductCard({
 
             <div>
               {/* Price & Escrow */}
-              <div className="flex items-baseline justify-between gap-1 mb-2">
+              <div className="flex items-baseline justify-between gap-1 mb-1.5">
                 <span className="text-sm sm:text-base font-black text-slate-900">
                   <AnimatedNumber value={product.price} prefix={isRTL ? 'ج.م ' : 'EGP '} />
                 </span>
-                <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
+                <span className="flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
                   <ShieldCheck className="w-3 h-3 flex-shrink-0" />
                   {isRTL ? 'ضمان' : 'Escrow'}
                 </span>
               </div>
 
+              {/* Shipping & Offer Trust Badges (eBay Style) */}
+              <div className="flex items-center gap-2 mb-2 text-[10px] text-slate-500 font-medium">
+                <span className="flex items-center gap-1 text-emerald-700 font-semibold bg-emerald-50/70 px-1.5 py-0.5 rounded">
+                  <Package className="w-2.5 h-2.5" />
+                  {isRTL ? 'شحن بوسطة' : 'Bosta Courier'}
+                </span>
+                <span className="text-slate-400">
+                  {isRTL ? '• متاح تفاوض' : '• Best Offer'}
+                </span>
+              </div>
+
               {/* Location & Time */}
-              <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-[11px] text-slate-400">
+              <div className="flex items-center justify-between pt-1.5 border-t border-slate-100 text-[10.5px] text-slate-400">
                 <span className="flex items-center gap-1 truncate max-w-[100px]">
                   <MapPin className="w-3 h-3 text-slate-400 flex-shrink-0" />
                   {product.location || (isRTL ? 'مصر' : 'Egypt')}
@@ -364,13 +375,13 @@ function HomeFeedContent() {
 
   return (
     <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-6 sm:space-y-8 pb-28 sm:pb-12">
-      {/* ─── Unified Story-Style Category & Live Rail ─── */}
+      {/* ─── Unified Story-Style Category & Live Rail (eBay / Noon Pattern) ─── */}
       <div>
-        <div className="flex items-center gap-3 overflow-x-auto no-scrollbar py-1">
+        <div className="flex items-center gap-3.5 sm:gap-4 overflow-x-auto no-scrollbar py-1">
           {/* 🔴 Live Stream Story Circle */}
           <Link
             href="/live"
-            className="flex flex-col items-center gap-1.5 flex-shrink-0 group"
+            className="flex flex-col items-center gap-1.5 flex-shrink-0 group w-[68px]"
           >
             <div className="w-14 h-14 rounded-full p-[2.5px] bg-gradient-to-tr from-red-600 via-rose-500 to-amber-500 flex items-center justify-center relative shadow-sm group-hover:scale-105 transition-transform">
               <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
@@ -395,7 +406,7 @@ function HomeFeedContent() {
               <button
                 key={cat.id || 'all'}
                 onClick={() => handleCategorySelect(cat.id)}
-                className="flex flex-col items-center gap-1.5 flex-shrink-0 group"
+                className="flex flex-col items-center gap-1.5 flex-shrink-0 group w-[68px]"
               >
                 <div
                   className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-200 shadow-sm group-hover:scale-105 ${
@@ -407,7 +418,7 @@ function HomeFeedContent() {
                 >
                   <Icon className="w-5 h-5" />
                 </div>
-                <span className={`text-[11px] font-bold text-center leading-tight truncate max-w-[64px] ${
+                <span className={`text-[10px] sm:text-[11px] font-bold text-center leading-tight line-clamp-2 max-w-[68px] ${
                   isSelected ? 'text-blue-700 font-black' : 'text-slate-700'
                 }`}>
                   {label}
@@ -419,7 +430,7 @@ function HomeFeedContent() {
       </div>
 
       {/* ─── Hero Deal Banner with Dynamic Carousel ─── */}
-      <div className="rounded-3xl overflow-hidden shadow-lg shadow-slate-900/10 border border-slate-800/40 relative min-h-[150px] sm:min-h-[180px]">
+      <div className="rounded-3xl overflow-hidden shadow-lg shadow-slate-900/10 border border-slate-800/40 relative min-h-[140px] sm:min-h-[175px]">
         <AnimatePresence mode="wait">
           <motion.div
             key={banner.key}
@@ -427,7 +438,7 @@ function HomeFeedContent() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: isRTL ? 20 : -20 }}
             transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-            className="w-full h-full min-h-[150px] sm:min-h-[180px] p-5 sm:p-7 flex items-center justify-between relative text-white"
+            className="w-full h-full min-h-[140px] sm:min-h-[175px] p-4 sm:p-7 flex items-center justify-between relative text-white"
             style={{ background: `linear-gradient(135deg, ${banner.colors[0]}, ${banner.colors[1]})` }}
           >
             <div className="z-10 max-w-xl space-y-1.5 sm:space-y-2">
@@ -435,10 +446,10 @@ function HomeFeedContent() {
                 <BannerIcon className="w-3 h-3 text-amber-300" />
                 <span>{isRTL ? banner.badge_ar : banner.badge}</span>
               </div>
-              <h2 className="text-lg sm:text-2xl font-black tracking-tight leading-tight">
+              <h2 className="text-base sm:text-2xl font-black tracking-tight leading-tight">
                 {isRTL ? banner.title_ar : banner.title}
               </h2>
-              <p className="text-xs sm:text-sm text-white/80 leading-relaxed line-clamp-1 sm:line-clamp-none">
+              <p className="text-[11px] sm:text-sm text-white/80 leading-snug line-clamp-2">
                 {isRTL ? banner.sub_ar : banner.sub}
               </p>
               {banner.category && (
@@ -471,7 +482,7 @@ function HomeFeedContent() {
         </AnimatePresence>
 
         {/* Dot Indicators */}
-        <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex gap-1.5 z-20">
+        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 z-20">
           {DEAL_BANNERS.map((_, i) => (
             <button
               key={i}
@@ -484,21 +495,21 @@ function HomeFeedContent() {
         </div>
       </div>
 
-      {/* ─── Micro-Trust Ticker (1-liner, High Credibility) ─── */}
-      <div className="flex items-center justify-center gap-3 sm:gap-6 bg-slate-50 border border-slate-200/80 rounded-2xl py-2 px-4 text-[11px] sm:text-xs text-slate-600 font-semibold overflow-x-auto no-scrollbar">
-        <div className="flex items-center gap-1.5 flex-shrink-0 text-blue-700">
-          <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
-          <span>{isRTL ? 'حماية الضمان المالي ١٠٠٪' : '100% Escrow Protection'}</span>
+      {/* ─── Micro-Trust Ticker (Balanced 3-Pill Bar) ─── */}
+      <div className="w-full bg-slate-50 border border-slate-200/80 rounded-2xl py-2 px-3 sm:px-4 flex items-center justify-between sm:justify-center gap-2 sm:gap-8 text-[10px] sm:text-xs text-slate-700 font-bold shadow-sm">
+        <div className="flex items-center gap-1.5 text-blue-700">
+          <ShieldCheck className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
+          <span>{isRTL ? 'ضمان مالي ١٠٠٪' : '100% Escrow'}</span>
         </div>
         <span className="text-slate-300">•</span>
-        <div className="flex items-center gap-1.5 flex-shrink-0 text-emerald-700">
-          <Package className="w-3.5 h-3.5 text-emerald-600" />
-          <span>{isRTL ? 'شحن بوسطة لكافة المحافظات' : 'Bosta Courier Delivery'}</span>
+        <div className="flex items-center gap-1.5 text-emerald-700">
+          <Package className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+          <span>{isRTL ? 'شحن بوسطة' : 'Bosta Shipping'}</span>
         </div>
-        <span className="text-slate-300 hidden sm:inline">•</span>
-        <div className="flex items-center gap-1.5 flex-shrink-0 text-amber-700 hidden sm:flex">
-          <Zap className="w-3.5 h-3.5 text-amber-600" />
-          <span>{isRTL ? 'تحويل فوري عبر إنستاباي' : 'Instant InstaPay Payouts'}</span>
+        <span className="text-slate-300">•</span>
+        <div className="flex items-center gap-1.5 text-amber-700">
+          <Zap className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
+          <span>{isRTL ? 'إنستاباي فوري' : 'InstaPay Payouts'}</span>
         </div>
       </div>
 
