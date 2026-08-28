@@ -7,7 +7,7 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import {
   Search, Plus, User, LogOut, Wallet, Package,
   Menu, X, Heart, MessageCircle, ChevronDown, ShieldCheck,
-  Globe
+  Globe, Video
 } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { useLanguage } from '@/components/LanguageProvider';
@@ -156,6 +156,15 @@ export default function Navbar() {
 
         {/* Right Actions */}
         <div className="flex items-center gap-2 sm:gap-4">
+          {/* Live Streaming CTA */}
+          <Link
+            href="/live"
+            className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3.5 py-2 rounded-full transition-all shadow-sm shadow-red-500/20"
+          >
+            <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+            <span>{isRTL ? 'بث مباشر' : 'Live'}</span>
+          </Link>
+
           {/* Post Listing CTA */}
           <Link
             href={user ? '/sell' : '/login'}
@@ -204,6 +213,9 @@ export default function Navbar() {
                           </p>
                           <p className="text-xs font-bold text-gray-900 truncate mt-0.5">{user.email}</p>
                         </div>
+                        <Link href="/live/book" onClick={() => setProfileOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-red-600 hover:bg-red-50 transition-colors">
+                          <Video className="w-4 h-4 text-red-600" /> {isRTL ? 'بدء بث مباشر (Live)' : 'Go Live (Stream)'}
+                        </Link>
                         <Link href="/profile" onClick={() => setProfileOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
                           <User className="w-4 h-4 text-gray-400" /> {isRTL ? 'الملف الشخصي وإعلاناتي' : 'My Profile & Listings'}
                         </Link>
