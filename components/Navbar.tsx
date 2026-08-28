@@ -90,7 +90,7 @@ export default function Navbar() {
               title={language === 'en' ? 'التحويل إلى اللغة العربية' : 'Switch to English'}
             >
               <Globe className="w-3 h-3 text-[#3665F3]" />
-              <span>{language === 'en' ? 'العربية 🇪🇬' : 'English 🌐'}</span>
+              <span>{language === 'en' ? 'العربية' : 'English'}</span>
             </button>
 
             <Link href="/privacy" className="hover:text-gray-900 transition-colors hidden md:inline">
@@ -215,7 +215,7 @@ export default function Navbar() {
                           <p className="text-xs font-bold text-gray-900 truncate mt-0.5">{user.email}</p>
                         </div>
                         <Link href="/live/book" onClick={() => setProfileOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-red-600 hover:bg-red-50 transition-colors">
-                          <Video className="w-4 h-4 text-red-600" /> {isRTL ? 'بدء بث مباشر (Live)' : 'Go Live (Stream)'}
+                          <Video className="w-4 h-4 text-red-600" /> {isRTL ? 'بدء بث مباشر' : 'Go Live Studio'}
                         </Link>
                         <Link href="/profile" onClick={() => setProfileOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
                           <User className="w-4 h-4 text-gray-400" /> {isRTL ? 'الملف الشخصي وإعلاناتي' : 'My Profile & Listings'}
@@ -284,7 +284,7 @@ export default function Navbar() {
                 onClick={() => setSearchQuery('')}
                 className="pr-2 text-gray-400 hover:text-gray-600"
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="w-3 h-3" />
               </button>
             )}
             <button
@@ -307,7 +307,7 @@ export default function Navbar() {
           >
             <span className="w-2 h-2 rounded-full bg-red-600 animate-pulse" />
             <Video className="w-3.5 h-3.5" />
-            <span>{isRTL ? 'بث مباشر 🔴' : 'EgyBay Live 🔴'}</span>
+            <span>{isRTL ? 'بث مباشر' : 'EgyBay Live'}</span>
           </Link>
 
           <span className="w-px h-4 bg-gray-200 mx-1 flex-shrink-0" />

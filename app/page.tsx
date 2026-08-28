@@ -32,8 +32,8 @@ const CATEGORIES_WITH_ICONS = [
 const DEAL_BANNERS = [
   {
     key: 'b0',
-    title: 'EgyBay Live — Watch & Sell Live 🔴',
-    title_ar: 'إيجي باي لايف — تسوق وبع عبر البث المباشر 🔴',
+    title: 'EgyBay Live — Watch & Sell Live',
+    title_ar: 'إيجي باي لايف — تسوق وبع عبر البث المباشر',
     sub: 'Real-time interactive shopping with instant escrow checkout and doorstep delivery',
     sub_ar: 'بث حي ومباشر مع التجار، اشترِ السلعة بضغطة واحدة مع حماية الضمان المالي',
     badge: 'LIVE SELLING',
@@ -49,7 +49,7 @@ const DEAL_BANNERS = [
     title_ar: 'عروض حصرية وخصومات الأجهزة',
     sub: 'Verified electronics up to 40% below retail with Escrow Guarantee',
     sub_ar: 'إلكترونيات وموبايلات موثقة بخصم يصل إلى ٤٠٪ مع حماية الضمان المالي',
-    badge: 'HOT DEALS',
+    badge: 'DAILY DEALS',
     badge_ar: 'عروض اليوم',
     colors: ['#0F172A', '#1E3A8A'],
     accentColor: '#3B82F6',
@@ -59,7 +59,7 @@ const DEAL_BANNERS = [
   {
     key: 'b2',
     title: 'Egypt Escrow Protection',
-    title_ar: 'حماية الضمان المالي المصري ١٠٠٪',
+    title_ar: 'حماية الضمان المالي المصري',
     sub: 'Funds held securely until you inspect & approve delivery at your doorstep',
     sub_ar: 'أموالك محفوظة في أمان تام حتى تستلم وتفحص السلعة بنفسك',
     badge: '100% SECURE',
@@ -75,7 +75,7 @@ const DEAL_BANNERS = [
     title_ar: 'خزينة الأزياء والكوتشيات الأصلية',
     sub: 'Authenticated streetwear, Jordans & designer pieces directly from collectors',
     sub_ar: 'أشهر البراندات وجوردن وملابس الشارع الأصلية مباشرة من أصحابها',
-    badge: 'CURATED',
+    badge: 'AUTHENTICITY GUARANTEED',
     badge_ar: 'براندات أصلية',
     colors: ['#3B0764', '#581C87'],
     accentColor: '#A855F7',
