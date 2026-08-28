@@ -1,13 +1,17 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Shield, Lock, Eye, Trash2, Mail, FileText, CheckCircle2, Globe, Building2, AlertTriangle } from 'lucide-react';
 import { useLanguage } from '@/components/LanguageProvider';
 
 export default function PrivacyPage() {
   const { isRTL, language, changeLanguage } = useLanguage();
-  const [activeTab, setActiveTab] = useState<'en' | 'ar'>(isRTL ? 'ar' : 'en');
+  const [activeTab, setActiveTab] = useState<'en' | 'ar'>(language === 'ar' ? 'ar' : 'en');
+
+  useEffect(() => {
+    setActiveTab(language === 'ar' ? 'ar' : 'en');
+  }, [language]);
 
   const enSections = [
     {
@@ -28,45 +32,45 @@ By accessing our website, creating an account, or transacting on EgyBay, you ack
       id: 'collection',
       icon: FileText,
       title: '2. Information We Collect',
-      content: `To ensure 100% secure escrow transactions, verify seller legitimacy, and facilitate door-to-door courier delivery across Egypt, we collect:
+      content: `To provide safe marketplace transactions, escrow payment protection, and courier fulfillment across Egypt, we collect:
 
-A. Personal Identifiers:
-• Full Name, Valid Email Address, and Egyptian Mobile Phone Number (e.g., Vodafone, Orange, Etisalat, WE).
-• Delivery & Pickup Physical Addresses (Governorate, City, Street, Building number).
+A. Personal & Contact Information:
+• Full name, email address, Egyptian mobile number (Vodafone, Orange, Etisalat, WE).
+• Delivery & shipping addresses (Governorate, City/District, Street address, Building details).
 
 B. Authentication & Security Data:
-• Encrypted account credentials handled via Supabase Authentication with Row-Level Security (RLS).
-• Device and session identifiers (IP address, browser type, and operating system) strictly for fraud prevention and account protection.
+• Passwords securely hashed and salted via Supabase Auth with Row-Level Security (RLS).
+• Session tokens, device IP address, and browser fingerprints for fraud and unauthorized access prevention.
 
-C. Marketplace & Escrow Transaction Data:
-• Order history, escrow holding states, dispute logs, and item inspection timestamps.
-• Payout destination identifiers provided voluntarily by sellers (InstaPay IPA address, Vodafone Cash mobile number, or Bank Account IBAN).
-• Note: Electronic payment cards (Debit/Credit) are processed directly by Central Bank of Egypt-licensed payment gateways (Paymob). We never store raw card numbers or CVV codes.
+C. Transaction & Escrow Ledger Data:
+• Purchase and sale orders, escrow holding status, and confirmation PIN release timestamps.
+• Verified seller payout destinations: InstaPay Address (IPA), Vodafone Cash / Mobile Wallet numbers, or Egyptian Bank IBAN.
+• Note: Credit/debit card numbers are processed directly by our PCI-DSS Central Bank of Egypt-compliant payment gateway (Paymob). We never store complete credit card numbers or CVV codes on our servers.
 
-D. Seller KYC Verification (Anti-Fraud):
-• For verified seller badges, front and back photos of the Egyptian National ID (بطاقة الرقم القومي) are encrypted and stored in secure, private buckets accessible only to authorized compliance officers.`,
+D. Optional KYC Verification Data (For High-Tier Sellers):
+• Egyptian National ID (بطاقة الرقم القومي) front and back images for account verification to safeguard buyers against fraud.`,
     },
     {
       id: 'usage',
       icon: Shield,
-      title: '3. How We Process & Use Your Data',
-      content: `We process your data strictly under lawful bases (contract fulfillment, legal obligation, and legitimate interest):
-• Escrow & Order Fulfillment: Holding buyer funds safely during transit, generating delivery tracking codes, and releasing payouts upon PIN confirmation.
-• Courier Coordination: Sharing destination address and recipient phone number with Bosta Courier and delivery couriers.
-• Anti-Fraud & Scam Prevention: Monitoring for counterfeit listings, fraudulent dispute claims, and unauthorized account access.
-• Transactional Notifications: Sending real-time order updates, buyer inquiries, and payout confirmations via SMS, email, and push notifications.`,
+      title: '3. Purpose & Legal Basis of Processing',
+      content: `We process personal data strictly for legitimate business and transactional purposes:
+• Executing Escrow Transactions: Holding buyer funds safely until doorstep inspection or PIN confirmation, then disbursing payouts to sellers.
+• Logistics & Order Delivery: Sharing accurate delivery addresses and recipient phone numbers with our courier partner (Bosta Express).
+• Fraud Prevention: Detecting prohibited items, unauthorized logins, and lookalike marketplace attempts.
+• Direct Communication: Sending transactional SMS/email receipts, order delivery updates, and customer support resolutions.`,
     },
     {
       id: 'sharing',
       icon: Lock,
-      title: '4. Third-Party Data Sharing & Protection',
-      content: `EgyBay NEVER sells, rents, or monetizes user personal data to data brokers, advertisers, or third parties.
+      title: '4. Data Sharing & Third-Party Processors',
+      content: `EgyBay NEVER sells, rents, or monetizes your personal data or contact details to third-party marketing brokers.
 
-We share minimal required data only with certified, vetted service providers:
-• Logistics & Courier Partners (Bosta Egypt): Shipping address and contact phone number solely to complete package pickup and delivery.
-• Payment Gateways (Paymob): Tokenized transaction data compliant with PCI-DSS and Central Bank of Egypt standards.
-• Cloud Infrastructure (Supabase / AWS Frankfurt Region): Fully encrypted databases with TLS 1.3 in-transit and AES-256 at-rest encryption.
-• Egyptian Law Enforcement: Only when strictly mandated by official court orders or binding legal processes under Egyptian law.`,
+Data is shared strictly with authorized infrastructure partners necessary to fulfill platform operations:
+• Courier Logistics (Bosta Egypt): For parcel dispatch and GPS-assisted doorstep delivery.
+• Payment Processing (Paymob / Central Bank of Egypt Integrations): For card checkout and automated payouts.
+• Cloud Infrastructure (Supabase / AWS Ireland/Frankfurt): Encrypted database storage with automated backups and strict access controls.
+• Legal Authorities: Only when mandated by a legally binding court order or official warrant under Egyptian Law.`,
     },
     {
       id: 'rights',
@@ -78,7 +82,7 @@ We share minimal required data only with certified, vetted service providers:
 • Right to Data Portability: Request an export of your order history, transaction records, and listing data.
 • Right to Permanent Erasure (Account Deletion):
   1. In-App: Go to Profile → Settings → "Delete Account & Purge Data".
-  2. By Email: Send a deletion request to privacy@egbay.market from your registered email.
+  2. By Email: Send a deletion request to info@egbay.shop from your registered email.
   Upon request, all personal identifiers, active sessions, and uploaded documents are permanently purged within 72 hours, retaining only non-identifiable financial ledger records required by Egyptian commercial tax law.`,
     },
     {
@@ -160,7 +164,7 @@ We share minimal required data only with certified, vetted service providers:
 • حق نقل البيانات: يمكنك طلب نسخة كاملة من سجل معاملاتك وبياناتك المسجلة.
 • حق الحذف النهائي للحساب والبيانات:
   ١. عبر التطبيق والموقع: الملف الشخصي ← الإعدادات ← "حذف الحساب نهائياً".
-  ٢. عبر البريد الإلكتروني: مراسلتنا على privacy@egbay.market من البريد المسجل.
+  ٢. عبر البريد الإلكتروني: مراسلتنا على info@egbay.shop من البريد المسجل.
   يتم مسح جميع بياناتك الشخصية ووثائقك وصورك نهائياً خلال ٧٢ ساعة من تاريخ الطلب.`,
     },
     {
@@ -179,83 +183,77 @@ We share minimal required data only with certified, vetted service providers:
     <div className="max-w-5xl mx-auto px-4 py-12">
       {/* Header */}
       <div className="text-center mb-10">
-        <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-100 rounded-3xl mb-4 shadow-sm">
-          <Shield className="w-8 h-8 text-emerald-600" />
+        <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto mb-4 border border-emerald-100 shadow-sm">
+          <Shield className="w-7 h-7" />
         </div>
-        <h1 className="text-3xl sm:text-4xl font-black text-gray-900 mb-3 tracking-tight">
-          {activeTab === 'ar' ? 'سياسة الخصوصية وحماية البيانات' : 'Privacy & Data Protection Policy'}
+        <h1 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight mb-2">
+          {activeTab === 'ar' ? 'سياسة الخصوصية وحماية البيانات الشخصية' : 'Privacy Policy & Data Protection'}
         </h1>
-        <p className="text-gray-500 text-xs sm:text-sm max-w-2xl mx-auto leading-relaxed">
+        <p className="text-xs sm:text-sm text-gray-500 max-w-xl mx-auto mb-6">
           {activeTab === 'ar'
-            ? 'تلتزم منصة إيجي باي بحماية بياناتك الشخصية وحقوقك المالية وفقاً للقانون المصري رقم ١٥١ لسنة ٢٠٢٠ ومعايير أبل للتطبيقات.'
-            : 'EgyBay is committed to securing your personal information and financial safety in accordance with Egyptian Data Protection Law No. 151/2020 and Apple App Store standards.'}
+            ? 'نلتزم بحماية بياناتك الشخصية ومعاملاتك المالية وفقاً للقانون المصري رقم ١٥١ لسنة ٢٠٢٠ والمعايير العالمية.'
+            : 'Compliant with Egyptian Law No. 151 of 2020, Law No. 181 of 2018, and Apple App Store Review Guidelines.'}
         </p>
 
-        {/* Bilingual Selector Switcher */}
-        <div className="mt-6 inline-flex items-center p-1 bg-gray-100 rounded-2xl border border-gray-200 shadow-inner">
-          <button
-            onClick={() => setActiveTab('en')}
-            className={`px-5 py-2 rounded-xl text-xs font-bold transition-all ${
-              activeTab === 'en'
-                ? 'bg-white text-blue-600 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            🇺🇸 English Policy
-          </button>
+        {/* Bilingual Document Switcher */}
+        <div className="inline-flex p-1 bg-gray-100 rounded-2xl border border-gray-200 shadow-inner">
           <button
             onClick={() => setActiveTab('ar')}
-            className={`px-5 py-2 rounded-xl text-xs font-bold transition-all ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
               activeTab === 'ar'
-                ? 'bg-white text-emerald-700 shadow-sm'
+                ? 'bg-[#3665F3] text-white shadow-sm'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
             🇪🇬 الوثيقة بالعربية
           </button>
+          <button
+            onClick={() => setActiveTab('en')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              activeTab === 'en'
+                ? 'bg-[#3665F3] text-white shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            🇺🇸 English Policy
+          </button>
         </div>
       </div>
 
-      {/* Trust Guarantee Cards */}
+      {/* Compliance Highlights Ribbon */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        <div className="p-4 bg-white rounded-2xl border border-gray-200/80 shadow-sm flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0">
-            <Lock className="w-5 h-5" />
-          </div>
+        <div className="bg-emerald-50/60 border border-emerald-100 rounded-2xl p-4 flex items-center gap-3">
+          <Building2 className="w-6 h-6 text-emerald-600 flex-shrink-0" />
           <div>
             <h4 className="text-xs font-bold text-gray-900">
-              {activeTab === 'ar' ? 'تشفير كامل للبيانات' : '256-Bit SSL Encryption'}
+              {activeTab === 'ar' ? 'قانون ١٥١ لسنة ٢٠٢٠' : 'Egyptian Law 151/2020'}
             </h4>
             <p className="text-[11px] text-gray-500">
-              {activeTab === 'ar' ? 'تشفير عالي المستوى للبيانات' : 'Zero plain-text financial storage'}
+              {activeTab === 'ar' ? 'حماية تامة للبيانات الشخصية' : 'Personal data protection compliant'}
             </p>
           </div>
         </div>
 
-        <div className="p-4 bg-white rounded-2xl border border-gray-200/80 shadow-sm flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0">
-            <Building2 className="w-5 h-5" />
-          </div>
+        <div className="bg-blue-50/60 border border-blue-100 rounded-2xl p-4 flex items-center gap-3">
+          <Lock className="w-6 h-6 text-blue-600 flex-shrink-0" />
           <div>
             <h4 className="text-xs font-bold text-gray-900">
-              {activeTab === 'ar' ? 'قانون حماية البيانات ١٥١' : 'Law 151/2020 Compliant'}
+              {activeTab === 'ar' ? 'معايير Apple 5.1' : 'Apple 5.1 Privacy Ready'}
             </h4>
             <p className="text-[11px] text-gray-500">
-              {activeTab === 'ar' ? 'معتمد وفق القوانين المصرية' : 'Official Egyptian Regulatory standard'}
+              {activeTab === 'ar' ? 'حذف فوري للحساب والبيانات' : 'Instant account & data deletion'}
             </p>
           </div>
         </div>
 
-        <div className="p-4 bg-white rounded-2xl border border-gray-200/80 shadow-sm flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center flex-shrink-0">
-            <Trash2 className="w-5 h-5" />
-          </div>
+        <div className="bg-purple-50/60 border border-purple-100 rounded-2xl p-4 flex items-center gap-3">
+          <Shield className="w-6 h-6 text-purple-600 flex-shrink-0" />
           <div>
             <h4 className="text-xs font-bold text-gray-900">
-              {activeTab === 'ar' ? 'حذف الحساب بضغطة زر' : 'Instant Account Purge'}
+              {activeTab === 'ar' ? 'تشفير AES-256' : 'AES-256 TLS Encryption'}
             </h4>
             <p className="text-[11px] text-gray-500">
-              {activeTab === 'ar' ? 'مسح فوري للبيانات عند الطلب' : 'Complete data removal within 72h'}
+              {activeTab === 'ar' ? 'أعلى معايير الأمان المصرفي' : 'Bank-grade SSL transmission'}
             </p>
           </div>
         </div>
@@ -263,7 +261,7 @@ We share minimal required data only with certified, vetted service providers:
 
       {/* Main Content Sections */}
       <div className={`bg-white rounded-3xl border border-gray-200/80 shadow-sm divide-y divide-gray-100 overflow-hidden ${activeTab === 'ar' ? 'text-right' : 'text-left'}`}>
-        {sections.map((section, idx) => {
+        {sections.map((section) => {
           const Icon = section.icon;
           return (
             <article key={section.id} className="p-6 sm:p-8 hover:bg-gray-50/50 transition-colors">
@@ -297,16 +295,10 @@ We share minimal required data only with certified, vetted service providers:
           </p>
           <div className="flex flex-wrap gap-3">
             <a
-              href="mailto:privacy@egbay.market"
+              href="mailto:info@egbay.shop"
               className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition-all shadow-sm flex items-center gap-2"
             >
-              <Mail className="w-3.5 h-3.5" /> privacy@egbay.market
-            </a>
-            <a
-              href="mailto:support@egbay.market"
-              className="bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 text-xs font-bold px-5 py-2.5 rounded-xl transition-all shadow-sm flex items-center gap-2"
-            >
-              support@egbay.market
+              <Mail className="w-3.5 h-3.5" /> info@egbay.shop
             </a>
             <Link
               href="/terms"

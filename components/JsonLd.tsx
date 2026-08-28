@@ -52,7 +52,7 @@ export function MarketplaceJsonLd() {
         contactPoint: {
           '@type': 'ContactPoint',
           contactType: 'customer support',
-          email: 'support@egbay.market',
+          email: 'info@egbay.shop',
           areaServed: 'EG',
           availableLanguage: ['Arabic', 'English'],
         },

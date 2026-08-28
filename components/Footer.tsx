@@ -125,7 +125,7 @@ export default function Footer() {
               <li><Link href="/privacy" className="hover:text-blue-600 transition-colors font-medium">{isRTL ? 'سياسة الخصوصية' : 'Privacy Policy'}</Link></li>
               <li><Link href="/terms" className="hover:text-blue-600 transition-colors font-medium">{isRTL ? 'شروط الخدمة' : 'Terms of Service'}</Link></li>
               <li>
-                <a href="mailto:support@egbay.market" className="hover:text-blue-600 transition-colors">
+                <a href="mailto:info@egbay.shop" className="hover:text-blue-600 transition-colors">
                   {isRTL ? 'الدعم الفني' : 'Contact Support'}
                 </a>
               </li>
@@ -141,7 +141,7 @@ export default function Footer() {
             <span>•</span>
             <Link href="/terms" className="hover:text-gray-600 transition-colors">{isRTL ? 'الشروط' : 'Terms'}</Link>
             <span>•</span>
-            <a href="mailto:support@egbay.market" className="hover:text-gray-600 transition-colors">{isRTL ? 'المساعدة' : 'Help'}</a>
+            <a href="mailto:info@egbay.shop" className="hover:text-gray-600 transition-colors">{isRTL ? 'المساعدة' : 'Help'}</a>
           </div>
         </div>
 

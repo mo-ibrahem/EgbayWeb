@@ -99,7 +99,7 @@ export default function Navbar() {
             <Link href="/terms" className="hover:text-gray-900 transition-colors hidden md:inline">
               {isRTL ? 'الشروط والأحكام' : 'Terms'}
             </Link>
-            <a href="mailto:support@egbay.market" className="hover:text-gray-900 transition-colors hidden sm:inline">
+            <a href="mailto:info@egbay.shop" className="hover:text-gray-900 transition-colors hidden sm:inline">
               {isRTL ? 'المساعدة' : 'Support'}
             </a>
           </div>
