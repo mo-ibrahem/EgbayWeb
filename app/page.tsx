@@ -158,10 +158,10 @@ function ProductCard({
   const imgSrc = product.images?.[0] || null;
 
   return (
-    <div className="h-full w-full">
-      <Link href={`/products/${product.id}`} className="group block h-full">
+    <div className="h-full w-full min-w-0">
+      <Link href={`/products/${product.id}`} className="group block h-full min-w-0">
         <div
-          className={`bg-white rounded-2xl overflow-hidden border transition-all duration-200 hover:shadow-lg flex flex-col h-full ${
+          className={`bg-white rounded-2xl overflow-hidden border transition-all duration-200 hover:shadow-lg flex flex-col h-full min-w-0 ${
             product.is_promoted
               ? 'border-blue-300 shadow-sm ring-1 ring-blue-500/30'
               : 'border-slate-200/80 shadow-sm hover:border-slate-300'
@@ -372,7 +372,7 @@ function HomeFeedContent() {
   const trendingTags = isRTL ? TRENDING_TAGS_AR : TRENDING_TAGS_EN;
 
   return (
-    <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-6 sm:space-y-8 pb-28 sm:pb-12">
+    <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-6 space-y-4 sm:space-y-6 pb-28 sm:pb-12 overflow-hidden">
       {/* ─── Unified Story-Style Category & Live Rail (eBay / Noon Pattern) ─── */}
       <div>
         <div className="flex items-center gap-3.5 sm:gap-4 overflow-x-auto no-scrollbar py-1">
