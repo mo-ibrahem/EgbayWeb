@@ -9,7 +9,7 @@ import {
   Search, ShieldCheck, Zap, ArrowUpDown, Filter, Heart,
   Star, MapPin, Clock, TrendingUp, X, ChevronRight, Sparkles,
   LayoutGrid, Smartphone, Shirt, Home, Baby, Dumbbell, BookOpen,
-  Car, Tag, CheckCircle2, Flame, ArrowRight, Package
+  Car, Tag, CheckCircle2, Flame, ArrowRight, Package, Video
 } from 'lucide-react';
 import { productService, formatEGP, type Product } from '@/lib/products';
 import { useAuth } from '@/components/AuthProvider';
@@ -29,6 +29,19 @@ const CATEGORIES_WITH_ICONS = [
 ] as const;
 
 const DEAL_BANNERS = [
+  {
+    key: 'b0',
+    title: 'EgyBay Live — Watch & Sell Live 🔴',
+    title_ar: 'إيجي باي لايف — تسوق وبع عبر البث المباشر 🔴',
+    sub: 'Real-time interactive shopping with instant escrow checkout and doorstep delivery',
+    sub_ar: 'بث حي ومباشر مع التجار، اشترِ السلعة بضغطة واحدة مع حماية الضمان المالي',
+    badge: 'LIVE SELLING',
+    badge_ar: 'بث مباشر',
+    colors: ['#7F1D1D', '#991B1B'],
+    accentColor: '#EF4444',
+    category: '__live__',
+    icon: Video,
+  },
   {
     key: 'b1',
     title: 'Flash Deals & Tech Steals',
@@ -344,7 +357,7 @@ function HomeFeedContent() {
   const trendingTags = isRTL ? TRENDING_TAGS_AR : TRENDING_TAGS_EN;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6 space-y-8">
+    <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-6 sm:space-y-8 pb-28 sm:pb-12">
       {/* ─── Hero Deal Banner with Framer Motion AnimatePresence ─── */}
       <div className="rounded-3xl overflow-hidden shadow-lg shadow-slate-900/10 border border-slate-800/40 relative min-h-[160px] sm:min-h-[190px]">
         <AnimatePresence mode="wait">
@@ -370,10 +383,16 @@ function HomeFeedContent() {
               </p>
               {banner.category && (
                 <button
-                  onClick={() => handleCategorySelect(banner.category)}
+                  onClick={() => {
+                    if (banner.category === '__live__') {
+                      router.push('/live');
+                    } else {
+                      handleCategorySelect(banner.category);
+                    }
+                  }}
                   className="mt-2 inline-flex items-center gap-1.5 bg-white text-slate-900 text-xs font-bold px-4 py-2 rounded-xl hover:bg-slate-100 transition-all shadow-md"
                 >
-                  <span>{isRTL ? 'تصفح العروض' : 'Browse Deals'}</span>
+                  <span>{banner.category === '__live__' ? (isRTL ? 'دخول البث المباشر 🔴' : 'Watch Live Shows 🔴') : (isRTL ? 'تصفح العروض' : 'Browse Deals')}</span>
                   <ArrowRight className={`w-3.5 h-3.5 ${isRTL ? 'rotate-180' : ''}`} />
                 </button>
               )}
@@ -422,7 +441,8 @@ function HomeFeedContent() {
           )}
         </div>
 
-        <div className="grid grid-cols-4 sm:grid-cols-8 gap-3 sm:gap-4">
+        {/* Swipeable Category Rail on Mobile, Grid on Desktop */}
+        <div className="flex sm:grid sm:grid-cols-8 gap-2.5 sm:gap-4 overflow-x-auto no-scrollbar pb-1">
           {CATEGORIES_WITH_ICONS.map((cat) => {
             const Icon = cat.icon;
             const isSelected = activeCategory === cat.id || (!activeCategory && cat.id === '');
@@ -434,19 +454,19 @@ function HomeFeedContent() {
                 whileHover={{ scale: 1.05, y: -2 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => handleCategorySelect(cat.id)}
-                className={`flex flex-col items-center p-3 rounded-2xl border transition-all duration-200 group ${
+                className={`flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-2xl border transition-all duration-200 group flex-shrink-0 min-w-[76px] sm:min-w-0 ${
                   isSelected
                     ? 'border-blue-600 bg-blue-50/70 shadow-sm ring-2 ring-blue-500/20'
-                    : 'border-slate-200/80 bg-white hover:border-slate-300 hover:shadow-md'
+                    : 'border-slate-200/80 bg-white hover:border-slate-300 hover:shadow-sm'
                 }`}
               >
                 <div
-                  className="w-12 h-12 rounded-xl flex items-center justify-center mb-2 transition-transform group-hover:scale-110 shadow-sm"
+                  className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center mb-1.5 transition-transform group-hover:scale-110 shadow-sm"
                   style={{ backgroundColor: cat.bg, color: cat.color }}
                 >
                   <Icon className="w-5 h-5" />
                 </div>
-                <span className={`text-[11px] font-bold text-center leading-tight truncate w-full ${
+                <span className={`text-[10px] sm:text-[11px] font-bold text-center leading-tight truncate w-full ${
                   isSelected ? 'text-blue-700' : 'text-slate-700'
                 }`}>
                   {label}
