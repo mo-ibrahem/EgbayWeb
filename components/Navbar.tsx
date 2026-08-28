@@ -156,29 +156,10 @@ export default function Navbar() {
 
         {/* Right Actions */}
         <div className="flex items-center gap-1.5 sm:gap-3">
-          {/* Live Streaming CTA */}
-          <Link
-            href="/live"
-            className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white text-[11px] sm:text-xs font-bold px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-full transition-all shadow-sm shadow-red-500/20"
-          >
-            <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-            <span>{isRTL ? 'بث مباشر' : 'Live'}</span>
-          </Link>
-
-          {/* Language Toggle in Top Navbar for Mobile */}
-          <button
-            onClick={toggleLanguage}
-            className="sm:hidden flex items-center gap-1 px-2 py-1.5 rounded-full bg-gray-100 text-gray-700 font-bold text-[10px]"
-            title={language === 'en' ? 'التحويل إلى اللغة العربية' : 'Switch to English'}
-          >
-            <Globe className="w-3 h-3 text-[#3665F3]" />
-            <span>{language === 'en' ? 'عربي' : 'EN'}</span>
-          </button>
-
-          {/* Post Listing CTA (Desktop Only — on mobile it's in bottom bar) */}
+          {/* Post Listing CTA */}
           <Link
             href={user ? '/sell' : '/login'}
-            className="hidden md:flex items-center gap-1.5 bg-[#3665F3] hover:bg-[#2B54D4] text-white text-xs font-bold px-4 py-2 rounded-full transition-all shadow-sm hover:shadow"
+            className="flex items-center gap-1.5 bg-[#3665F3] hover:bg-[#2B54D4] text-white text-xs font-bold px-4 py-2 rounded-full transition-all shadow-sm hover:shadow"
           >
             <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
             <span>{isRTL ? 'بيع إعلان' : 'Sell'}</span>
@@ -309,6 +290,17 @@ export default function Navbar() {
       {/* ─── Category Navigation Bar ─── */}
       <div className="border-t border-gray-100 bg-white hidden md:block">
         <div className="max-w-7xl mx-auto px-4 flex items-center gap-1 overflow-x-auto no-scrollbar py-1">
+          {/* Live Channel Pill (eBay / Amazon / Shopee Standard) */}
+          <Link
+            href="/live"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs transition-all border border-red-200/80 mr-2 rtl:ml-2 rtl:mr-0 shadow-sm flex-shrink-0"
+          >
+            <span className="w-2 h-2 rounded-full bg-red-600 animate-pulse" />
+            <Video className="w-3.5 h-3.5" />
+            <span>{isRTL ? 'بث مباشر 🔴' : 'EgyBay Live 🔴'}</span>
+          </Link>
+
+          <span className="w-px h-4 bg-gray-200 mx-1 flex-shrink-0" />
           {CATEGORIES_NAV.map((cat) => {
             const isActive = cat.id === '' ? !activeCategory : activeCategory === cat.id;
             const label = t(`categories.${cat.key}`, cat.defaultLabel);

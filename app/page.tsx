@@ -12,6 +12,7 @@ import {
   Car, Tag, CheckCircle2, Flame, ArrowRight, Package, Video
 } from 'lucide-react';
 import { productService, formatEGP, type Product } from '@/lib/products';
+import { getActiveLiveSessions, type LiveSession } from '@/lib/liveService';
 import { useAuth } from '@/components/AuthProvider';
 import { useLanguage } from '@/components/LanguageProvider';
 import AnimatedNumber from '@/components/AnimatedNumber';
@@ -285,6 +286,7 @@ function HomeFeedContent() {
   const { isRTL, t } = useLanguage();
 
   const [products, setProducts] = useState<Product[]>([]);
+  const [liveSessions, setLiveSessions] = useState<LiveSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
   const [activeCategory, setActiveCategory] = useState(searchParams.get('category') || '');
@@ -292,6 +294,10 @@ function HomeFeedContent() {
   const [countdown, setCountdown] = useState('08:00:00');
   const [bannerIdx, setBannerIdx] = useState(0);
   const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    getActiveLiveSessions().then(setLiveSessions).catch(() => {});
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -475,6 +481,109 @@ function HomeFeedContent() {
             );
           })}
         </div>
+      </div>
+
+      {/* ─── EgyBay Live Stage Strip (Industry Standard Live Shopping Lobby) ─── */}
+      <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-red-950 rounded-3xl p-4 sm:p-6 text-white border border-red-900/40 shadow-xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-red-600/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-3 sm:mb-4 relative z-10">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-red-600/20 border border-red-500/30 flex items-center justify-center text-red-500 flex-shrink-0">
+              <Video className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-600 text-white text-[10px] font-black uppercase tracking-wider">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                  LIVE
+                </span>
+                <h2 className="text-sm sm:text-base font-black text-white">
+                  {isRTL ? 'إيجي باي لايف — تسوق مباشر من التجار 🔴' : 'EgyBay Live — Real-time Selling 🔴'}
+                </h2>
+              </div>
+              <p className="text-[11px] sm:text-xs text-slate-300 mt-0.5">
+                {isRTL ? 'شاهد واستفسر واشترِ بضمان مالي كامل ومعاينة عند الاستلام مع بوسطة' : 'Live video shopping with 100% Escrow Protection & Bosta courier'}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Link
+              href="/live"
+              className="px-3.5 sm:px-4 py-2 rounded-xl bg-white text-slate-900 text-xs font-bold hover:bg-slate-100 transition-all shadow-sm flex items-center gap-1.5"
+            >
+              <span>{isRTL ? 'تصفح كل البثوث' : 'Watch Live Shows'}</span>
+              <ArrowRight className={`w-3.5 h-3.5 ${isRTL ? 'rotate-180' : ''}`} />
+            </Link>
+            {user && (
+              <Link
+                href="/live/book"
+                className="px-3.5 sm:px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
+              >
+                <Video className="w-3.5 h-3.5" />
+                <span>{isRTL ? 'ابدأ بثك الخاص' : 'Go Live'}</span>
+              </Link>
+            )}
+          </div>
+        </div>
+
+        {/* Dynamic Streams or Feature Highlights */}
+        {liveSessions.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 relative z-10 pt-1">
+            {liveSessions.map((session) => (
+              <Link
+                key={session.id}
+                href={`/live/${session.agora_channel}`}
+                className="bg-slate-900/80 hover:bg-slate-850 border border-slate-700/60 rounded-2xl p-3 flex gap-3 items-center group transition-all"
+              >
+                <div className="w-14 h-16 rounded-xl bg-slate-800 overflow-hidden relative flex-shrink-0 flex items-center justify-center">
+                  {session.thumbnail_url ? (
+                    <Image src={session.thumbnail_url} alt={session.title} fill className="object-cover" />
+                  ) : (
+                    <Video className="w-5 h-5 text-slate-500" />
+                  )}
+                  <span className="absolute top-1 left-1 px-1 py-0.2 rounded bg-red-600 text-white text-[8px] font-black">
+                    LIVE
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-bold text-white truncate group-hover:text-red-400 transition-colors">
+                    {isRTL ? session.title_ar || session.title : session.title}
+                  </p>
+                  <p className="text-[10px] text-slate-400 truncate mt-0.5">
+                    {session.seller?.full_name || 'Verified Merchant'}
+                  </p>
+                  <div className="flex items-center gap-1 text-[9px] text-slate-400 mt-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                    <span>{session.current_viewers} watching</span>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 relative z-10 pt-2 border-t border-slate-800/80 text-xs">
+            <div className="flex items-center gap-2 bg-slate-900/50 rounded-xl p-2.5">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+              <span className="text-slate-300 text-[11px]">
+                {isRTL ? 'حماية الضمان المالي المصري ١٠٠٪' : '100% Escrow Protection'}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 bg-slate-900/50 rounded-xl p-2.5">
+              <Clock className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+              <span className="text-slate-300 text-[11px]">
+                {isRTL ? 'باقات بث تبدأ من ٧٩ ج.م للتجار' : 'Broadcasting from 79 EGP'}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 bg-slate-900/50 rounded-xl p-2.5">
+              <Zap className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
+              <span className="text-slate-300 text-[11px]">
+                {isRTL ? 'شراء فوري وشحن لباب البيت مع بوسطة' : '1-click buy & Bosta express shipping'}
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ─── Trending Tags & Condition Filter Bar ─── */}
