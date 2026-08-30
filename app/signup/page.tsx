@@ -18,13 +18,24 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [needsConfirmation, setNeedsConfirmation] = useState(false);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !email || !password) {
-      setError(isRTL ? 'يرجى ملء جميع الحقول المطلوبة.' : 'Please fill in all fields.');
+    const cleanName = name.trim();
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (!cleanName || !cleanEmail || !password) {
+      setError(isRTL ? 'يرجى ملء جميع الحقول المطلوبة.' : 'Please fill in all required fields.');
       return;
     }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      setError(isRTL ? 'يرجى إدخال بريد إلكتروني صالح.' : 'Please enter a valid email address.');
+      return;
+    }
+
     if (password.length < 6) {
       setError(isRTL ? 'يجب ألا تقل كلمة المرور عن ٦ أحرف.' : 'Password must be at least 6 characters.');
       return;
@@ -32,18 +43,37 @@ export default function SignupPage() {
     setLoading(true);
     setError('');
 
-    const { error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { full_name: name } },
-    });
+    try {
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: cleanEmail,
+        password,
+        options: {
+          data: {
+            full_name: cleanName,
+            name: cleanName,
+          },
+        },
+      });
 
-    if (signUpError) {
-      setError(signUpError.message);
+      if (signUpError) {
+        setError(signUpError.message);
+        setLoading(false);
+      } else if (data?.user && !data?.session) {
+        // Confirmation email was sent by Supabase
+        setNeedsConfirmation(true);
+        setSuccess(true);
+        setLoading(false);
+      } else {
+        // User is immediately authenticated
+        setSuccess(true);
+        setTimeout(() => {
+          router.push('/');
+          router.refresh();
+        }, 1500);
+      }
+    } catch (err: any) {
+      setError(err?.message || (isRTL ? 'فشل إنشاء الحساب. يرجى المحاولة مرة أخرى.' : 'Failed to create account. Please try again.'));
       setLoading(false);
-    } else {
-      setSuccess(true);
-      setTimeout(() => router.push('/'), 1500);
     }
   };
 
@@ -55,9 +85,26 @@ export default function SignupPage() {
           <h2 className="text-2xl font-black text-gray-900 mb-2">
             {isRTL ? 'تم إنشاء حسابك بنجاح! 🎉' : 'Account Created! 🎉'}
           </h2>
-          <p className="text-gray-500 text-xs">
-            {isRTL ? 'جاري تحويلك إلى السوق...' : 'Redirecting you to the marketplace...'}
-          </p>
+          {needsConfirmation ? (
+            <div>
+              <p className="text-gray-600 text-xs leading-relaxed mb-6">
+                {isRTL
+                  ? `أرسلنا رسالة تأكيد إلى ${email}. يرجى التحقق من بريدك لتفعيل الحساب ثم تسجيل الدخول.`
+                  : `We sent a verification email to ${email}. Please confirm your email to activate your account.`}
+              </p>
+              <Link
+                href="/login"
+                className="w-full inline-flex items-center justify-center gap-2 bg-[#3665F3] hover:bg-[#2B54D4] text-white font-bold py-3.5 rounded-xl transition-all shadow-md text-xs"
+              >
+                <span>{isRTL ? 'الانتقال إلى تسجيل الدخول' : 'Go to Sign In'}</span>
+                <ArrowRight className={`w-3.5 h-3.5 ${isRTL ? 'rotate-180' : ''}`} />
+              </Link>
+            </div>
+          ) : (
+            <p className="text-gray-500 text-xs">
+              {isRTL ? 'جاري تحويلك إلى السوق...' : 'Redirecting you to the marketplace...'}
+            </p>
+          )}
         </div>
       </div>
     );

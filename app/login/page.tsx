@@ -22,14 +22,15 @@ function LoginForm() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || !password) {
       setError(isRTL ? 'يرجى إدخال البريد الإلكتروني وكلمة المرور.' : 'Please enter your email and password.');
       return;
     }
     setLoading(true);
     setError('');
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
     if (signInError) {
       setError(signInError.message);
       setLoading(false);
@@ -96,6 +97,12 @@ function LoginForm() {
               <label className="block text-xs font-bold text-gray-700">
                 {isRTL ? 'كلمة المرور' : 'Password'}
               </label>
+              <Link
+                href="/forgot-password"
+                className="text-[11px] text-[#3665F3] hover:underline font-semibold"
+              >
+                {isRTL ? 'نسيت كلمة المرور؟' : 'Forgot Password?'}
+              </Link>
             </div>
             <div className="relative">
               <Lock className={`absolute ${isRTL ? 'right-3.5' : 'left-3.5'} top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400`} />
