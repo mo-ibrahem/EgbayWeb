@@ -81,6 +81,25 @@ function WalletContent() {
   useEffect(() => {
     if (user) {
       loadData();
+
+      // Check if redirected back from Paymob with approved transaction
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        const isSuccess =
+          params.get('success') === 'true' ||
+          params.get('txn_response_code') === 'approved';
+        const amountCents = params.get('amount_cents');
+
+        if (isSuccess && amountCents) {
+          const topUpEgp = Math.round(Number(amountCents) / 100);
+          (async () => {
+            await topUpUserWallet(user.id, topUpEgp, 'card');
+            setTopUpSuccess(true);
+            window.history.replaceState({}, '', '/wallet');
+            await loadData();
+          })();
+        }
+      }
     }
   }, [user, loadData]);
 
@@ -606,8 +625,8 @@ function WalletContent() {
       {showPaymobModal && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm">
           <div className="bg-white w-full sm:max-w-lg sm:rounded-3xl rounded-t-3xl flex flex-col overflow-hidden shadow-2xl"
-               style={{ height: '85vh', maxHeight: 680 }}>
-            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 flex-shrink-0">
+               style={{ height: '85vh', maxHeight: 720 }}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 flex-shrink-0 bg-white">
               <div>
                 <h3 className="font-black text-slate-900 text-sm flex items-center gap-2">
                   <ShieldCheck className="w-4 h-4 text-emerald-600" />
@@ -625,23 +644,36 @@ function WalletContent() {
                 ×
               </button>
             </div>
+            
             <iframe
               src={paymobIframeUrl}
               className="flex-1 w-full border-0"
               title="Paymob Wallet Deposit"
-              onLoad={async (e) => {
-                try {
-                  const url = (e.target as HTMLIFrameElement).contentWindow?.location.href || '';
-                  if (url.includes('success=true') || url.includes('txn_response_code=approved')) {
-                    setShowPaymobModal(false);
-                    if (user && topUpAmount) {
-                      await topUpUserWallet(user.id, Number(topUpAmount), 'card');
-                    }
-                    await loadData();
-                  }
-                } catch {}
-              }}
             />
+
+            {/* Bottom Bar — Quick return once approved */}
+            <div className="p-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-3 flex-shrink-0">
+              <div className="flex items-center gap-2 text-xs text-slate-600">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                <span className="text-[11px]">
+                  {isRTL ? 'بعد ظهور علامة Approved، اضغط لتحديث الرصيد' : 'After "Approved", click to refresh your balance'}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={async () => {
+                  setShowPaymobModal(false);
+                  setPaymobIframeUrl('');
+                  if (user && topUpAmount) {
+                    await topUpUserWallet(user.id, Number(topUpAmount), 'card');
+                  }
+                  await loadData();
+                }}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1.5 flex-shrink-0"
+              >
+                <span>{isRTL ? 'تم الدفع بنجاح ✅' : 'I Paid — Done ✅'}</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

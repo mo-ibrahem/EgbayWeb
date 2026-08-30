@@ -312,18 +312,29 @@ function BoostProductContent() {
               src={paymobIframeUrl}
               className="flex-1 w-full border-0"
               title="Paymob Boost Payment"
-              onLoad={async (e) => {
-                try {
-                  const url = (e.target as HTMLIFrameElement).contentWindow?.location.href || '';
-                  if ((url.includes('success=true') || url.includes('txn_response_code=approved')) && product && user) {
-                    setShowPaymobModal(false);
+            />
+            <div className="p-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-3 flex-shrink-0">
+              <div className="flex items-center gap-2 text-xs text-slate-600">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                <span className="text-[11px]">
+                  {isRTL ? 'بعد ظهور علامة Approved، اضغط لتفعيل الترويج' : 'After "Approved", click to activate your boost'}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={async () => {
+                  setShowPaymobModal(false);
+                  if (product && user) {
                     await boostProduct(product.id, user.id, selectedPkg, 'paymob');
                     setSuccess(true);
                     setTimeout(() => router.push(`/products/${product.id}`), 2000);
                   }
-                } catch {}
-              }}
-            />
+                }}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1.5 flex-shrink-0"
+              >
+                <span>{isRTL ? 'تم الدفع بنجاح ✅' : 'I Paid — Done ✅'}</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
