@@ -117,8 +117,8 @@ function WalletContent() {
 
           (async () => {
             try {
-              // 1. Call server API (bypasses RLS to guarantee Postgres update for target user)
-              await fetch('/api/wallet/credit', {
+              // 1. Call server API (server strictly validates merchantOrderId format and credits only the paying account)
+              const res = await fetch('/api/wallet/credit', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -128,57 +128,30 @@ function WalletContent() {
                   isSuccess: true,
                 }),
               });
-            } catch (apiErr) {
-              console.warn('[Wallet] API credit sync warning:', apiErr);
-            }
+              const json = await res.json();
 
-            // 1. If it's a normal marketplace product order (e.g. starts with ord_)
-            if (String(merchantOrderId).startsWith('ord_')) {
-              await confirmOrderPayment(merchantOrderId);
-              window.history.replaceState({}, '', '/wallet');
-              router.push(`/profile?orderSuccess=${merchantOrderId}`);
-              return;
-            }
-
-            // 2. If it's a product boost (e.g. boost_productId_tier_timestamp)
-            if (String(merchantOrderId).startsWith('boost_')) {
-              const parts = String(merchantOrderId).split('_');
-              const boostedProdId = parts[1];
-              const boostedTier = (parts[2] || 'featured') as 'urgent' | 'featured' | 'turbo';
-              if (boostedProdId) {
-                const boostUserId = user?.id || parts[3] || 'anonymous';
-                await boostProduct(boostedProdId, boostUserId, boostedTier, 'paymob');
-                window.history.replaceState({}, '', '/wallet');
-                router.push(`/products/${boostedProdId}?boost=success`);
-                return;
-              }
-            }
-
-            // 3. Otherwise: It's a Wallet Top-Up deposit
-            let targetUserId = user?.id;
-            if (String(merchantOrderId).startsWith('topup_')) {
-              const parts = String(merchantOrderId).split('_');
-              if (parts.length >= 2 && parts[1]) {
-                targetUserId = parts[1];
-              }
-            }
-
-            const topUpEgp = Math.round(Number(amountCents) / 100);
-            if (targetUserId && topUpEgp > 0) {
-              await topUpUserWallet(targetUserId, topUpEgp, 'card', String(txId));
-
-              // If the currently logged-in user is the one who paid, show celebratory popup
-              if (user && user.id === targetUserId) {
-                const latest = await getUserWallet(user.id);
+              // If it was a top-up and the currently logged-in user is the intended recipient, show celebrate modal
+              if (json?.type === 'topup' && user && json?.userId === user.id) {
                 setCelebrateModal({
                   open: true,
-                  amount: topUpEgp,
-                  newBalance: Number(latest?.available_balance || 0),
+                  amount: json.amountEgp,
+                  newBalance: json.newBalance,
                 });
+              } else if (json?.type === 'order') {
+                router.push(`/orders`);
+                return;
+              } else if (json?.type === 'boost' && json?.productId) {
+                router.push(`/products/${json.productId}?boost=success`);
+                return;
+              }
+            } catch (apiErr) {
+              console.warn('[Wallet] API credit sync warning:', apiErr);
+            } finally {
+              window.history.replaceState({}, '', '/wallet');
+              if (user) {
                 await loadData();
               }
             }
-            window.history.replaceState({}, '', '/wallet');
           })();
         } else {
           window.history.replaceState({}, '', '/wallet');
