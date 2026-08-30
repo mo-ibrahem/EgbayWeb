@@ -28,10 +28,46 @@ export async function POST(req: Request) {
     // 1. Order payment: ord_<orderId>
     if (String(merchantOrderId).startsWith('ord_')) {
       const orderId = String(merchantOrderId);
+      const { data: ord } = await supabase
+        .from('orders')
+        .select('id, product_id, seller_id, amount')
+        .eq('id', orderId)
+        .maybeSingle();
+
       await supabase
         .from('orders')
-        .update({ status: 'paid', updated_at: new Date().toISOString() })
+        .update({ status: 'escrow_secured', updated_at: new Date().toISOString() })
         .eq('id', orderId);
+
+      if (ord?.product_id) {
+        const { data: prod } = await supabase
+          .from('products')
+          .select('id, description, status')
+          .eq('id', ord.product_id)
+          .maybeSingle();
+
+        if (prod) {
+          const stockMatch = (prod.description || '').match(/📦\s*Stock:\s*(\d+)/i) || (prod.description || '').match(/الكمية:\s*(\d+)/i);
+          const currentStock = stockMatch ? parseInt(stockMatch[1], 10) : 1;
+          const remainingStock = currentStock - 1;
+
+          if (remainingStock <= 0) {
+            await supabase
+              .from('products')
+              .update({ status: 'sold', updated_at: new Date().toISOString() })
+              .eq('id', ord.product_id);
+          } else {
+            const updatedDescription = (prod.description || '').replace(
+              /📦\s*Stock:\s*\d+/i,
+              `📦 Stock: ${remainingStock}`
+            );
+            await supabase
+              .from('products')
+              .update({ description: updatedDescription, updated_at: new Date().toISOString() })
+              .eq('id', ord.product_id);
+          }
+        }
+      }
 
       return NextResponse.json({ success: true, type: 'order', orderId });
     }

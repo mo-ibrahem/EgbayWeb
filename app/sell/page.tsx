@@ -80,6 +80,7 @@ function SellContent() {
   const [category, setCategory] = useState('');
   const [condition, setCondition] = useState('New');
   const [location, setLocation] = useState('Cairo');
+  const [stock, setStock] = useState('1');
   const [price, setPrice] = useState('');
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
@@ -181,7 +182,13 @@ function SellContent() {
       }
 
       // 2. Insert product record
-      const fullDescription = location ? `${description.trim()}\n\n📍 ${location}` : description.trim();
+      const stockNum = Math.max(1, parseInt(stock, 10) || 1);
+      const tags = [
+        location ? `📍 ${location}` : '',
+        `📦 Stock: ${stockNum}`,
+      ].filter(Boolean).join('\n');
+
+      const fullDescription = `${description.trim()}\n\n${tags}`;
       const { data: newProd, error: insertError } = await supabase
         .from('products')
         .insert({
@@ -477,6 +484,25 @@ function SellContent() {
                     autoFocus
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  {isRTL ? 'الكمية المتوفرة في المخزون (عدد القطع)' : 'Available Stock Quantity (Units)'}
+                </label>
+                <input
+                  type="number"
+                  value={stock}
+                  onChange={e => setStock(e.target.value)}
+                  placeholder="1"
+                  min="1"
+                  className="w-full border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-blue-500 bg-white"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  {isRTL
+                    ? 'عند شراء آخر قطعة في المخزون، سيتم تحويل الإعلان تلقائياً إلى "تم البيع" وإخفاؤه من السوق.'
+                    : 'When the last item in stock is purchased, this listing is automatically marked Sold and removed from the active marketplace.'}
+                </p>
               </div>
 
               {Number(price) > 0 && (

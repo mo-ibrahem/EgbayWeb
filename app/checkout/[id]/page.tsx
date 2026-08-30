@@ -148,8 +148,8 @@ function CheckoutContent() {
         // 100% wallet — no Paymob needed, confirm immediately
         await confirmOrderPayment(order.id);
         setOrderComplete(true);
-      } else if (paymentMethod === 'card') {
-        // Card — open Paymob iFrame modal; webhook confirms payment server-side
+      } else {
+        // Remaining due > 0 (Full or Split payment) — open Paymob iFrame modal
         const nameParts = (fullName || 'Buyer EgyBay').split(' ');
         const session = await startPaymobCheckoutSession({
           amountEgp: remainingDue,
@@ -167,10 +167,6 @@ function CheckoutContent() {
         });
         setPaymobIframeUrl(session.iframeUrl);
         setShowPaymobModal(true);
-      } else {
-        // COD or InstaPay — confirm immediately (no card charge)
-        await confirmOrderPayment(order.id);
-        setOrderComplete(true);
       }
     } catch (err: any) {
       console.error(err);
@@ -494,12 +490,20 @@ function CheckoutContent() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:from-blue-700 text-white font-black py-4 rounded-2xl transition-all shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 text-sm"
+              className={`w-full text-white font-black py-4 rounded-2xl transition-all shadow-lg flex items-center justify-center gap-2 text-sm ${
+                remainingDue === 0
+                  ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/25'
+                  : 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/25'
+              }`}
             >
               <ShieldCheck className="w-5 h-5" />
               {submitting
                 ? (isRTL ? 'جاري تأكيد وحجز المبلغ في الضمان...' : 'Securing Funds in Escrow...')
-                : (isRTL ? `تأكيد الطلب — ${formatEGP(totalPrice)} بنظام الضمان` : `CONFIRM ORDER — ${formatEGP(totalPrice)} IN ESCROW`)}
+                : remainingDue === 0
+                ? (isRTL ? `⚡ شراء فوري برصيد المحفظة (${formatEGP(totalPrice)})` : `⚡ 1-Click Buy with Wallet Balance (${formatEGP(totalPrice)})`)
+                : walletDeduction > 0
+                ? (isRTL ? `دفع المتبقي ${formatEGP(remainingDue)} بالفيزا (دفع مدمج)` : `Pay Remaining ${formatEGP(remainingDue)} via Card (Split Payment)`)
+                : (isRTL ? `الدفع ببطاقة بنكية ${formatEGP(totalPrice)} (باي موب)` : `Pay ${formatEGP(totalPrice)} via Paymob Card 💳`)}
             </button>
           </form>
 
