@@ -69,6 +69,59 @@ export async function POST(req: Request) {
         }
       }
 
+      // Credit Seller Escrow Pending Balance in Postgres
+      if (ord?.seller_id) {
+        const orderAmount = Number(ord.amount || 0);
+        const platformCommission = Math.round(orderAmount * 0.04);
+        const paymobFee = Math.round((orderAmount * 0.0275) + 3);
+        const netEscrowPayout = Math.max(0, orderAmount - platformCommission - paymobFee);
+
+        const { data: sellerWallet } = await supabase
+          .from('user_wallets')
+          .select('id, pending_balance, available_balance')
+          .eq('user_id', ord.seller_id)
+          .maybeSingle();
+
+        let walletId = sellerWallet?.id;
+        const currentPending = Number(sellerWallet?.pending_balance || 0);
+        const newPending = currentPending + netEscrowPayout;
+
+        if (sellerWallet) {
+          await supabase
+            .from('user_wallets')
+            .update({
+              pending_balance: newPending,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('user_id', ord.seller_id);
+        } else {
+          const { data: created } = await supabase
+            .from('user_wallets')
+            .insert({
+              user_id: ord.seller_id,
+              pending_balance: netEscrowPayout,
+              available_balance: 0,
+              currency: 'EGP',
+            })
+            .select()
+            .maybeSingle();
+          walletId = created?.id;
+        }
+
+        if (walletId) {
+          await supabase.from('wallet_transactions').insert({
+            wallet_id: walletId,
+            order_id: orderId,
+            type: 'escrow_hold',
+            amount: netEscrowPayout,
+            fee_amount: platformCommission + paymobFee,
+            status: 'completed',
+            description: `Escrow Hold: Order #${orderId.slice(-6).toUpperCase()}`,
+            created_at: new Date().toISOString(),
+          });
+        }
+      }
+
       return NextResponse.json({ success: true, type: 'order', orderId });
     }
 
