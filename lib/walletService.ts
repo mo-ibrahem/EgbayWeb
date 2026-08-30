@@ -351,12 +351,15 @@ export async function topUpUserWallet(
 
   try {
     if (typeof window !== 'undefined') {
+      const { data: { session } } = await supabase.auth.getSession();
       await fetch('/api/wallet/action', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(session && { 'Authorization': `Bearer ${session.access_token}` })
+        },
         body: JSON.stringify({
           action: 'topup_manual',
-          userId,
           amount,
           paymentMethod: method
         })
@@ -399,12 +402,15 @@ export async function deductWalletSpendableFunds(
   const newBalance = current - amount;
   try {
     if (typeof window !== 'undefined') {
+      const { data: { session } } = await supabase.auth.getSession();
       await fetch('/api/wallet/action', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(session && { 'Authorization': `Bearer ${session.access_token}` })
+        },
         body: JSON.stringify({
           action: 'deduct_spendable',
-          userId,
           amount,
           orderId,
           itemTitle
@@ -500,15 +506,17 @@ export async function requestPayout(
 
   try {
     if (typeof window !== 'undefined') {
+      const { data: { session } } = await supabase.auth.getSession();
       await fetch('/api/wallet/action', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(session && { 'Authorization': `Bearer ${session.access_token}` })
+        },
         body: JSON.stringify({
           action: 'request_payout',
-          userId,
           amount,
           payoutMethodId,
-          payoutMethodIdentifier: payoutMethodId
         })
       });
     }

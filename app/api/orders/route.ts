@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import bcrypt from 'bcryptjs';
 
 const supabaseUrl =
   process.env.NEXT_PUBLIC_SUPABASE_URL ||
@@ -14,92 +15,68 @@ const supabaseKey =
   process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwcWJvY29oanp3bGZjbWZyb3ByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg5NTkzNDMsImV4cCI6MjA2NDUzNTM0M30.P6atGZ_u0rkbr76qoIBJN5bRGhe2nESQctXoc25d3xU';
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabaseAdmin = createClient(supabaseUrl, supabaseKey);
 
-// GET: Fetch all orders for a user (as buyer OR seller) with full product details
+async function getAuthenticatedUser(req: Request) {
+  const authHeader = req.headers.get('authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return null;
+  }
+  const token = authHeader.replace('Bearer ', '');
+  const { data: { user } } = await supabaseAdmin.auth.getUser(token);
+  return user;
+}
+
+// GET: Fetch all orders for a user (as buyer OR seller)
 export async function GET(req: Request) {
   try {
-    const { searchParams } = new URL(req.url);
-    const userId = searchParams.get('userId');
-
-    if (!userId) {
-      return NextResponse.json({ success: false, error: 'User ID is required' }, { status: 400 });
+    const user = await getAuthenticatedUser(req);
+    if (!user) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
+    const userId = user.id;
 
-    const { data, error } = await supabase
+    const { data: orders, error } = await supabaseAdmin
       .from('orders')
-      .select('*, products(*)')
+      .select('*, order_events(*)')
       .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
       .order('created_at', { ascending: false });
 
     if (error) {
       console.warn('[API /api/orders GET] error:', error);
-      // Fallback query without join
-      const { data: simpleOrders } = await supabase
-        .from('orders')
-        .select('*')
-        .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
-        .order('created_at', { ascending: false });
-
-      const mapped = (simpleOrders || []).map((order: any) => {
-        let notesData: any = {};
-        try {
-          notesData = typeof order.notes === 'string' ? JSON.parse(order.notes) : order.notes || {};
-        } catch {}
-
-        return {
-          id: order.id,
-          product_id: order.product_id,
-          buyer_id: order.buyer_id,
-          seller_id: order.seller_id,
-          amount: notesData.amount || order.amount || 0,
-          currency: 'EGP',
-          status: order.status,
-          handover_method: notesData.handover_method || 'courier',
-          meetup_pin: notesData.meetup_pin,
-          shipping_address: order.shipping_address,
-          product: notesData.product || undefined,
-          tracking_number: notesData.tracking_number,
-          courier_name: notesData.courier_name || 'Bosta Express (بوسطة مصر)',
-          created_at: order.created_at,
-          updated_at: order.updated_at,
-        };
-      });
-
-      return NextResponse.json({ success: true, orders: mapped });
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
-    const mapped = (data || []).map((order: any) => {
+    const mapped = (orders || []).map((order: any) => {
       let notesData: any = {};
       try {
         notesData = typeof order.notes === 'string' ? JSON.parse(order.notes) : order.notes || {};
       } catch {}
 
-      const productObj = notesData.product || (order.products ? {
-        id: order.products.id,
-        title: order.products.title,
-        price: order.products.price,
-        images: order.products.images || [],
-        condition: order.products.condition || 'Used',
-        category: order.products.category || 'General',
-      } : undefined);
+      // Fallback for legacy orders without product_snapshot
+      const fallbackProduct = notesData.product || undefined;
+
+      // Ensure events are sorted chronologically
+      const events = (order.order_events || []).sort((a: any, b: any) => 
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
 
       return {
         id: order.id,
         product_id: order.product_id,
         buyer_id: order.buyer_id,
         seller_id: order.seller_id,
-        amount: notesData.amount || order.amount || 0,
+        amount: order.amount || notesData.amount || 0,
         currency: 'EGP',
         status: order.status,
-        handover_method: notesData.handover_method || 'courier',
-        meetup_pin: notesData.meetup_pin,
+        handover_method: order.handover_method || notesData.handover_method || 'courier',
         shipping_address: order.shipping_address,
-        product: productObj,
+        product: order.product_snapshot || fallbackProduct,
         tracking_number: notesData.tracking_number,
         courier_name: notesData.courier_name || 'Bosta Express (بوسطة مصر)',
         created_at: order.created_at,
         updated_at: order.updated_at,
+        events: events
       };
     });
 
@@ -110,21 +87,30 @@ export async function GET(req: Request) {
   }
 }
 
-// POST: Create or Confirm an order server-side with full admin rights
+// POST: Create or Confirm an order server-side
 export async function POST(req: Request) {
   try {
+    const user = await getAuthenticatedUser(req);
+    if (!user) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+    const userId = user.id;
+
     const body = await req.json();
     const { action, orderData, orderId } = body;
 
     // Action 1: Create Order
     if (action === 'create' && orderData) {
       const generatedOrderId = orderData.id || `ord_${Date.now()}`;
+      
+      // Generate secure PIN server-side
       const randomPin = Math.floor(100000 + Math.random() * 900000).toString();
+      const pinHash = await bcrypt.hash(randomPin, 10);
 
-      // SECURITY FIX: Fetch the actual product price from the database
-      const { data: productInfo, error: prodErr } = await supabase
+      // Fetch the actual product price from the database
+      const { data: productInfo, error: prodErr } = await supabaseAdmin
         .from('products')
-        .select('price, title, images, condition, category')
+        .select('price, title, images, condition, category, seller_id')
         .eq('id', orderData.product_id)
         .maybeSingle();
 
@@ -146,22 +132,22 @@ export async function POST(req: Request) {
       const insertPayload = {
         id: generatedOrderId,
         product_id: orderData.product_id,
-        buyer_id: orderData.buyer_id,
-        seller_id: orderData.seller_id,
+        buyer_id: userId,
+        seller_id: productInfo.seller_id,
         status: 'pending_payment',
         amount: hardenedPrice,
+        product_snapshot: productSnapshot,
+        handover_method: orderData.handover_method || 'courier',
+        handover_pin_hash: pinHash, // Store ONLY the secure hash
         notes: JSON.stringify({
-          handover_method: orderData.handover_method || 'courier',
-          meetup_pin: randomPin,
           amount: hardenedPrice,
           courier_name: 'Bosta Express',
-          product: productSnapshot,
-        }),
+        }), // NO meetup_pin IN NOTES
         shipping_address: orderData.shipping_address,
         created_at: new Date().toISOString(),
       };
 
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('orders')
         .insert(insertPayload)
         .select()
@@ -172,12 +158,19 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: false, error: error.message }, { status: 400 });
       }
 
+      // Record immutable event
+      await supabaseAdmin.from('order_events').insert({
+        order_id: generatedOrderId,
+        event_type: 'order_created',
+        payload: { amount: hardenedPrice }
+      });
+
       return NextResponse.json({
         success: true,
         order: {
           ...orderData,
           id: generatedOrderId,
-          meetup_pin: randomPin,
+          meetup_pin: randomPin, // Return RAW pin strictly to the buyer ONCE
           status: 'pending_payment',
           product: productSnapshot,
         },
@@ -186,107 +179,33 @@ export async function POST(req: Request) {
 
     // Action 1.5: Pay with Wallet (100% wallet checkout)
     if (action === 'pay_with_wallet' && orderId) {
-      // Find the order
-      const { data: ord } = await supabase
-        .from('orders')
-        .select('id, product_id, seller_id, amount, buyer_id, status')
-        .eq('id', orderId)
-        .maybeSingle();
-
-      if (!ord || ord.status !== 'pending_payment') {
-        return NextResponse.json({ success: false, error: 'Invalid order' }, { status: 400 });
-      }
-
-      const orderAmount = Number(ord.amount || 0);
-
-      // Verify the buyer has enough funds
-      const { data: buyerWallet } = await supabase
-        .from('user_wallets')
-        .select('id, available_balance')
-        .eq('user_id', ord.buyer_id)
-        .maybeSingle();
-      
-      const buyerAvailable = Number(buyerWallet?.available_balance || 0);
-      if (!buyerWallet || buyerAvailable < orderAmount) {
-         return NextResponse.json({ success: false, error: 'Insufficient wallet balance' }, { status: 400 });
-      }
-
-      // Deduct from buyer
-      await supabase
-        .from('user_wallets')
-        .update({ available_balance: buyerAvailable - orderAmount, updated_at: new Date().toISOString() } as any)
-        .eq('user_id', ord.buyer_id);
-
-      await supabase.from('wallet_transactions').insert({
-        wallet_id: buyerWallet.id,
+      // Record payment started event
+      await supabaseAdmin.from('order_events').insert({
         order_id: orderId,
-        type: 'fee_deduction',
-        amount: -orderAmount,
-        fee_amount: 0,
-        status: 'completed',
-        description: `Wallet Payment: Order #${orderId.slice(-6).toUpperCase()}`,
-        created_at: new Date().toISOString(),
-      } as any);
+        event_type: 'payment_started',
+        payload: { method: 'wallet' }
+      });
 
-      // Secure the escrow
-      await supabase
-        .from('orders')
-        .update({ status: 'escrow_secured', updated_at: new Date().toISOString() } as any)
-        .eq('id', orderId);
+      // Delegate entirety of financial logic to the PostgreSQL RPC
+      const { data, error } = await supabaseAdmin.rpc('checkout_with_wallet', {
+        p_user_id: userId,
+        p_order_id: orderId
+      });
 
-      // Manage Inventory
-      if (ord.product_id) {
-        const { data: prod } = await supabase.from('products').select('id, description').eq('id', ord.product_id).maybeSingle();
-        if (prod) {
-          const stockMatch = (prod.description || '').match(/📦\s*Stock:\s*(\d+)/i) || (prod.description || '').match(/الكمية:\s*(\d+)/i);
-          const currentStock = stockMatch ? parseInt(stockMatch[1], 10) : 1;
-          const remainingStock = currentStock - 1;
-
-          if (remainingStock <= 0) {
-            await supabase.from('products').update({ status: 'sold', updated_at: new Date().toISOString() } as any).eq('id', ord.product_id);
-          } else {
-            const updatedDescription = (prod.description || '').replace(/📦\s*Stock:\s*\d+/i, `📦 Stock: ${remainingStock}`);
-            await supabase.from('products').update({ description: updatedDescription, updated_at: new Date().toISOString() } as any).eq('id', ord.product_id);
-          }
-        }
-      }
-
-      // Credit Seller Escrow
-      const platformCommission = Math.round(orderAmount * 0.04);
-      const netEscrowPayout = Math.max(0, orderAmount - platformCommission); // No Paymob fee for 100% wallet checkout
-      
-      const { data: sellerWallet } = await supabase.from('user_wallets').select('id, pending_balance').eq('user_id', ord.seller_id).maybeSingle();
-      let sellerWalletId = sellerWallet?.id;
-      if (sellerWallet) {
-        await supabase.from('user_wallets').update({ pending_balance: Number(sellerWallet.pending_balance || 0) + netEscrowPayout, updated_at: new Date().toISOString() } as any).eq('user_id', ord.seller_id);
-      } else {
-        const { data: created } = await supabase.from('user_wallets').insert({ user_id: ord.seller_id, pending_balance: netEscrowPayout, available_balance: 0, currency: 'EGP' } as any).select().maybeSingle();
-        sellerWalletId = created?.id;
-      }
-
-      if (sellerWalletId) {
-        await supabase.from('wallet_transactions').insert({
-          wallet_id: sellerWalletId,
-          order_id: orderId,
-          type: 'escrow_hold',
-          amount: netEscrowPayout,
-          fee_amount: platformCommission,
-          status: 'completed',
-          description: `Escrow Hold: Order #${orderId.slice(-6).toUpperCase()}`,
-          created_at: new Date().toISOString(),
-        } as any);
+      if (error) {
+        return NextResponse.json({ success: false, error: error.message }, { status: 400 });
       }
 
       return NextResponse.json({ success: true, message: 'Order paid via wallet' });
     }
 
-    // Action 2: Release Escrow to Seller (triggered by Buyer approval or Seller PIN verification)
+    // Action 2: Release Escrow to Seller (triggered by PIN verification)
     if (action === 'release_escrow' && orderId) {
-      const { requesterId, pin } = body;
+      const { pin } = body;
 
-      const { data: order, error: orderErr } = await supabase
+      const { data: order, error: orderErr } = await supabaseAdmin
         .from('orders')
-        .select('*')
+        .select('buyer_id, seller_id, handover_pin_hash, status')
         .eq('id', orderId)
         .maybeSingle();
 
@@ -294,82 +213,43 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
       }
 
-      let notesData: any = {};
-      try {
-        notesData = typeof order.notes === 'string' ? JSON.parse(order.notes) : order.notes || {};
-      } catch {}
+      const isBuyerApproval = userId === order.buyer_id;
+      const isSellerApproval = userId === order.seller_id;
 
-      const totalAmount = Number(notesData.amount || order.amount || 0);
-      const isBuyerApproval = requesterId && requesterId === order.buyer_id;
-      const isPinMatch = pin && String(pin).trim() === String(notesData.meetup_pin || '').trim();
-
-      if (!isBuyerApproval && !isPinMatch) {
-        return NextResponse.json({ success: false, error: 'Unauthorized or invalid PIN' }, { status: 403 });
+      if (!isBuyerApproval && !isSellerApproval) {
+        return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 403 });
       }
 
-      // Update Order Status to Completed
-      await supabase
-        .from('orders')
-        .update({
-          status: 'completed',
-          updated_at: new Date().toISOString(),
-        } as any)
-        .eq('id', orderId);
-
-      // Calculate net payout (deduct 3.5% commission + 2.75% + 3 EGP processing fee)
-      const commission = Math.round(totalAmount * 0.035);
-      const paymobFee = Math.round(totalAmount * 0.0275 + 3);
-      const netPayout = Math.max(0, totalAmount - commission - paymobFee);
-
-      if (order.seller_id && netPayout > 0) {
-        // Fetch or create seller wallet
-        const { data: wallet } = await supabase
-          .from('user_wallets')
-          .select('*')
-          .eq('user_id', order.seller_id)
-          .maybeSingle();
-
-        const currentPending = Number(wallet?.pending_balance || 0);
-        const currentAvailable = Number(wallet?.available_balance || 0);
-        const newPending = Math.max(0, currentPending - netPayout);
-        const newAvailable = currentAvailable + netPayout;
-
-        if (wallet) {
-          await supabase
-            .from('user_wallets')
-            .update({
-              pending_balance: newPending,
-              available_balance: newAvailable,
-              updated_at: new Date().toISOString(),
-            } as any)
-            .eq('id', wallet.id);
-        } else {
-          await supabase.from('user_wallets').insert({
-            id: `wallet_${order.seller_id}`,
-            user_id: order.seller_id,
-            pending_balance: 0,
-            available_balance: newAvailable,
-            currency: 'EGP',
-            updated_at: new Date().toISOString(),
-          } as any);
+      // If seller is approving, they MUST supply the correct PIN
+      if (isSellerApproval) {
+        if (!pin) {
+          return NextResponse.json({ success: false, error: 'PIN required for seller release' }, { status: 403 });
+        }
+        
+        if (!order.handover_pin_hash) {
+           return NextResponse.json({ success: false, error: 'Order not configured for PIN handover' }, { status: 400 });
         }
 
-        // Record Ledger Transaction
-        await supabase.from('wallet_transactions').insert({
-          wallet_id: wallet?.id || `wallet_${order.seller_id}`,
-          order_id: orderId,
-          type: 'escrow_release',
-          amount: netPayout,
-          fee_amount: commission + paymobFee,
-          status: 'completed',
-          description: `Escrow Released: Order #${orderId.slice(-6).toUpperCase()}`,
-          created_at: new Date().toISOString(),
-        } as any);
+        // BCRYPT Verification in the backend
+        const isPinValid = await bcrypt.compare(String(pin).trim(), order.handover_pin_hash);
+        if (!isPinValid) {
+          return NextResponse.json({ success: false, error: 'Invalid Handover PIN' }, { status: 403 });
+        }
+      }
+
+      // Delegate financial release to RPC
+      const { error: rpcErr } = await supabaseAdmin.rpc('release_escrow', {
+        p_user_id: userId,
+        p_order_id: orderId
+      });
+
+      if (rpcErr) {
+         return NextResponse.json({ success: false, error: rpcErr.message }, { status: 400 });
       }
 
       return NextResponse.json({
         success: true,
-        message: '🎉 Escrow released! Net funds moved to Seller available balance.',
+        message: '🎉 Escrow released successfully!',
       });
     }
 
@@ -377,14 +257,18 @@ export async function POST(req: Request) {
     if (action === 'update_tracking' && orderId) {
       const { tracking_number, courier_name, status } = body;
       
-      const { data: order, error: orderErr } = await supabase
+      const { data: order, error: orderErr } = await supabaseAdmin
         .from('orders')
-        .select('*')
+        .select('seller_id, buyer_id, notes')
         .eq('id', orderId)
         .maybeSingle();
 
       if (orderErr || !order) {
         return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
+      }
+      
+      if (order.seller_id !== userId && order.buyer_id !== userId) {
+         return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 403 });
       }
 
       let notesData: any = {};
@@ -413,7 +297,7 @@ export async function POST(req: Request) {
         inspection_expiry_at: inspectionExpiry,
       };
 
-      await supabase
+      await supabaseAdmin
         .from('orders')
         .update({
           status: newStatus,
@@ -422,13 +306,20 @@ export async function POST(req: Request) {
         } as any)
         .eq('id', orderId);
 
+      // Record event
+      await supabaseAdmin.from('order_events').insert({
+        order_id: orderId,
+        event_type: newStatus === 'delivered' ? 'delivered' : 'shipped',
+        payload: { tracking_number, courier_name: courier, bosta_url: bostaUrl }
+      });
+
       return NextResponse.json({ success: true, message: 'Tracking updated' });
     }
 
     // Action 4: Dispute
     if (action === 'dispute' && orderId) {
       const { reason, notes, evidence } = body;
-      const { data: order, error: orderErr } = await supabase
+      const { data: order, error: orderErr } = await supabaseAdmin
         .from('orders')
         .select('*')
         .eq('id', orderId)
@@ -436,6 +327,10 @@ export async function POST(req: Request) {
 
       if (orderErr || !order) {
         return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
+      }
+      
+      if (order.buyer_id !== userId) {
+        return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 403 });
       }
       
       let notesData: any = {};
@@ -451,7 +346,7 @@ export async function POST(req: Request) {
         dispute_created_at: new Date().toISOString(),
       };
 
-      await supabase
+      await supabaseAdmin
         .from('orders')
         .update({
           status: 'disputed',
@@ -459,6 +354,12 @@ export async function POST(req: Request) {
           updated_at: new Date().toISOString(),
         } as any)
         .eq('id', orderId);
+
+      await supabaseAdmin.from('order_events').insert({
+        order_id: orderId,
+        event_type: 'disputed',
+        payload: { reason, notes, evidence }
+      });
 
       return NextResponse.json({ success: true, message: 'Dispute filed' });
     }

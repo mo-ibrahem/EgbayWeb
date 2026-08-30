@@ -94,9 +94,9 @@ function BoostProductContent() {
       try {
         const nameParts = (user.user_metadata?.full_name || 'Seller Owner').split(' ');
         const session = await startPaymobCheckoutSession({
-          amountEgp: currentPkg.priceEGP,
-          merchantOrderId: `boost_${product.id}_${selectedPkg}_${user.id}_${Date.now()}`,
-          itemName: `EgyBay Boost: ${currentPkg.title}`,
+          purpose: 'boost',
+          referenceId: product.id,
+          tier: selectedPkg,
           billingData: {
             first_name: nameParts[0] || 'Seller',
             last_name: nameParts[1] || 'Owner',

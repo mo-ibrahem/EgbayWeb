@@ -1,0 +1,5 @@
+--- STARTING PHASE 4 TESTS ---
+Failed to create/find test users {
+  message: 'Invalid API key',
+  hint: 'Double check the provided API key for typos. This API key might also be owned by another Supabase project.'
+}

@@ -152,29 +152,29 @@ function CheckoutContent() {
 
       setCreatedOrderId(order.id);
 
-      if (remainingDue === 0) {
+      if (useWalletBalance && remainingDue === 0) {
         // 100% wallet — process order confirmation & escrow credit via secure server API
         try {
-          await fetch('/api/orders', {
+          const res = await fetch('/api/wallet/action', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              action: 'pay_with_wallet',
-              orderId: order.id
-            }),
+            body: JSON.stringify({ action: 'deduct_spendable', orderId: order.id }),
           });
-        } catch (apiErr) {
-          console.warn('[Checkout] API order sync warning:', apiErr);
+          const walletResult = await res.json();
+          if (!walletResult.success) throw new Error(walletResult.error || 'Wallet payment failed');
+          
+          router.push(`/orders/success?orderId=${order.id}`);
+        } catch (err: any) {
+          setErrorMsg(err.message || 'Failed to confirm wallet payment');
+          setSubmitting(false);
         }
-        await confirmOrderPayment(order.id);
-        setOrderComplete(true);
+        return;
       } else {
         // Remaining due > 0 (Full or Split payment) — open Paymob iFrame modal
         const nameParts = (fullName || 'Buyer EgyBay').split(' ');
         const session = await startPaymobCheckoutSession({
-          amountEgp: remainingDue,
-          merchantOrderId: order.id,
-          itemName: product.title,
+          purpose: 'order',
+          referenceId: order.id,
           billingData: {
             first_name: nameParts[0] || 'Buyer',
             last_name: nameParts[1] || 'EgyBay',

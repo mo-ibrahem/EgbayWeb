@@ -29,6 +29,7 @@ import {
 } from '@/lib/walletService';
 import { startPaymobCheckoutSession } from '@/lib/paymobService';
 import { confirmOrderPayment } from '@/lib/orderService';
+import { supabase } from '@/lib/supabase';
 import { boostProduct } from '@/lib/boostService';
 
 function WalletContent() {
@@ -95,84 +96,57 @@ function WalletContent() {
   }, [user, selectedPayoutMethod]);
 
   useEffect(() => {
-    // Check if redirected back from Paymob with approved transaction
+    // Check if we are waiting for a top-up to complete
     if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const rawSuccess = params.get('success')?.toLowerCase();
-      const rawCode = params.get('txn_response_code')?.toLowerCase();
-      const isSuccess =
-        rawSuccess === 'true' ||
-        rawSuccess === '1' ||
-        rawCode === 'approved' ||
-        params.get('data.message')?.toLowerCase() === 'approved';
+      const pendingTopupId = sessionStorage.getItem('pending_topup_id');
+      if (pendingTopupId && user) {
+        let isPolling = true;
 
-      const amountCents = params.get('amount_cents') || params.get('data.amount_cents') || '0';
-      const rawMerchantId = params.get('merchant_order_id') || '';
-      const fallbackOrderId = params.get('order') || '';
-      const pendingTopUpOrderId = typeof window !== 'undefined' ? sessionStorage.getItem('pending_topup_order_id') || '' : '';
-      const pendingTopUpUserId = typeof window !== 'undefined' ? sessionStorage.getItem('pending_topup_user_id') || '' : '';
-
-      const merchantOrderId = (rawMerchantId.startsWith('topup_') || rawMerchantId.startsWith('ord_') || rawMerchantId.startsWith('boost_'))
-        ? rawMerchantId
-        : (pendingTopUpOrderId || fallbackOrderId);
-
-      const txId = params.get('id') || params.get('data.id') || merchantOrderId || `paymob_${amountCents}`;
-
-      if (isSuccess && (amountCents !== '0' || merchantOrderId) && txId) {
-        const processedKey = `paymob_tx_processed_${txId}`;
-        if (!sessionStorage.getItem(processedKey)) {
-          sessionStorage.setItem(processedKey, 'true');
-
-          (async () => {
-            try {
-              const res = await fetch('/api/wallet/credit', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  merchantOrderId,
-                  targetUserId: pendingTopUpUserId || user?.id,
-                  amountCents,
-                  txId,
-                  isSuccess: true,
-                }),
+        const checkStatus = async () => {
+          if (!isPolling) return;
+          try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const res = await fetch(`/api/wallet/topup/status?id=${pendingTopupId}`, {
+              headers: {
+                'Authorization': `Bearer ${session?.access_token || ''}`
+              }
+            });
+            const data = await res.json();
+            
+            if (data.success && data.status === 'paid') {
+              sessionStorage.removeItem('pending_topup_id');
+              isPolling = false;
+              
+              setCelebrateModal({
+                open: true,
+                amount: data.amount,
+                newBalance: (wallet?.available_balance || 0) + data.amount,
               });
-              const json = await res.json();
-
-              sessionStorage.removeItem('pending_topup_order_id');
-              sessionStorage.removeItem('pending_topup_user_id');
-
-              if (json?.type === 'topup' && user && json?.userId === user.id) {
-                setCelebrateModal({
-                  open: true,
-                  amount: json.amountEgp,
-                  newBalance: json.newBalance,
-                });
-              } else if (json?.type === 'order') {
-                router.push(`/orders`);
-                return;
-              } else if (json?.type === 'boost' && json?.productId) {
-                router.push(`/products/${json.productId}?boost=success`);
-                return;
-              }
-            } catch (apiErr) {
-              console.warn('[Wallet] API credit sync error:', apiErr);
-            } finally {
+              
+              await loadData();
               window.history.replaceState({}, '', '/wallet');
-              if (user) {
-                await loadData();
-              }
             }
-          })();
-        } else {
+          } catch (e) {
+            console.error('[Wallet] Error checking top-up status:', e);
+          }
+        };
+
+        // Poll every 3 seconds
+        checkStatus();
+        const interval = setInterval(checkStatus, 3000);
+        return () => {
+          isPolling = false;
+          clearInterval(interval);
+        };
+      } else {
+        // Just clear the URL params if we were redirected back with success
+        const params = new URLSearchParams(window.location.search);
+        if (params.has('success') || params.has('merchant_order_id')) {
           window.history.replaceState({}, '', '/wallet');
         }
       }
     }
-
-    if (user) {
-      loadData();
-    }
-  }, [user, loadData, router]);
+  }, [user, loadData, wallet]);
 
   const handleTopUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -183,26 +157,25 @@ function WalletContent() {
       setToppingUp(true);
       setErrorMsg('');
       try {
-        const topUpOrderId = `topup_${user.id}_${Date.now()}`;
-        sessionStorage.setItem('pending_topup_order_id', topUpOrderId);
-        sessionStorage.setItem('pending_topup_user_id', user.id);
-
-        const nameParts = (user.user_metadata?.full_name || 'EgyBay User').split(' ');
-        const session = await startPaymobCheckoutSession({
-          amountEgp: amount,
-          merchantOrderId: topUpOrderId,
-          itemName: `EgyBay Wallet Top-Up: EGP ${amount}`,
-          billingData: {
-            first_name: nameParts[0] || 'User',
-            last_name: nameParts[1] || 'EgyBay',
-            email: user.email || 'user@egbay.market',
-            phone_number: '+201000000000',
-            city: 'Cairo',
-            state: 'Cairo',
+        const { data: { session } } = await supabase.auth.getSession();
+        const res = await fetch('/api/wallet/topup/create', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token || ''}`
           },
+          body: JSON.stringify({ amount })
         });
+        const data = await res.json();
+        
+        if (!data.success) {
+          throw new Error(data.error || 'Failed to initialize top-up');
+        }
+        
+        sessionStorage.setItem('pending_topup_id', data.topupId);
+        
         setTopUpOpen(false);
-        setPaymobIframeUrl(session.iframeUrl);
+        setPaymobIframeUrl(data.iframeUrl);
         setShowPaymobModal(true);
       } catch (err: any) {
         setErrorMsg(err?.message || (isRTL ? 'فشل بدء جلسة الدفع' : 'Failed to start payment session'));
