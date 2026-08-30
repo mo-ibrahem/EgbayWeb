@@ -95,63 +95,78 @@ function WalletContent() {
   }, [user, selectedPayoutMethod]);
 
   useEffect(() => {
-    if (user) {
-      loadData();
+    // Check if redirected back from Paymob with approved transaction
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const isSuccess =
+        params.get('success') === 'true' ||
+        params.get('txn_response_code') === 'approved';
+      const amountCents = params.get('amount_cents');
+      const merchantOrderId = params.get('merchant_order_id') || params.get('order') || '';
+      const txId = params.get('id') || merchantOrderId || `paymob_${amountCents}`;
 
-      // Check if redirected back from Paymob with approved transaction
-      if (typeof window !== 'undefined') {
-        const params = new URLSearchParams(window.location.search);
-        const isSuccess =
-          params.get('success') === 'true' ||
-          params.get('txn_response_code') === 'approved';
-        const amountCents = params.get('amount_cents');
-        const merchantOrderId = params.get('merchant_order_id') || params.get('order') || '';
-        const txId = params.get('id') || merchantOrderId || `paymob_${amountCents}`;
+      if (isSuccess && (amountCents || merchantOrderId) && txId) {
+        const processedKey = `paymob_tx_processed_${txId}`;
+        if (!sessionStorage.getItem(processedKey)) {
+          sessionStorage.setItem(processedKey, 'true');
 
-        if (isSuccess && (amountCents || merchantOrderId) && txId) {
-          const processedKey = `paymob_tx_processed_${txId}`;
-          if (!sessionStorage.getItem(processedKey)) {
-            sessionStorage.setItem(processedKey, 'true');
+          (async () => {
+            // 1. If it's a normal marketplace product order (e.g. starts with ord_)
+            if (String(merchantOrderId).startsWith('ord_')) {
+              await confirmOrderPayment(merchantOrderId);
+              window.history.replaceState({}, '', '/wallet');
+              router.push(`/profile?orderSuccess=${merchantOrderId}`);
+              return;
+            }
 
-            (async () => {
-              // 1. If it's a normal marketplace product order (e.g. starts with ord_)
-              if (String(merchantOrderId).startsWith('ord_')) {
-                await confirmOrderPayment(merchantOrderId);
+            // 2. If it's a product boost (e.g. boost_productId_tier_timestamp)
+            if (String(merchantOrderId).startsWith('boost_')) {
+              const parts = String(merchantOrderId).split('_');
+              const boostedProdId = parts[1];
+              const boostedTier = (parts[2] || 'featured') as 'urgent' | 'featured' | 'turbo';
+              if (boostedProdId) {
+                const boostUserId = user?.id || parts[3] || 'anonymous';
+                await boostProduct(boostedProdId, boostUserId, boostedTier, 'paymob');
                 window.history.replaceState({}, '', '/wallet');
-                router.push(`/profile?orderSuccess=${merchantOrderId}`);
+                router.push(`/products/${boostedProdId}?boost=success`);
                 return;
               }
+            }
 
-              // 2. If it's a product boost (e.g. boost_productId_tier_timestamp)
-              if (String(merchantOrderId).startsWith('boost_')) {
-                const parts = String(merchantOrderId).split('_');
-                const boostedProdId = parts[1];
-                const boostedTier = (parts[2] || 'featured') as 'urgent' | 'featured' | 'turbo';
-                if (boostedProdId && user) {
-                  await boostProduct(boostedProdId, user.id, boostedTier, 'paymob');
-                  window.history.replaceState({}, '', '/wallet');
-                  router.push(`/products/${boostedProdId}?boost=success`);
-                  return;
-                }
+            // 3. Otherwise: It's a Wallet Top-Up deposit
+            let targetUserId = user?.id;
+            if (String(merchantOrderId).startsWith('topup_')) {
+              const parts = String(merchantOrderId).split('_');
+              if (parts.length >= 2 && parts[1]) {
+                targetUserId = parts[1];
               }
+            }
 
-              // 3. Otherwise: It's a Wallet Top-Up deposit
-              const topUpEgp = Math.round(Number(amountCents) / 100);
-              await topUpUserWallet(user.id, topUpEgp, 'card', String(txId));
-              const latest = await getUserWallet(user.id);
-              setCelebrateModal({
-                open: true,
-                amount: topUpEgp,
-                newBalance: Number(latest?.available_balance || 0),
-              });
-              window.history.replaceState({}, '', '/wallet');
-              await loadData();
-            })();
-          } else {
+            const topUpEgp = Math.round(Number(amountCents) / 100);
+            if (targetUserId && topUpEgp > 0) {
+              await topUpUserWallet(targetUserId, topUpEgp, 'card', String(txId));
+
+              // If the currently logged-in user is the one who paid, show celebratory popup
+              if (user && user.id === targetUserId) {
+                const latest = await getUserWallet(user.id);
+                setCelebrateModal({
+                  open: true,
+                  amount: topUpEgp,
+                  newBalance: Number(latest?.available_balance || 0),
+                });
+                await loadData();
+              }
+            }
             window.history.replaceState({}, '', '/wallet');
-          }
+          })();
+        } else {
+          window.history.replaceState({}, '', '/wallet');
         }
       }
+    }
+
+    if (user) {
+      loadData();
     }
   }, [user, loadData, router]);
 
