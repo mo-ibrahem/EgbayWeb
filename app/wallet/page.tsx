@@ -107,7 +107,15 @@ function WalletContent() {
         params.get('data.message')?.toLowerCase() === 'approved';
 
       const amountCents = params.get('amount_cents') || params.get('data.amount_cents') || '0';
-      const merchantOrderId = params.get('merchant_order_id') || params.get('order') || '';
+      const rawMerchantId = params.get('merchant_order_id') || '';
+      const fallbackOrderId = params.get('order') || '';
+      const pendingTopUpOrderId = typeof window !== 'undefined' ? sessionStorage.getItem('pending_topup_order_id') || '' : '';
+      const pendingTopUpUserId = typeof window !== 'undefined' ? sessionStorage.getItem('pending_topup_user_id') || '' : '';
+
+      const merchantOrderId = (rawMerchantId.startsWith('topup_') || rawMerchantId.startsWith('ord_') || rawMerchantId.startsWith('boost_'))
+        ? rawMerchantId
+        : (pendingTopUpOrderId || fallbackOrderId);
+
       const txId = params.get('id') || params.get('data.id') || merchantOrderId || `paymob_${amountCents}`;
 
       if (isSuccess && (amountCents !== '0' || merchantOrderId) && txId) {
@@ -117,18 +125,22 @@ function WalletContent() {
 
           (async () => {
             try {
-              // 1. Call server API (server strictly validates merchantOrderId format and credits only the paying account)
+              // 1. Call server API (server updates Supabase Postgres directly with admin rights)
               const res = await fetch('/api/wallet/credit', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                   merchantOrderId,
+                  targetUserId: pendingTopUpUserId || user?.id,
                   amountCents,
                   txId,
                   isSuccess: true,
                 }),
               });
               const json = await res.json();
+
+              sessionStorage.removeItem('pending_topup_order_id');
+              sessionStorage.removeItem('pending_topup_user_id');
 
               // If it was a top-up and the currently logged-in user is the intended recipient, show celebrate modal
               if (json?.type === 'topup' && user && json?.userId === user.id) {
@@ -173,10 +185,14 @@ function WalletContent() {
       setToppingUp(true);
       setErrorMsg('');
       try {
+        const topUpOrderId = `topup_${user.id}_${Date.now()}`;
+        sessionStorage.setItem('pending_topup_order_id', topUpOrderId);
+        sessionStorage.setItem('pending_topup_user_id', user.id);
+
         const nameParts = (user.user_metadata?.full_name || 'EgyBay User').split(' ');
         const session = await startPaymobCheckoutSession({
           amountEgp: amount,
-          merchantOrderId: `topup_${user.id}_${Date.now()}`,
+          merchantOrderId: topUpOrderId,
           itemName: `EgyBay Wallet Top-Up: EGP ${amount}`,
           billingData: {
             first_name: nameParts[0] || 'User',

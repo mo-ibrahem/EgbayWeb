@@ -427,6 +427,28 @@ export async function approveOrderDelivery(
   if (!order) throw new Error('Order not found');
   if (order.buyer_id !== buyerId) throw new Error('Unauthorized action');
 
+  // 1. Call Server API (bypasses RLS to guarantee Postgres release to seller available balance)
+  try {
+    if (typeof window !== 'undefined') {
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'release_escrow',
+          orderId,
+          requesterId: buyerId,
+        }),
+      });
+      const json = await res.json();
+      if (json?.success) {
+        if (inMemoryOrders[orderId]) inMemoryOrders[orderId].status = 'completed';
+        return json;
+      }
+    }
+  } catch (apiErr) {
+    console.warn('[OrderService] approveOrderDelivery server API fallback:', apiErr);
+  }
+
   try {
     await supabase
       .from('orders')
@@ -516,6 +538,29 @@ export async function verifyAndReleaseOrder(
     throw new Error('Invalid verification PIN. Please ask the buyer to check their confirmation code.');
   }
 
+  // 1. Call Server API (bypasses RLS to guarantee Postgres release to seller available balance)
+  try {
+    if (typeof window !== 'undefined') {
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'release_escrow',
+          orderId,
+          requesterId: sellerId,
+          pin: enteredPin,
+        }),
+      });
+      const json = await res.json();
+      if (json?.success) {
+        if (inMemoryOrders[orderId]) inMemoryOrders[orderId].status = 'completed';
+        return json;
+      }
+    }
+  } catch (apiErr) {
+    console.warn('[OrderService] verifyAndReleaseOrder server API fallback:', apiErr);
+  }
+
   try {
     await supabase
       .from('orders')
@@ -533,6 +578,6 @@ export async function verifyAndReleaseOrder(
 
   return {
     success: true,
-    message: '🎉 Handover verified! Escrow funds released to Seller available balance.',
+    message: '🎉 Handover PIN Verified! Funds released to your spendable balance.',
   };
 }

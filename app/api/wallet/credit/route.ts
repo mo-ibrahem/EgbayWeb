@@ -148,8 +148,8 @@ export async function POST(req: Request) {
     }
 
     // 3. Wallet Top-Up Deposit: topup_<userId>_<timestamp>
-    let targetUserId = '';
-    if (String(merchantOrderId).startsWith('topup_')) {
+    let targetUserId = body.targetUserId || body.userId || '';
+    if (!targetUserId && String(merchantOrderId).startsWith('topup_')) {
       const parts = String(merchantOrderId).split('_');
       if (parts.length >= 2 && parts[1]) {
         targetUserId = parts[1];

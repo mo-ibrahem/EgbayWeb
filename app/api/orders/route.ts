@@ -161,6 +161,99 @@ export async function POST(req: Request) {
       });
     }
 
+    // Action 2: Release Escrow to Seller (triggered by Buyer approval or Seller PIN verification)
+    if (action === 'release_escrow' && orderId) {
+      const { requesterId, pin } = body;
+
+      const { data: order, error: orderErr } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('id', orderId)
+        .maybeSingle();
+
+      if (orderErr || !order) {
+        return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
+      }
+
+      let notesData: any = {};
+      try {
+        notesData = typeof order.notes === 'string' ? JSON.parse(order.notes) : order.notes || {};
+      } catch {}
+
+      const totalAmount = Number(notesData.amount || order.amount || 0);
+      const isBuyerApproval = requesterId && requesterId === order.buyer_id;
+      const isPinMatch = pin && String(pin).trim() === String(notesData.meetup_pin || '').trim();
+
+      if (!isBuyerApproval && !isPinMatch) {
+        return NextResponse.json({ success: false, error: 'Unauthorized or invalid PIN' }, { status: 403 });
+      }
+
+      // Update Order Status to Completed
+      await supabase
+        .from('orders')
+        .update({
+          status: 'completed',
+          updated_at: new Date().toISOString(),
+        } as any)
+        .eq('id', orderId);
+
+      // Calculate net payout (deduct 3.5% commission + 2.75% + 3 EGP processing fee)
+      const commission = Math.round(totalAmount * 0.035);
+      const paymobFee = Math.round(totalAmount * 0.0275 + 3);
+      const netPayout = Math.max(0, totalAmount - commission - paymobFee);
+
+      if (order.seller_id && netPayout > 0) {
+        // Fetch or create seller wallet
+        const { data: wallet } = await supabase
+          .from('user_wallets')
+          .select('*')
+          .eq('user_id', order.seller_id)
+          .maybeSingle();
+
+        const currentPending = Number(wallet?.pending_balance || 0);
+        const currentAvailable = Number(wallet?.available_balance || 0);
+        const newPending = Math.max(0, currentPending - netPayout);
+        const newAvailable = currentAvailable + netPayout;
+
+        if (wallet) {
+          await supabase
+            .from('user_wallets')
+            .update({
+              pending_balance: newPending,
+              available_balance: newAvailable,
+              updated_at: new Date().toISOString(),
+            } as any)
+            .eq('id', wallet.id);
+        } else {
+          await supabase.from('user_wallets').insert({
+            id: `wallet_${order.seller_id}`,
+            user_id: order.seller_id,
+            pending_balance: 0,
+            available_balance: newAvailable,
+            currency: 'EGP',
+            updated_at: new Date().toISOString(),
+          } as any);
+        }
+
+        // Record Ledger Transaction
+        await supabase.from('wallet_transactions').insert({
+          wallet_id: wallet?.id || `wallet_${order.seller_id}`,
+          order_id: orderId,
+          type: 'escrow_release',
+          amount: netPayout,
+          fee_amount: commission + paymobFee,
+          status: 'completed',
+          description: `Escrow Released: Order #${orderId.slice(-6).toUpperCase()}`,
+          created_at: new Date().toISOString(),
+        } as any);
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: '🎉 Escrow released! Net funds moved to Seller available balance.',
+      });
+    }
+
     return NextResponse.json({ success: false, error: 'Invalid action' }, { status: 400 });
   } catch (err: any) {
     console.error('[API /api/orders POST] fatal error:', err);
