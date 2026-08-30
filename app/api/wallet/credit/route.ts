@@ -25,6 +25,17 @@ export async function POST(req: Request) {
     const providedHmac = searchParams.get('hmac');
 
     const bodyText = await req.text();
+
+    // -- DIAGNOSTIC LOGGING --
+    await supabase.from('notifications').insert({
+      user_id: 'c46f65af-014c-4796-bcc9-ed9ad59a3e3c',
+      type: 'system',
+      title: 'Paymob Webhook Received',
+      message: JSON.stringify({ hmac: providedHmac, body: bodyText.substring(0, 500) }),
+      created_at: new Date().toISOString()
+    });
+    // ------------------------
+
     let body;
     try {
       body = JSON.parse(bodyText);
