@@ -161,20 +161,20 @@ function ProductCard({
     <div className="h-full w-full min-w-0">
       <Link href={`/products/${product.id}`} className="group block h-full min-w-0">
         <div
-          className={`bg-white rounded-2xl overflow-hidden border transition-all duration-200 hover:shadow-lg flex flex-col h-full min-w-0 ${
+          className={`premium-card bg-white rounded-[18px] overflow-hidden border flex flex-col h-full min-w-0 relative ${
             product.is_promoted
-              ? 'border-blue-300 shadow-sm ring-1 ring-blue-500/30'
-              : 'border-slate-200/80 shadow-sm hover:border-slate-300'
+              ? 'border-blue-300/70 shadow-md ring-1 ring-blue-500/20 card-boosted-bar'
+              : 'border-slate-200/70 shadow-sm hover:border-blue-200'
           }`}
         >
           {/* Product Image Container */}
-          <div className="relative aspect-square bg-slate-50 overflow-hidden w-full">
+          <div className="relative aspect-[4/3] bg-slate-50 overflow-hidden w-full">
             {imgSrc ? (
               <SmartImage
                 src={imgSrc}
                 alt={product.title}
                 fill
-                className="object-cover group-hover:scale-105 transition-transform duration-300"
+                className="object-cover group-hover:scale-[1.07] transition-transform duration-400 ease-out"
                 sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
               />
             ) : (
@@ -186,15 +186,18 @@ function ProductCard({
               </div>
             )}
 
+            {/* Dark gradient overlay at bottom for readability */}
+            <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
+
             {/* Badges Overlay */}
             <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
               {product.is_promoted && (
-                <span className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-[9px] font-black px-1.5 py-0.2 rounded-full flex items-center gap-1 shadow-sm">
+                <span className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full flex items-center gap-1 shadow-md">
                   <Zap className="w-2.5 h-2.5 fill-current" /> {isRTL ? 'مميز' : 'BOOST'}
                 </span>
               )}
               {product.condition === 'New' && (
-                <span className="bg-emerald-600 text-white text-[9px] font-bold px-1.5 py-0.2 rounded-full shadow-sm">
+                <span className="bg-emerald-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow-sm">
                   {isRTL ? 'جديد' : 'NEW'}
                 </span>
               )}
@@ -203,10 +206,10 @@ function ProductCard({
             {/* Wishlist Button */}
             <button
               onClick={handleWishlist}
-              className={`absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center transition-all shadow-sm z-10 ${
+              className={`absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center transition-all shadow-md z-10 ${
                 wishlisted
-                  ? 'bg-rose-500 text-white shadow-rose-500/30'
-                  : 'bg-white/90 text-slate-400 hover:text-rose-500 hover:bg-white'
+                  ? 'bg-rose-500 text-white shadow-rose-400/40'
+                  : 'bg-white/90 backdrop-blur-sm text-slate-400 hover:text-rose-500 hover:bg-white hover:scale-110'
               }`}
             >
               <Heart className={`w-3.5 h-3.5 ${wishlisted ? 'fill-current' : ''}`} />
@@ -216,53 +219,48 @@ function ProductCard({
           {/* Info Container */}
           <div className="p-3.5 flex flex-col flex-1 justify-between">
             <div>
-              <div className="flex items-center justify-between text-[11px] text-slate-400 font-semibold mb-1">
-                <span className="uppercase tracking-wider truncate">
+              <div className="flex items-center justify-between text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wide">
+                <span className="truncate">
                   {t(`categories.${product.category?.toLowerCase()}`, product.category)}
                 </span>
-                <span className="capitalize text-slate-500">
+                <span className={`capitalize font-bold px-1.5 py-0.5 rounded-md text-[9px] ${
+                  product.condition === 'New'
+                    ? 'text-emerald-700 bg-emerald-50'
+                    : 'text-amber-700 bg-amber-50'
+                }`}>
                   {product.condition === 'New'
                     ? isRTL ? 'جديد' : 'New'
                     : isRTL ? 'مستعمل' : 'Used'}
                 </span>
               </div>
 
-              <h3 className="text-xs font-bold text-slate-900 line-clamp-2 leading-snug group-hover:text-blue-600 transition-colors mb-2">
+              <h3 className="text-xs font-bold text-slate-900 line-clamp-2 leading-snug group-hover:text-[#3665F3] transition-colors duration-150 mb-2.5">
                 {product.title}
               </h3>
             </div>
 
             <div>
               {/* Price & Escrow */}
-              <div className="flex items-baseline justify-between gap-1 mb-1.5">
-                <span className="text-sm sm:text-base font-black text-slate-900">
+              <div className="flex items-baseline justify-between gap-1 mb-2">
+                <span className="text-sm sm:text-[15px] font-black text-slate-900 tracking-tight">
                   <AnimatedNumber value={product.price} prefix={isRTL ? 'ج.م ' : 'EGP '} />
                 </span>
-                <span className="flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
+                <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded-lg">
                   <ShieldCheck className="w-3 h-3 flex-shrink-0" />
                   {isRTL ? 'ضمان' : 'Escrow'}
                 </span>
               </div>
 
-              {/* Shipping & Offer Trust Badges (eBay Style) */}
-              <div className="flex items-center gap-2 mb-2 text-[10px] text-slate-500 font-medium">
-                <span className="flex items-center gap-1 text-emerald-700 font-semibold bg-emerald-50/70 px-1.5 py-0.5 rounded">
-                  <Package className="w-2.5 h-2.5" />
-                  {isRTL ? 'شحن بوسطة' : 'Bosta Courier'}
-                </span>
-                <span className="text-slate-400">
-                  {isRTL ? '• متاح تفاوض' : '• Best Offer'}
-                </span>
-              </div>
+
 
               {/* Location & Time */}
-              <div className="flex items-center justify-between pt-1.5 border-t border-slate-100 text-[10.5px] text-slate-400">
-                <span className="flex items-center gap-1 truncate max-w-[100px]">
-                  <MapPin className="w-3 h-3 text-slate-400 flex-shrink-0" />
+              <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-[10px] text-slate-400">
+                <span className="flex items-center gap-1 truncate max-w-[110px]">
+                  <MapPin className="w-3 h-3 flex-shrink-0" />
                   {product.location || (isRTL ? 'مصر' : 'Egypt')}
                 </span>
                 <span className="flex items-center gap-1 flex-shrink-0" suppressHydrationWarning>
-                  <Clock className="w-3 h-3 text-slate-400 flex-shrink-0" />
+                  <Clock className="w-3 h-3 flex-shrink-0" />
                   {timeAgo(product.created_at, isRTL)}
                 </span>
               </div>
@@ -276,13 +274,14 @@ function ProductCard({
 
 function SkeletonCard() {
   return (
-    <div className="bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-sm animate-pulse">
-      <div className="aspect-square bg-slate-100" />
-      <div className="p-3.5 space-y-2">
-        <div className="h-3 bg-slate-200 rounded w-1/3" />
-        <div className="h-3.5 bg-slate-200 rounded w-full" />
-        <div className="h-3.5 bg-slate-200 rounded w-2/3" />
-        <div className="h-4 bg-slate-200 rounded w-1/2 pt-2" />
+    <div className="bg-white rounded-[18px] overflow-hidden border border-slate-100 shadow-sm">
+      <div className="aspect-[4/3] skeleton" />
+      <div className="p-3.5 space-y-2.5">
+        <div className="h-2.5 skeleton rounded-full w-1/3" />
+        <div className="h-3.5 skeleton rounded-lg w-full" />
+        <div className="h-3.5 skeleton rounded-lg w-3/4" />
+        <div className="h-px bg-slate-100 my-1" />
+        <div className="h-4 skeleton rounded-lg w-2/5" />
       </div>
     </div>
   );
@@ -372,61 +371,7 @@ function HomeFeedContent() {
   const trendingTags = isRTL ? TRENDING_TAGS_AR : TRENDING_TAGS_EN;
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-6 space-y-4 sm:space-y-6 pb-28 sm:pb-12 overflow-hidden">
-      {/* ─── Category Discovery Squircle Rail (eBay Evo Pattern) ─── */}
-      <div>
-        <div className="flex items-center gap-3 sm:gap-4 overflow-x-auto no-scrollbar py-1">
-          {/* Live Stream Story Pill */}
-          <Link
-            href="/live"
-            className="flex flex-col items-center gap-1.5 flex-shrink-0 group w-[72px] sm:w-[84px]"
-          >
-            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl p-[2.5px] bg-gradient-to-tr from-red-600 via-rose-500 to-amber-500 flex items-center justify-center relative shadow-sm group-hover:scale-105 transition-transform">
-              <div className="w-full h-full rounded-[14px] bg-white flex items-center justify-center">
-                <Video className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />
-              </div>
-              <span className="absolute -bottom-1 bg-red-600 text-white text-[8px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded-full border border-white">
-                LIVE
-              </span>
-            </div>
-            <span className="text-[11px] font-black text-red-600 text-center leading-tight">
-              {isRTL ? 'بث مباشر' : 'Live Shows'}
-            </span>
-          </Link>
-
-          {/* Category Squircle Tiles */}
-          {CATEGORIES_WITH_ICONS.map((cat) => {
-            const Icon = cat.icon;
-            const isSelected = activeCategory === cat.id || (!activeCategory && cat.id === '');
-            const label = isRTL ? cat.label_ar : cat.label;
-
-            return (
-              <button
-                key={cat.id || 'all'}
-                onClick={() => handleCategorySelect(cat.id)}
-                className="flex flex-col items-center gap-1.5 flex-shrink-0 group w-[72px] sm:w-[84px]"
-              >
-                <div
-                  className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-sm group-hover:scale-105 ${
-                    isSelected
-                      ? 'ring-2 ring-[#3665F3] ring-offset-2 bg-blue-50 text-[#3665F3] border-transparent'
-                      : 'border border-slate-200 bg-white hover:border-slate-300'
-                  }`}
-                  style={!isSelected ? { backgroundColor: cat.bg, color: cat.color } : {}}
-                >
-                  <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
-                </div>
-                <span className={`text-[10px] sm:text-xs font-bold text-center leading-tight line-clamp-2 max-w-[76px] ${
-                  isSelected ? 'text-blue-700 font-black' : 'text-slate-700'
-                }`}>
-                  {label}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
+    <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-8 space-y-5 sm:space-y-7 pb-28 sm:pb-16 overflow-hidden">
       {/* ─── Hero Deal Banner with Dynamic Carousel ─── */}
       <div className="rounded-3xl overflow-hidden shadow-lg shadow-slate-900/10 border border-slate-800/40 relative min-h-[140px] sm:min-h-[175px]">
         <AnimatePresence mode="wait">
@@ -493,30 +438,116 @@ function HomeFeedContent() {
         </div>
       </div>
 
-      {/* ─── Micro-Trust Ticker (Balanced & Compact) ─── */}
-      <div className="w-full bg-slate-50 border border-slate-200/80 rounded-2xl py-2 px-2 sm:px-4 flex items-center justify-center gap-2 sm:gap-6 text-[10px] sm:text-xs text-slate-700 font-bold shadow-sm">
-        <div className="flex items-center gap-1 text-blue-700 whitespace-nowrap">
-          <ShieldCheck className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
-          <span>{isRTL ? 'ضمان مالي ١٠٠٪' : '100% Escrow'}</span>
+      {/* ─── Micro-Trust Ticker ─── */}
+      <div className="w-full bg-gradient-to-r from-blue-50 via-white to-emerald-50 border border-blue-100 rounded-2xl py-2.5 px-3 sm:px-5 flex items-center justify-center gap-3 sm:gap-7 text-[10px] sm:text-xs text-slate-700 font-bold shadow-sm">
+        <div className="flex items-center gap-1.5 text-blue-700 whitespace-nowrap">
+          <ShieldCheck className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
+          <span>{isRTL ? 'ضمان مالي ١٠٠٪' : '100% Escrow Protected'}</span>
         </div>
-        <span className="text-slate-300">•</span>
-        <div className="flex items-center gap-1 text-emerald-700 whitespace-nowrap">
-          <Package className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
-          <span>{isRTL ? 'شحن بوسطة' : 'Bosta Delivery'}</span>
+        <span className="text-slate-300 font-thin">|</span>
+        <div className="flex items-center gap-1.5 text-emerald-700 whitespace-nowrap">
+          <Package className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
+          <span>{isRTL ? 'شحن بوسطة' : 'Bosta Doorstep Delivery'}</span>
         </div>
-        <span className="text-slate-300">•</span>
-        <div className="flex items-center gap-1 text-amber-700 whitespace-nowrap">
-          <Zap className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
-          <span>{isRTL ? 'إنستاباي فوري' : 'InstaPay'}</span>
+        <span className="text-slate-300 font-thin hidden sm:inline">|</span>
+        <div className="hidden sm:flex items-center gap-1.5 text-amber-700 whitespace-nowrap">
+          <Zap className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
+          <span>{isRTL ? 'إنستاباي فوري' : 'Instant InstaPay Payouts'}</span>
         </div>
       </div>
 
+      {/* ─── Category Discovery Squircle Rail (eBay Evo Pattern) ─── */}
+      <div>
+        <div className="flex items-center gap-3 sm:gap-4 overflow-x-auto no-scrollbar py-1">
+          {/* Live Stream Story Pill */}
+          <Link
+            href="/live"
+            className="flex flex-col items-center gap-1.5 flex-shrink-0 group w-[72px] sm:w-[84px]"
+          >
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl p-[2.5px] bg-gradient-to-tr from-red-600 via-rose-500 to-amber-500 flex items-center justify-center relative shadow-sm group-hover:scale-105 transition-transform">
+              <div className="w-full h-full rounded-[14px] bg-white flex items-center justify-center">
+                <Video className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />
+              </div>
+              <span className="absolute -bottom-1 bg-red-600 text-white text-[8px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded-full border border-white">
+                LIVE
+              </span>
+            </div>
+            <span className="text-[11px] font-black text-red-600 text-center leading-tight">
+              {isRTL ? 'بث مباشر' : 'Live Shows'}
+            </span>
+          </Link>
+
+          {/* Category Squircle Tiles */}
+          {CATEGORIES_WITH_ICONS.map((cat) => {
+            const Icon = cat.icon;
+            const isSelected = activeCategory === cat.id || (!activeCategory && cat.id === '');
+            const label = isRTL ? cat.label_ar : cat.label;
+
+            return (
+              <button
+                key={cat.id || 'all'}
+                onClick={() => handleCategorySelect(cat.id)}
+                className="flex flex-col items-center gap-1.5 flex-shrink-0 group w-[72px] sm:w-[84px]"
+              >
+                <div
+                  className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-sm group-hover:scale-105 ${
+                    isSelected
+                      ? 'ring-2 ring-[#3665F3] ring-offset-2 bg-blue-50 text-[#3665F3] border-transparent'
+                      : 'border border-slate-200 bg-white hover:border-slate-300'
+                  }`}
+                  style={!isSelected ? { backgroundColor: cat.bg, color: cat.color } : {}}
+                >
+                  <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
+                </div>
+                <span className={`text-[10px] sm:text-xs font-bold text-center leading-tight line-clamp-2 max-w-[76px] ${
+                  isSelected ? 'text-blue-700 font-black' : 'text-slate-700'
+                }`}>
+                  {label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+
+      {/* ─── Trending Now (Horizontal Scroll) ─── */}
+      <div className="pt-2 border-t border-slate-200/50">
+        <div className="flex items-center justify-between mb-3 px-1">
+          <div className="flex items-center gap-1.5">
+            <TrendingUp className="w-5 h-5 text-rose-500" />
+            <h2 className="text-base font-black text-slate-900">{isRTL ? 'عروض رائجة الآن' : 'Trending Now'}</h2>
+          </div>
+          <button onClick={() => router.push('/?search=trending')} className="text-xs font-bold text-blue-600 hover:text-blue-800">
+            {isRTL ? 'عرض الكل' : 'See All'}
+          </button>
+        </div>
+        
+        {loading ? (
+          <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="w-[160px] sm:w-[180px] flex-shrink-0">
+                <SkeletonCard />
+              </div>
+            ))}
+          </div>
+        ) : products.length > 0 ? (
+          <div className="flex gap-3 sm:gap-4 overflow-x-auto no-scrollbar pb-4 snap-x">
+            {products.slice(0, 8).map(product => (
+              <div key={product.id} className="w-[150px] sm:w-[180px] flex-shrink-0 snap-start">
+                <ProductCard product={product} onWishlistToggle={handleWishlistToggle} />
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </div>
+
       {/* ─── Trending Tags & Condition Filter Bar ─── */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 pt-2 border-t border-slate-200/60">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 pt-2 border-t border-slate-200/50">
         {/* Quick Trending Tags */}
         <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar max-w-full pb-1">
           <span className="flex items-center gap-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider flex-shrink-0">
-            <TrendingUp className="w-3.5 h-3.5 text-blue-600" />
+            <TrendingUp className="w-3.5 h-3.5 text-[#3665F3]" />
             {isRTL ? 'الأكثر بحثاً:' : 'Trending:'}
           </span>
           {trendingTags.map((tag) => (
@@ -526,7 +557,7 @@ function HomeFeedContent() {
                 setSearchQuery(tag);
                 router.push(`/?search=${encodeURIComponent(tag)}`, { scroll: false });
               }}
-              className="text-[11px] font-medium text-slate-600 hover:text-blue-600 bg-slate-100 hover:bg-blue-50 border border-slate-200/80 px-2.5 py-1 rounded-full transition-colors whitespace-nowrap flex-shrink-0"
+              className="trending-pill text-[11px] font-semibold text-slate-700 hover:text-[#3665F3] bg-white hover:bg-blue-50 border border-slate-200 hover:border-blue-200 px-3 py-1 rounded-full transition-colors whitespace-nowrap flex-shrink-0 shadow-sm"
             >
               {tag}
             </button>
@@ -534,15 +565,15 @@ function HomeFeedContent() {
         </div>
 
         {/* Condition Filter Tabs */}
-        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/80 self-end md:self-auto">
+        <div className="flex items-center gap-1 bg-slate-100/80 p-1 rounded-xl border border-slate-200/60 self-end md:self-auto shadow-inner">
           {(['all', 'New', 'Used'] as const).map((c) => (
             <button
               key={c}
               onClick={() => setConditionFilter(c)}
-              className={`text-[11px] font-bold px-2.5 py-1 rounded-lg transition-all ${
+              className={`text-[11px] font-bold px-3 py-1 rounded-lg transition-all ${
                 conditionFilter === c
-                  ? 'bg-white text-slate-900 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-900'
+                  ? 'bg-white text-[#3665F3] shadow-sm border border-slate-200/60'
+                  : 'text-slate-500 hover:text-slate-800'
               }`}
             >
               {c === 'all'
@@ -555,20 +586,19 @@ function HomeFeedContent() {
         </div>
       </div>
 
-      {/* ─── Product Grid Section (Rock-solid 2-Column Mobile Grid) ─── */}
-      <div>
-        <div className="flex items-center justify-between mb-3.5">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-blue-600" />
+      {/* ─── Product Grid Section ─── */}
+      <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-3 sm:p-5 border border-white shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <div className="section-heading">
             <h2 className="text-sm sm:text-base font-black text-slate-900">
               {activeCategory
                 ? t(`categories.${activeCategory.toLowerCase()}`, activeCategory)
                 : searchQuery
-                ? (isRTL ? `نتائج البحث عن: "${searchQuery}"` : `Search: "${searchQuery}"`)
+                ? (isRTL ? `نتائج: "${searchQuery}"` : `Results: "${searchQuery}"`)
                 : (isRTL ? 'جميع الإعلانات الموثقة' : 'All Verified Listings')}
             </h2>
             {!loading && (
-              <span className="text-[10px] sm:text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+              <span className="text-[10px] sm:text-xs font-bold text-[#3665F3] bg-blue-50 border border-blue-100 px-2.5 py-0.5 rounded-full ml-2">
                 {products.length} {isRTL ? 'إعلان' : 'items'}
               </span>
             )}
@@ -582,9 +612,10 @@ function HomeFeedContent() {
                 setConditionFilter('all');
                 router.push('/', { scroll: false });
               }}
-              className="text-xs text-blue-600 hover:underline font-semibold"
+              className="text-xs text-[#3665F3] hover:text-blue-800 font-bold flex items-center gap-1 px-2.5 py-1 rounded-full hover:bg-blue-50 transition-colors"
             >
-              {isRTL ? 'مسح الفلاتر' : 'Clear filters'}
+              <X className="w-3 h-3" />
+              {isRTL ? 'مسح الفلاتر' : 'Clear'}
             </button>
           )}
         </div>

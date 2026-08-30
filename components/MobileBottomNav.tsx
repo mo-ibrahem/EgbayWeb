@@ -67,7 +67,7 @@ export default function MobileBottomNav() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-white/95 backdrop-blur-lg border-t border-gray-200/80 px-2 py-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-white/97 backdrop-blur-2xl border-t border-gray-100 px-1 py-2 shadow-[0_-8px_30px_rgba(0,0,0,0.08)]">
       <div className="flex items-center justify-around max-w-md mx-auto">
         {navItems.map((item, idx) => {
           const Icon = item.icon;
@@ -77,12 +77,12 @@ export default function MobileBottomNav() {
               <Link
                 key={idx}
                 href={item.href}
-                className="flex flex-col items-center justify-center -mt-5 group"
+                className="flex flex-col items-center justify-center -mt-6 group"
               >
-                <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-[#3665F3] to-[#254fd1] text-white flex items-center justify-center shadow-lg shadow-blue-500/30 group-active:scale-95 transition-transform border-2 border-white">
+                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#3665F3] to-[#5B3DDB] text-white flex items-center justify-center shadow-xl shadow-blue-500/35 group-active:scale-90 transition-transform border-[3px] border-white">
                   <Plus className="w-6 h-6 stroke-[2.5]" />
                 </div>
-                <span className="text-[10px] font-black text-[#3665F3] mt-0.5">
+                <span className="text-[10px] font-black text-[#3665F3] mt-1">
                   {item.label}
                 </span>
               </Link>
@@ -93,26 +93,28 @@ export default function MobileBottomNav() {
             <Link
               key={idx}
               href={item.href}
-              className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all ${
-                item.isActive
-                  ? item.isLive ? 'text-red-600 font-bold' : 'text-[#3665F3] font-bold'
-                  : 'text-gray-400 hover:text-gray-700'
-              }`}
+              className="flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all"
             >
-              <div className="relative">
-                <Icon className={`w-5 h-5 transition-transform ${item.isActive ? 'scale-110' : ''}`} />
-                {/* Pulsing red dot for Live tab always */}
-                {item.isLive && (
-                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-600 rounded-full border border-white animate-pulse" />
-                )}
-                {/* Active dot for non-live tabs */}
-                {item.isActive && !item.isLive && (
-                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-[#3665F3] rounded-full" />
-                )}
+              <div
+                className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ${
+                  item.isActive
+                    ? item.isLive
+                      ? 'bg-red-50 text-red-600'
+                      : 'bg-blue-50 text-[#3665F3]'
+                    : 'text-gray-400 hover:text-gray-600'
+                }`}
+              >
+                <div className="relative">
+                  <Icon className={`w-5 h-5 transition-transform ${item.isActive ? 'scale-110' : ''}`} />
+                  {/* Pulsing red dot for Live */}
+                  {item.isLive && (
+                    <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-600 rounded-full border border-white animate-pulse" />
+                  )}
+                </div>
+                <span className={`text-[9.5px] font-${item.isActive ? 'black' : 'medium'} whitespace-nowrap ${item.isLive ? 'text-red-600' : ''}`}>
+                  {item.label}
+                </span>
               </div>
-              <span className={`text-[10px] mt-1 ${item.isActive ? 'font-black' : 'font-medium'} ${item.isLive ? 'text-red-600' : ''}`}>
-                {item.label}
-              </span>
             </Link>
           );
         })}

@@ -7,8 +7,20 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import {
   Search, Plus, User, LogOut, Wallet, Package,
   Menu, X, Heart, MessageCircle, ChevronDown, ShieldCheck,
-  Globe, Video
+  Globe, Video, Dot
 } from 'lucide-react';
+
+// Tiny colored dot for category pills
+const CAT_COLORS: Record<string, string> = {
+  '':           '#6366F1',
+  'Electronics':'#0EA5E9',
+  'Fashion':    '#EC4899',
+  'Home':       '#10B981',
+  'Toys':       '#F59E0B',
+  'Sports':     '#EF4444',
+  'Books':      '#8B5CF6',
+  'Automotive': '#64748B',
+};
 import { useAuth } from '@/components/AuthProvider';
 import { useLanguage } from '@/components/LanguageProvider';
 
@@ -67,7 +79,9 @@ export default function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-white border-b border-gray-200">
+    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-xl border-b border-gray-200/80 shadow-[0_1px_0_0_rgba(0,0,0,0.05)]">
+      {/* ─── Gradient accent stripe ─── */}
+      <div className="navbar-accent-stripe" />
       {/* ─── Ultra-clean Top Utility Bar (Desktop only, saves mobile space) ─── */}
       <div className="bg-gray-50/80 border-b border-gray-100 text-gray-500 text-[11px] font-medium hidden md:block">
         <div className="max-w-7xl mx-auto px-4 h-8 flex items-center justify-between">
@@ -125,29 +139,29 @@ export default function Navbar() {
 
         {/* Modern Search Bar (Desktop) */}
         <form onSubmit={handleSearch} className="flex-1 max-w-2xl hidden md:flex items-center">
-          <div className="flex w-full items-center bg-gray-50 border border-gray-300 hover:border-gray-400 focus-within:border-blue-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-100 rounded-full overflow-hidden transition-all shadow-inner">
-            <div className="pl-4 pr-1 text-gray-400">
+          <div className="flex w-full items-center bg-slate-50 border-2 border-slate-200 hover:border-slate-300 focus-within:border-[#3665F3] focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-100/70 rounded-full overflow-hidden transition-all duration-200 shadow-sm">
+            <div className="pl-4 pr-2 text-slate-400">
               <Search className="w-4 h-4" />
             </div>
             <input
               type="text"
-              placeholder={isRTL ? 'ابحث عن أي شيء (آيفون، كوتشيات، لابتوبات، موبايلات...)' : 'Search for anything (iPhone, Jordan sneakers, laptops, furniture...)'}
+              placeholder={isRTL ? 'ابحث عن أي شيء (آيفون، كوتشيات، لابتوبات، موبايلات...)' : 'Search for anything (iPhone, Jordans, laptops, furniture...)'}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-3 py-2.5 text-xs text-gray-900 placeholder-gray-400 bg-transparent outline-none"
+              className="w-full px-2 py-2.5 text-sm text-slate-900 placeholder-slate-400 bg-transparent outline-none font-medium"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery('')}
-                className="pr-2 text-gray-400 hover:text-gray-600"
+                className="pr-2 text-slate-400 hover:text-slate-600 transition-colors"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
             )}
             <button
               type="submit"
-              className="px-6 py-2.5 bg-[#3665F3] hover:bg-[#2B54D4] text-white font-bold text-xs transition-colors rounded-r-full flex-shrink-0"
+              className="m-1 px-6 py-2 bg-[#3665F3] hover:bg-[#2B54D4] active:bg-[#1E44C4] text-white font-bold text-sm transition-all rounded-full flex-shrink-0 shadow-sm hover:shadow-md"
             >
               {isRTL ? 'بحث' : 'Search'}
             </button>
@@ -265,31 +279,31 @@ export default function Navbar() {
       </div>
 
       {/* ─── Mobile Dedicated Search Bar (Always visible on mobile) ─── */}
-      <div className="md:hidden px-4 pb-2.5 pt-0">
+      <div className="md:hidden px-4 pb-3 pt-0.5">
         <form onSubmit={handleSearch} className="flex items-center">
-          <div className="flex w-full items-center bg-gray-50 border border-gray-300 focus-within:border-blue-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-100 rounded-full overflow-hidden transition-all shadow-inner">
-            <div className="pl-3.5 pr-1 text-gray-400">
+          <div className="flex w-full items-center bg-slate-50 border-2 border-slate-200 focus-within:border-[#3665F3] focus-within:bg-white focus-within:ring-3 focus-within:ring-blue-100 rounded-full overflow-hidden transition-all duration-200 shadow-sm">
+            <div className="pl-3.5 pr-1.5 text-slate-400">
               <Search className="w-3.5 h-3.5" />
             </div>
             <input
               type="text"
-              placeholder={isRTL ? 'ابحث عن آيفون، كوتشيات، لابتوبات...' : 'Search iPhone, Jordan sneakers, laptops...'}
+              placeholder={isRTL ? 'ابحث عن آيفون، كوتشيات، لابتوبات...' : 'Search iPhone, Jordans, laptops...'}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-2.5 py-2 text-xs text-gray-900 placeholder-gray-400 bg-transparent outline-none"
+              className="w-full px-1 py-2.5 text-sm text-slate-900 placeholder-slate-400 bg-transparent outline-none font-medium"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery('')}
-                className="pr-2 text-gray-400 hover:text-gray-600"
+                className="pr-2 text-slate-400 hover:text-slate-600"
               >
                 <X className="w-3 h-3" />
               </button>
             )}
             <button
               type="submit"
-              className="px-4 py-2 bg-[#3665F3] hover:bg-[#2B54D4] text-white font-bold text-xs transition-colors rounded-r-full flex-shrink-0"
+              className="m-1 px-4 py-1.5 bg-[#3665F3] hover:bg-[#2B54D4] text-white font-bold text-xs transition-all rounded-full flex-shrink-0 shadow-sm"
             >
               {isRTL ? 'بحث' : 'Search'}
             </button>
@@ -298,32 +312,37 @@ export default function Navbar() {
       </div>
 
       {/* ─── Category Navigation Bar ─── */}
-      <div className="border-t border-gray-100 bg-white hidden md:block">
-        <div className="max-w-7xl mx-auto px-4 flex items-center gap-1 overflow-x-auto no-scrollbar py-1">
-          {/* Live Channel Pill (eBay / Amazon / Shopee Standard) */}
+      <div className="border-t border-gray-100/80 bg-white/90 hidden md:block">
+        <div className="max-w-7xl mx-auto px-4 flex items-center gap-0.5 overflow-x-auto no-scrollbar py-0.5">
+          {/* Live Channel Pill */}
           <Link
             href="/live"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs transition-all border border-red-200/80 mr-2 rtl:ml-2 rtl:mr-0 shadow-sm flex-shrink-0"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs transition-all border border-red-200/80 mr-2 rtl:ml-2 rtl:mr-0 shadow-sm flex-shrink-0"
           >
             <span className="w-2 h-2 rounded-full bg-red-600 animate-pulse" />
             <Video className="w-3.5 h-3.5" />
             <span>{isRTL ? 'بث مباشر' : 'EgyBay Live'}</span>
           </Link>
 
-          <span className="w-px h-4 bg-gray-200 mx-1 flex-shrink-0" />
+          <span className="w-px h-4 bg-gray-200 mx-1.5 flex-shrink-0" />
           {CATEGORIES_NAV.map((cat) => {
             const isActive = cat.id === '' ? !activeCategory : activeCategory === cat.id;
             const label = t(`categories.${cat.key}`, cat.defaultLabel);
+            const dotColor = CAT_COLORS[cat.id] ?? '#6366F1';
             return (
               <Link
                 key={cat.id}
                 href={cat.id ? `/?category=${encodeURIComponent(cat.id)}` : '/'}
-                className={`px-3 py-2 text-xs font-semibold whitespace-nowrap transition-colors border-b-2 -mb-px ${
+                className={`flex items-center gap-1.5 px-3 py-2.5 text-xs font-semibold whitespace-nowrap transition-all border-b-2 -mb-px rounded-t-sm ${
                   isActive
-                    ? 'border-[#3665F3] text-[#3665F3] font-bold'
-                    : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+                    ? 'border-[#3665F3] text-[#3665F3] font-bold bg-blue-50/50'
+                    : 'border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300 hover:bg-slate-50/60'
                 }`}
               >
+                <span
+                  className="w-1.5 h-1.5 rounded-full flex-shrink-0 transition-all"
+                  style={{ backgroundColor: isActive ? '#3665F3' : dotColor, opacity: isActive ? 1 : 0.65 }}
+                />
                 {label}
               </Link>
             );

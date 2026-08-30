@@ -123,7 +123,7 @@ export const SELLER_TIERS: Record<1 | 2 | 3, SellerTierConfig> = {
     tier: 1,
     name: 'Casual Trader',
     badge: '🟡 Casual',
-    commissionFeePercent: 0.05,
+    commissionFeePercent: 0.035,
     listingLimitCount: 5,
     listingLimitAmount: 25000,
     fundReleaseTrigger: 'Buyer PIN verification or Courier delivery + 24 hrs',
@@ -134,7 +134,7 @@ export const SELLER_TIERS: Record<1 | 2 | 3, SellerTierConfig> = {
     tier: 2,
     name: 'Verified Trader',
     badge: '🛡️ Verified',
-    commissionFeePercent: 0.04,
+    commissionFeePercent: 0.025,
     listingLimitCount: 50,
     listingLimitAmount: 150000,
     fundReleaseTrigger: 'Instant QR / PIN scan or Courier delivery + 6 hrs',
@@ -145,7 +145,7 @@ export const SELLER_TIERS: Record<1 | 2 | 3, SellerTierConfig> = {
     tier: 3,
     name: 'EgyBay Pro / Store',
     badge: '⭐ Pro Merchant',
-    commissionFeePercent: 0.025,
+    commissionFeePercent: 0.015,
     listingLimitCount: 999999,
     listingLimitAmount: 99999999,
     fundReleaseTrigger: 'Instant release upon courier pickup scan',
@@ -250,10 +250,18 @@ export async function holdEscrowForSeller(
   promotedAdRate: number = 0
 ): Promise<void> {
   const sellerTier = await getSellerTier(sellerId);
+  
+  // 1. Calculate Platform Commission
   const baseFeePercent = sellerTier.commissionFeePercent;
-  const totalFeePercent = baseFeePercent + (promotedAdRate || 0);
-  const feeAmount = Math.round(totalAmount * totalFeePercent);
-  const netAmount = totalAmount - feeAmount;
+  const platformCommission = Math.round(totalAmount * (baseFeePercent + (promotedAdRate || 0)));
+  
+  // 2. Calculate Paymob Payment Processing Fee (2.75% + 3 EGP)
+  const paymobFee = Math.round((totalAmount * 0.0275) + 3);
+  
+  // 3. Calculate Total Deductions & Net Payout
+  const totalDeductions = platformCommission + paymobFee;
+  const netAmount = totalAmount - totalDeductions;
+  
   const isInstantClearance = sellerTier.tier === 3;
 
   try {
@@ -279,7 +287,7 @@ export async function holdEscrowForSeller(
       order_id: orderId,
       type: isInstantClearance ? 'escrow_release' : 'escrow_hold',
       amount: netAmount,
-      fee_amount: feeAmount,
+      fee_amount: totalDeductions,
       status: 'completed',
       description: isInstantClearance
         ? `Instant Order Payout: Order #${orderId.slice(-6).toUpperCase()} (Pro Tier)`
@@ -355,7 +363,7 @@ export async function getWalletTransactions(userId: string): Promise<WalletTrans
           amount: 2850,
           fee_amount: 150,
           status: 'completed',
-          description: 'Escrow Released: Order #89F2A1',
+          description: 'Escrow Released: Order #89F2A1 (Includes Paymob Fees)',
           created_at: new Date(Date.now() - 3600000 * 48).toISOString(),
         },
       ];
@@ -551,7 +559,7 @@ export async function requestPayout(
   wallet.available_balance = newBalance;
   return {
     success: true,
-    message: `Payout request of EGP ${amount.toLocaleString('en-EG')} submitted! Funds will arrive in your account shortly.`,
+    message: `Payout request of EGP ${amount.toLocaleString('en-EG')} submitted! Withdrawals are safely processed in batches every Tuesday.`,
     txId,
   };
 }

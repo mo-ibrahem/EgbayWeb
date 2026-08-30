@@ -14,6 +14,7 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import { productService, formatEGP, type Product } from '@/lib/products';
 import { getUserWallet, type UserWallet } from '@/lib/walletService';
 import { BOOST_PACKAGES, boostProduct, type BoostPackage } from '@/lib/boostService';
+import { startPaymobCheckoutSession } from '@/lib/paymobService';
 
 function BoostProductContent() {
   const { productId } = useParams<{ productId: string }>();
@@ -29,6 +30,9 @@ function BoostProductContent() {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  // Paymob iFrame Modal
+  const [paymobIframeUrl, setPaymobIframeUrl] = useState('');
+  const [showPaymobModal, setShowPaymobModal] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -61,13 +65,40 @@ function BoostProductContent() {
     if (!product || !user) return;
     setSubmitting(true);
     setErrorMsg('');
-    try {
-      await boostProduct(product.id, user.id, selectedPkg, paymentSource);
-      setSuccess(true);
-      setTimeout(() => router.push(`/products/${product.id}`), 2000);
-    } catch (err: any) {
-      setErrorMsg(err?.message || (isRTL ? 'تعذر تفعيل باقة الترويج' : 'Failed to apply boost package'));
-      setSubmitting(false);
+
+    if (paymentSource === 'wallet_balance') {
+      try {
+        await boostProduct(product.id, user.id, selectedPkg, 'wallet_balance');
+        setSuccess(true);
+        setTimeout(() => router.push(`/products/${product.id}`), 2000);
+      } catch (err: any) {
+        setErrorMsg(err?.message || (isRTL ? 'تعذر تفعيل باقة الترويج' : 'Failed to apply boost package'));
+        setSubmitting(false);
+      }
+    } else {
+      // Paymob Direct Card Flow
+      try {
+        const nameParts = (user.user_metadata?.full_name || 'Seller Owner').split(' ');
+        const session = await startPaymobCheckoutSession({
+          amountEgp: currentPkg.priceEGP,
+          merchantOrderId: `boost_${product.id}_${selectedPkg}_${Date.now()}`,
+          itemName: `EgyBay Boost: ${currentPkg.title}`,
+          billingData: {
+            first_name: nameParts[0] || 'Seller',
+            last_name: nameParts[1] || 'Owner',
+            email: user.email || 'seller@egbay.market',
+            phone_number: '+201000000000',
+            city: 'Cairo',
+            state: 'Cairo',
+          },
+        });
+        setPaymobIframeUrl(session.iframeUrl);
+        setShowPaymobModal(true);
+      } catch (err: any) {
+        setErrorMsg(err?.message || (isRTL ? 'فشل بدء جلسة الدفع' : 'Failed to initiate Paymob session'));
+      } finally {
+        setSubmitting(false);
+      }
     }
   };
 
@@ -253,6 +284,49 @@ function BoostProductContent() {
             : (isRTL ? `ترويج الإعلان الآن بمبلغ ${currentPkg.priceEGP} ج.م` : `Boost Now for EGP ${currentPkg.priceEGP}`)}
         </button>
       </div>
+
+      {/* ── Paymob Card Payment Modal for Boost ─────────────────── */}
+      {showPaymobModal && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-white w-full sm:max-w-lg sm:rounded-3xl rounded-t-3xl flex flex-col overflow-hidden shadow-2xl"
+               style={{ height: '85vh', maxHeight: 680 }}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 flex-shrink-0">
+              <div>
+                <h3 className="font-black text-slate-900 text-sm flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-blue-600" />
+                  {isRTL ? 'الدفع الآمن لترويج الإعلان' : 'Secure Boost Checkout'}
+                </h3>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  {currentPkg.title} · EGP {currentPkg.priceEGP}
+                </p>
+              </div>
+              <button
+                onClick={() => { setShowPaymobModal(false); setPaymobIframeUrl(''); }}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-800 transition-colors text-lg font-light"
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+            <iframe
+              src={paymobIframeUrl}
+              className="flex-1 w-full border-0"
+              title="Paymob Boost Payment"
+              onLoad={async (e) => {
+                try {
+                  const url = (e.target as HTMLIFrameElement).contentWindow?.location.href || '';
+                  if ((url.includes('success=true') || url.includes('txn_response_code=approved')) && product && user) {
+                    setShowPaymobModal(false);
+                    await boostProduct(product.id, user.id, selectedPkg, 'paymob');
+                    setSuccess(true);
+                    setTimeout(() => router.push(`/products/${product.id}`), 2000);
+                  }
+                } catch {}
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -14,7 +14,8 @@ import { useLanguage } from '@/components/LanguageProvider';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { productService, formatEGP, type Product } from '@/lib/products';
 import { getUserWallet, deductWalletSpendableFunds, type UserWallet } from '@/lib/walletService';
-import { createMarketplaceOrder } from '@/lib/orderService';
+import { createMarketplaceOrder, confirmOrderPayment } from '@/lib/orderService';
+import { startPaymobCheckoutSession } from '@/lib/paymobService';
 import SmartImage from '@/components/SmartImage';
 
 const GOVERNORATES = [
@@ -49,6 +50,9 @@ function CheckoutContent() {
   const [orderComplete, setOrderComplete] = useState(false);
   const [createdOrderId, setCreatedOrderId] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  // Paymob iFrame modal
+  const [paymobIframeUrl, setPaymobIframeUrl] = useState('');
+  const [showPaymobModal, setShowPaymobModal] = useState(false);
 
   // Form
   const [deliveryMethod, setDeliveryMethod] = useState<'courier' | 'qr_meetup'>('courier');
@@ -119,12 +123,41 @@ function CheckoutContent() {
 
       if (!order) throw new Error(isRTL ? 'تعذر إنشاء الطلب، يرجى المحاولة ثانية' : 'Failed to create order');
 
+      // Deduct wallet portion first (real money the user already has)
       if (walletDeduction > 0) {
         await deductWalletSpendableFunds(user.id, walletDeduction, order.id, product.title);
       }
 
       setCreatedOrderId(order.id);
-      setOrderComplete(true);
+
+      if (remainingDue === 0) {
+        // 100% wallet — no Paymob needed, confirm immediately
+        await confirmOrderPayment(order.id);
+        setOrderComplete(true);
+      } else if (paymentMethod === 'card') {
+        // Card — open Paymob iFrame modal; webhook confirms payment server-side
+        const nameParts = (fullName || 'Buyer EgyBay').split(' ');
+        const session = await startPaymobCheckoutSession({
+          amountEgp: remainingDue,
+          merchantOrderId: order.id,
+          itemName: product.title,
+          billingData: {
+            first_name: nameParts[0] || 'Buyer',
+            last_name: nameParts[1] || 'EgyBay',
+            email: user.email || 'buyer@egbay.market',
+            phone_number: phoneNumber || '+201000000000',
+            city,
+            state: governorate,
+            street: streetAddress,
+          },
+        });
+        setPaymobIframeUrl(session.iframeUrl);
+        setShowPaymobModal(true);
+      } else {
+        // COD or InstaPay — confirm immediately (no card charge)
+        await confirmOrderPayment(order.id);
+        setOrderComplete(true);
+      }
     } catch (err: any) {
       console.error(err);
       setErrorMsg(err.message || (isRTL ? 'حدث خطأ أثناء معالجة الطلب' : 'Failed to place order. Please try again.'));
@@ -526,6 +559,58 @@ function CheckoutContent() {
           </div>
         </div>
       </div>
+
+      {/* ── Paymob Card Payment Modal ────────────────────────────── */}
+      {showPaymobModal && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-white w-full sm:max-w-lg sm:rounded-3xl rounded-t-3xl flex flex-col overflow-hidden shadow-2xl"
+               style={{ height: '85vh', maxHeight: 680 }}>
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 flex-shrink-0">
+              <div>
+                <h3 className="font-black text-slate-900 text-sm flex items-center gap-2">
+                  <Lock className="w-4 h-4 text-emerald-600" />
+                  {isRTL ? 'الدفع الآمن عبر Paymob' : 'Secure Card Checkout'}
+                </h3>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  {isRTL ? 'معتمد PCI-DSS · 256-Bit SSL' : 'PCI-DSS Certified · 256-Bit SSL Encryption'}
+                </p>
+              </div>
+              <button
+                onClick={() => { setShowPaymobModal(false); setPaymobIframeUrl(''); }}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-800 transition-colors text-lg font-light"
+                aria-label="Close payment modal"
+              >
+                ×
+              </button>
+            </div>
+            {/* Paymob iFrame */}
+            <iframe
+              src={paymobIframeUrl}
+              className="flex-1 w-full border-0"
+              title="Paymob Secure Payment"
+              onLoad={(e) => {
+                try {
+                  const url = (e.target as HTMLIFrameElement).contentWindow?.location.href || '';
+                  if (url.includes('success=true') || url.includes('txn_response_code=approved')) {
+                    setShowPaymobModal(false);
+                    setOrderComplete(true);
+                  }
+                } catch {
+                  // Cross-origin: webhook handles state update
+                }
+              }}
+            />
+            <div className="px-5 py-3 bg-slate-50 border-t border-slate-100 flex-shrink-0">
+              <p className="text-[10px] text-slate-400 text-center">
+                {isRTL
+                  ? 'بمجرد اكتمال الدفع، سيتم تحويلك تلقائياً'
+                  : 'You will be redirected automatically once payment is confirmed'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

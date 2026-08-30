@@ -25,6 +25,7 @@ import {
   type PayoutMethod,
   type SellerTierConfig,
 } from '@/lib/walletService';
+import { startPaymobCheckoutSession } from '@/lib/paymobService';
 
 function WalletContent() {
   const { user } = useAuth();
@@ -43,6 +44,9 @@ function WalletContent() {
   const [topUpMethod, setTopUpMethod] = useState<'card' | 'vodafone_cash' | 'instapay'>('card');
   const [toppingUp, setToppingUp] = useState(false);
   const [topUpSuccess, setTopUpSuccess] = useState(false);
+  // Paymob iFrame Modal for Top-up
+  const [paymobIframeUrl, setPaymobIframeUrl] = useState('');
+  const [showPaymobModal, setShowPaymobModal] = useState(false);
 
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState('');
@@ -63,16 +67,16 @@ function WalletContent() {
       setWallet(w);
       setTransactions(txs);
       setPayoutMethods(pms);
-      setSellerTier(tier);
-      if (pms.length > 0) {
-        setSelectedPayoutMethod(pms.find(p => p.is_default)?.id || pms[0].id);
+      if (pms.length > 0 && !selectedPayoutMethod) {
+        setSelectedPayoutMethod(pms[0].id);
       }
+      setSellerTier(tier);
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, selectedPayoutMethod]);
 
   useEffect(() => {
     if (user) {
@@ -83,21 +87,42 @@ function WalletContent() {
   const handleTopUp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !topUpAmount || Number(topUpAmount) <= 0) return;
-    setToppingUp(true);
-    setErrorMsg('');
-    try {
-      await topUpUserWallet(user.id, Number(topUpAmount), topUpMethod);
-      setTopUpSuccess(true);
-      setTimeout(async () => {
+    const amount = Number(topUpAmount);
+
+    if (topUpMethod === 'card') {
+      setToppingUp(true);
+      setErrorMsg('');
+      try {
+        const nameParts = (user.user_metadata?.full_name || 'EgyBay User').split(' ');
+        const session = await startPaymobCheckoutSession({
+          amountEgp: amount,
+          merchantOrderId: `topup_${user.id}_${Date.now()}`,
+          itemName: `EgyBay Wallet Top-Up: EGP ${amount}`,
+          billingData: {
+            first_name: nameParts[0] || 'User',
+            last_name: nameParts[1] || 'EgyBay',
+            email: user.email || 'user@egbay.market',
+            phone_number: '+201000000000',
+            city: 'Cairo',
+            state: 'Cairo',
+          },
+        });
         setTopUpOpen(false);
-        setTopUpSuccess(false);
-        setTopUpAmount('');
-        await loadData();
-      }, 1500);
-    } catch (err: any) {
-      setErrorMsg(err?.message || (isRTL ? 'فشلت عملية الإيداع' : 'Failed to process deposit'));
-    } finally {
-      setToppingUp(false);
+        setPaymobIframeUrl(session.iframeUrl);
+        setShowPaymobModal(true);
+      } catch (err: any) {
+        setErrorMsg(err?.message || (isRTL ? 'فشل بدء جلسة الدفع' : 'Failed to start payment session'));
+      } finally {
+        setToppingUp(false);
+      }
+    } else {
+      // Manual Deposit Guide
+      alert(
+        topUpMethod === 'vodafone_cash'
+          ? (isRTL ? 'تحويل فودافون كاش:\nحول المبلغ إلى الرقم 01098765432 ثم أرسل الإيصال إلى support@egbay.market' : 'Vodafone Cash:\nTransfer to 01098765432 and send receipt to support@egbay.market')
+          : (isRTL ? 'تحويل انستاباي:\nحول المبلغ إلى egbay@instapay ثم أرسل الإيصال إلى support@egbay.market' : 'InstaPay IPA:\nTransfer to egbay@instapay and send receipt to support@egbay.market')
+      );
+      setTopUpOpen(false);
     }
   };
 
@@ -577,6 +602,49 @@ function WalletContent() {
           </motion.div>
         )}
       </AnimatePresence>
+      {/* ── Paymob Card Deposit Modal ──────────────────────────── */}
+      {showPaymobModal && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-white w-full sm:max-w-lg sm:rounded-3xl rounded-t-3xl flex flex-col overflow-hidden shadow-2xl"
+               style={{ height: '85vh', maxHeight: 680 }}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 flex-shrink-0">
+              <div>
+                <h3 className="font-black text-slate-900 text-sm flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                  {isRTL ? 'إيداع رصيد آمن عبر Paymob' : 'Secure Wallet Deposit'}
+                </h3>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  {isRTL ? `إيداع ${Number(topUpAmount || 0).toLocaleString('ar-EG')} ج.م` : `Deposit EGP ${Number(topUpAmount || 0).toLocaleString('en-EG')}`}
+                </p>
+              </div>
+              <button
+                onClick={() => { setShowPaymobModal(false); setPaymobIframeUrl(''); loadData(); }}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-800 transition-colors text-lg font-light"
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+            <iframe
+              src={paymobIframeUrl}
+              className="flex-1 w-full border-0"
+              title="Paymob Wallet Deposit"
+              onLoad={async (e) => {
+                try {
+                  const url = (e.target as HTMLIFrameElement).contentWindow?.location.href || '';
+                  if (url.includes('success=true') || url.includes('txn_response_code=approved')) {
+                    setShowPaymobModal(false);
+                    if (user && topUpAmount) {
+                      await topUpUserWallet(user.id, Number(topUpAmount), 'card');
+                    }
+                    await loadData();
+                  }
+                } catch {}
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
