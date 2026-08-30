@@ -181,16 +181,16 @@ function SellContent() {
       }
 
       // 2. Insert product record
+      const fullDescription = location ? `${description.trim()}\n\n📍 ${location}` : description.trim();
       const { data: newProd, error: insertError } = await supabase
         .from('products')
         .insert({
           seller_id: user.id,
           title: title.trim(),
-          description: description.trim(),
+          description: fullDescription,
           category,
           condition,
           price: p,
-          location,
           images: uploadedUrls,
           status: 'active',
         })

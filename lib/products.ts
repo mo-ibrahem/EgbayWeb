@@ -281,9 +281,13 @@ export const productService = {
   }): Promise<Product> => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user?.id) throw new Error('Not authenticated');
+
+    const { location, ...payload } = productData;
+    const fullDescription = location ? `${payload.description.trim()}\n\n📍 ${location}` : payload.description.trim();
+
     const { data, error } = await supabase
       .from('products')
-      .insert([{ ...productData, seller_id: session.user.id, status: 'active' }])
+      .insert([{ ...payload, description: fullDescription, seller_id: session.user.id, status: 'active' }])
       .select()
       .single();
     if (error) throw error;
