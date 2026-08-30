@@ -98,6 +98,26 @@ export async function createMarketplaceOrder(orderData: {
   };
 
   try {
+    if (typeof window !== 'undefined') {
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create',
+          orderData: newOrder,
+        }),
+      });
+      const json = await res.json();
+      if (json?.success && json?.order) {
+        inMemoryOrders[orderId] = newOrder;
+        return newOrder;
+      }
+    }
+  } catch (apiErr) {
+    console.warn('[OrderService] /api/orders create API warning:', apiErr);
+  }
+
+  try {
     const { data, error } = await supabase
       .from('orders')
       .insert({
@@ -112,6 +132,7 @@ export async function createMarketplaceOrder(orderData: {
           amount: orderData.amount,
           courier_name: 'Bosta Express',
           estimated_delivery: estimated,
+          product: orderData.product_snapshot,
         }),
         shipping_address: orderData.shipping_address,
         created_at: new Date().toISOString(),
@@ -215,18 +236,27 @@ export async function getOrderById(orderId: string): Promise<MarketplaceOrder | 
       } catch {}
 
       const trackingNum = notesData.tracking_number;
+      const productObj = notesData.product || order.product || (order.products ? {
+        id: order.products.id,
+        title: order.products.title,
+        price: order.products.price,
+        images: order.products.images || [],
+        condition: order.products.condition || 'Used',
+        category: order.products.category || 'General',
+      } : undefined);
 
       return {
         id: order.id,
         product_id: order.product_id,
         buyer_id: order.buyer_id,
         seller_id: order.seller_id,
-        amount: notesData.amount || 0,
+        amount: notesData.amount || order.amount || 0,
         currency: 'EGP',
         status: order.status,
         handover_method: notesData.handover_method || 'courier',
         meetup_pin: notesData.meetup_pin,
         shipping_address: order.shipping_address,
+        product: productObj,
         tracking_number: trackingNum,
         courier_name: notesData.courier_name || 'Bosta Express (بوسطة مصر)',
         bosta_tracking_url: trackingNum ? getBostaTrackingUrl(trackingNum) : undefined,
@@ -249,9 +279,22 @@ export async function getOrderById(orderId: string): Promise<MarketplaceOrder | 
 
 export async function getUserOrders(userId: string): Promise<MarketplaceOrder[]> {
   try {
+    // 1. Try server API route (guarantees seeing both sales and purchases with full product data)
+    if (typeof window !== 'undefined') {
+      const res = await fetch(`/api/orders?userId=${userId}`);
+      const json = await res.json();
+      if (json?.success && Array.isArray(json?.orders) && json.orders.length > 0) {
+        return json.orders;
+      }
+    }
+  } catch (apiErr) {
+    console.warn('[OrderService] /api/orders fetch warning:', apiErr);
+  }
+
+  try {
     const { data, error } = await supabase
       .from('orders')
-      .select('*')
+      .select('*, products(*)')
       .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
       .order('created_at', { ascending: false });
 
@@ -263,18 +306,27 @@ export async function getUserOrders(userId: string): Promise<MarketplaceOrder[]>
         } catch {}
 
         const trackingNum = notesData.tracking_number;
+        const productObj = notesData.product || order.product || (order.products ? {
+          id: order.products.id,
+          title: order.products.title,
+          price: order.products.price,
+          images: order.products.images || [],
+          condition: order.products.condition || 'Used',
+          category: order.products.category || 'General',
+        } : undefined);
 
         return {
           id: order.id,
           product_id: order.product_id,
           buyer_id: order.buyer_id,
           seller_id: order.seller_id,
-          amount: notesData.amount || 0,
+          amount: notesData.amount || order.amount || 0,
           currency: 'EGP',
           status: order.status,
           handover_method: notesData.handover_method || 'courier',
           meetup_pin: notesData.meetup_pin,
           shipping_address: order.shipping_address,
+          product: productObj,
           tracking_number: trackingNum,
           courier_name: notesData.courier_name || 'Bosta Express (بوسطة مصر)',
           bosta_tracking_url: trackingNum ? getBostaTrackingUrl(trackingNum) : undefined,

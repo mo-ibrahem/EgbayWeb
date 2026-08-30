@@ -133,6 +133,14 @@ function CheckoutContent() {
           city,
           street: streetAddress,
         },
+        product_snapshot: {
+          id: product.id,
+          title: product.title,
+          price: product.price,
+          images: product.images,
+          condition: product.condition,
+          category: product.category,
+        },
       });
 
       if (!order) throw new Error(isRTL ? 'تعذر إنشاء الطلب، يرجى المحاولة ثانية' : 'Failed to create order');
@@ -145,7 +153,21 @@ function CheckoutContent() {
       setCreatedOrderId(order.id);
 
       if (remainingDue === 0) {
-        // 100% wallet — no Paymob needed, confirm immediately
+        // 100% wallet — process order confirmation & escrow credit via secure server API
+        try {
+          await fetch('/api/wallet/credit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              merchantOrderId: order.id,
+              amountCents: Math.round(totalPrice * 100),
+              txId: `wallet_order_${order.id}`,
+              isSuccess: true,
+            }),
+          });
+        } catch (apiErr) {
+          console.warn('[Checkout] API order sync warning:', apiErr);
+        }
         await confirmOrderPayment(order.id);
         setOrderComplete(true);
       } else {
