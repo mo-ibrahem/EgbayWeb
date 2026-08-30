@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { getUserWallet, deductWalletSpendableFunds } from './walletService';
 
 // ──────────────────────────────────────────────────────────
 // Types
@@ -152,25 +153,22 @@ export async function bookLiveSession(params: {
   const channelName = `egbay_live_${Date.now()}_${params.sellerId.slice(0, 8)}`;
 
   // 1. Check wallet balance
-  const { data: wallet } = await supabase
-    .from('wallets')
-    .select('available_balance')
-    .eq('user_id', params.sellerId)
-    .single();
+  const wallet = await getUserWallet(params.sellerId);
+  const available = Number(wallet?.available_balance || 0);
 
-  if (!wallet || wallet.available_balance < pass.priceEGP) {
+  if (available < pass.priceEGP) {
     throw new Error(
-      `Insufficient wallet balance. Required: ${pass.priceEGP} EGP. Available: ${wallet?.available_balance ?? 0} EGP.`
+      `Insufficient wallet balance. Required: ${pass.priceEGP} EGP, Available: ${available} EGP.`
     );
   }
 
-  // 2. Deduct wallet (atomic RPC preferred; using direct update for now)
-  const { error: walletErr } = await supabase
-    .from('wallets')
-    .update({ available_balance: wallet.available_balance - pass.priceEGP })
-    .eq('user_id', params.sellerId);
-
-  if (walletErr) throw walletErr;
+  // 2. Deduct wallet pass fee
+  await deductWalletSpendableFunds(
+    params.sellerId,
+    pass.priceEGP,
+    `live_pass_${Date.now()}`,
+    `Live Pass: ${pass.name} (${pass.durationMinutes} min)`
+  );
 
   // 3. Create session row
   const { data: session, error: sessionErr } = await supabase

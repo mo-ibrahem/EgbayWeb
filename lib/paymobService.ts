@@ -2,7 +2,9 @@
 // 3-step flow: Auth → Create Order → Get Payment Key
 // NOTE: For production, move PAYMOB_API_KEY to a Next.js server action or route handler.
 
-const PAYMOB_API_KEY = process.env.NEXT_PUBLIC_PAYMOB_API_KEY || '';
+const PAYMOB_API_KEY =
+  process.env.NEXT_PUBLIC_PAYMOB_API_KEY ||
+  'ZXlKaGJHY2lPaUpJVXpVeE1pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SmpiR0Z6Y3lJNklrMWxjbU5vWVc1MElpd2ljSEp2Wm1sc1pWOXdheUk2TVRBM05EWXhNeXdpYm1GdFpTSTZJbWx1YVhScFlXd2lmUS4zY1FHdS1Eck1VTTRjXzZKcVR4WkhQWTh0cUlLdTJGOFpndXNNcHowNkZIUTg3NjlfRG96N0ZGazluWFRuMi1sT3FSZnhBSW55QnNLRmFBV3lnbGdKZw==';
 const PAYMOB_INTEGRATION_ID = Number(
   process.env.NEXT_PUBLIC_PAYMOB_INTEGRATION_ID || '5267608',
 );
