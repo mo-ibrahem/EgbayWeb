@@ -369,11 +369,21 @@ export async function getWalletTransactions(userId: string): Promise<WalletTrans
       ];
 }
 
+const processedTransactionIds = new Set<string>();
+
 export async function topUpUserWallet(
   userId: string,
   amount: number,
-  method: 'card' | 'vodafone_cash' | 'instapay'
+  method: 'card' | 'vodafone_cash' | 'instapay',
+  transactionReferenceId?: string
 ): Promise<{ success: boolean; message: string }> {
+  if (transactionReferenceId) {
+    if (processedTransactionIds.has(transactionReferenceId)) {
+      return { success: true, message: 'Transaction already credited' };
+    }
+    processedTransactionIds.add(transactionReferenceId);
+  }
+
   const wallet = await getUserWallet(userId);
   const newAvailable = (Number(wallet.available_balance) || 0) + amount;
 
@@ -401,7 +411,7 @@ export async function topUpUserWallet(
 
   wallet.available_balance = newAvailable;
   inMemoryTransactions.unshift({
-    id: `tx_${Date.now()}`,
+    id: transactionReferenceId || `tx_${Date.now()}`,
     wallet_id: wallet.id,
     type: 'top_up',
     amount,

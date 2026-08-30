@@ -5,7 +5,8 @@ import Link from 'next/link';
 import {
   Wallet, ShieldCheck, ArrowUpRight, ArrowDownLeft, Clock,
   Plus, CreditCard, Smartphone, Building, CheckCircle2,
-  AlertCircle, ChevronRight, Lock, Sparkles, RefreshCw, X, Loader2
+  AlertCircle, ChevronRight, Lock, Sparkles, RefreshCw, X, Loader2,
+  PartyPopper, ShoppingBag, Video
 } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { useLanguage } from '@/components/LanguageProvider';
@@ -48,6 +49,17 @@ function WalletContent() {
   const [paymobIframeUrl, setPaymobIframeUrl] = useState('');
   const [showPaymobModal, setShowPaymobModal] = useState(false);
 
+  // Celebratory Top-Up Success Popup Modal
+  const [celebrateModal, setCelebrateModal] = useState<{
+    open: boolean;
+    amount: number;
+    newBalance: number;
+  }>({
+    open: false,
+    amount: 0,
+    newBalance: 0,
+  });
+
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [selectedPayoutMethod, setSelectedPayoutMethod] = useState<string>('');
@@ -89,15 +101,27 @@ function WalletContent() {
           params.get('success') === 'true' ||
           params.get('txn_response_code') === 'approved';
         const amountCents = params.get('amount_cents');
+        const txId = params.get('id') || params.get('order') || `paymob_${amountCents}`;
 
-        if (isSuccess && amountCents) {
-          const topUpEgp = Math.round(Number(amountCents) / 100);
-          (async () => {
-            await topUpUserWallet(user.id, topUpEgp, 'card');
-            setTopUpSuccess(true);
+        if (isSuccess && amountCents && txId) {
+          const processedKey = `paymob_tx_processed_${txId}`;
+          if (!sessionStorage.getItem(processedKey)) {
+            sessionStorage.setItem(processedKey, 'true');
+            const topUpEgp = Math.round(Number(amountCents) / 100);
+            (async () => {
+              await topUpUserWallet(user.id, topUpEgp, 'card', String(txId));
+              const latest = await getUserWallet(user.id);
+              setCelebrateModal({
+                open: true,
+                amount: topUpEgp,
+                newBalance: Number(latest?.available_balance || 0),
+              });
+              window.history.replaceState({}, '', '/wallet');
+              await loadData();
+            })();
+          } else {
             window.history.replaceState({}, '', '/wallet');
-            await loadData();
-          })();
+          }
         }
       }
     }
@@ -664,19 +688,110 @@ function WalletContent() {
                 onClick={async () => {
                   setShowPaymobModal(false);
                   setPaymobIframeUrl('');
-                  if (user && topUpAmount) {
-                    await topUpUserWallet(user.id, Number(topUpAmount), 'card');
-                  }
                   await loadData();
                 }}
                 className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1.5 flex-shrink-0"
               >
-                <span>{isRTL ? 'تم الدفع بنجاح ✅' : 'I Paid — Done ✅'}</span>
+                <span>{isRTL ? 'تحديث الرصيد الآن 🔄' : 'Refresh Wallet 🔄'}</span>
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* ── Celebratory Top-Up Success Popup Modal ─────────────────── */}
+      <AnimatePresence>
+        {celebrateModal.open && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-md"
+            onClick={() => setCelebrateModal(prev => ({ ...prev, open: false }))}
+          >
+            <motion.div
+              initial={{ scale: 0.85, opacity: 0, y: 25 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+              className="bg-white border border-slate-100 rounded-3xl p-7 sm:p-9 max-w-md w-full text-center shadow-2xl relative overflow-hidden"
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Glow Accents */}
+              <div className="absolute -top-16 -left-16 w-36 h-36 bg-emerald-400/20 rounded-full blur-2xl pointer-events-none" />
+              <div className="absolute -top-16 -right-16 w-36 h-36 bg-blue-500/20 rounded-full blur-2xl pointer-events-none" />
+
+              {/* Party Popper Icon */}
+              <div className="relative mb-5 flex items-center justify-center">
+                <div className="w-20 h-20 bg-gradient-to-tr from-emerald-500 to-teal-400 rounded-3xl flex items-center justify-center text-white shadow-lg shadow-emerald-500/30 transform -rotate-3 hover:rotate-0 transition-transform">
+                  <PartyPopper className="w-10 h-10" />
+                </div>
+                <div className="absolute -top-1 -right-1 bg-amber-400 text-amber-950 p-1.5 rounded-full shadow-md">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+              </div>
+
+              {/* Title & Description */}
+              <h2 className="text-2xl font-black text-slate-900 mb-1.5 tracking-tight">
+                {isRTL ? 'تهانينا! تم شحن محفظتك 🎉' : 'Top-Up Successful! 🎉'}
+              </h2>
+              <p className="text-xs text-slate-500 mb-6 leading-relaxed">
+                {isRTL
+                  ? 'تمت إضافة الرصيد بنجاح إلى حسابك في إيجي باي وهو جاهز للاستخدام فوراً!'
+                  : 'Your funds have been deposited safely and are ready to spend across the marketplace!'}
+              </p>
+
+              {/* Amount Badge Card */}
+              <div className="bg-gradient-to-br from-emerald-50 via-teal-50 to-blue-50 border border-emerald-200/80 rounded-2xl p-4 mb-6 shadow-sm">
+                <p className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider mb-1">
+                  {isRTL ? 'المبلغ المودع' : 'Amount Credited'}
+                </p>
+                <div className="text-3xl font-black text-emerald-600 tracking-tight">
+                  +{celebrateModal.amount.toLocaleString(isRTL ? 'ar-EG' : 'en-EG')}{' '}
+                  <span className="text-base font-bold text-emerald-700">EGP</span>
+                </div>
+                <div className="mt-3 pt-3 border-t border-emerald-200/60 flex items-center justify-between text-xs text-slate-600">
+                  <span>{isRTL ? 'إجمالي الرصيد المتاح الآن:' : 'Total Available Balance:'}</span>
+                  <span className="font-extrabold text-slate-900">
+                    {(wallet?.available_balance || celebrateModal.newBalance || 0).toLocaleString(isRTL ? 'ar-EG' : 'en-EG')} EGP
+                  </span>
+                </div>
+              </div>
+
+              {/* Quick Actions */}
+              <div className="space-y-2.5">
+                <Link
+                  href="/"
+                  onClick={() => setCelebrateModal(prev => ({ ...prev, open: false }))}
+                  className="w-full bg-[#3665F3] hover:bg-[#2B54D4] text-white font-bold py-3.5 rounded-xl transition-all shadow-md shadow-blue-500/20 text-xs flex items-center justify-center gap-2"
+                >
+                  <ShoppingBag className="w-4 h-4" />
+                  <span>{isRTL ? 'ابدأ التسوق في السوق 🛍️' : 'Start Shopping Deals 🛍️'}</span>
+                </Link>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <Link
+                    href="/live/book"
+                    onClick={() => setCelebrateModal(prev => ({ ...prev, open: false }))}
+                    className="w-full bg-red-50 hover:bg-red-100 text-red-700 font-bold py-2.5 rounded-xl transition-colors text-xs flex items-center justify-center gap-1.5 border border-red-200"
+                  >
+                    <Video className="w-3.5 h-3.5" />
+                    <span>{isRTL ? 'حجز بث مباشر 🎥' : 'Go Live 🎥'}</span>
+                  </Link>
+
+                  <button
+                    type="button"
+                    onClick={() => setCelebrateModal(prev => ({ ...prev, open: false }))}
+                    className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl transition-colors text-xs"
+                  >
+                    {isRTL ? 'عرض المحفظة' : 'View Wallet'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
