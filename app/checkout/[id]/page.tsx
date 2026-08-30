@@ -155,14 +155,12 @@ function CheckoutContent() {
       if (remainingDue === 0) {
         // 100% wallet — process order confirmation & escrow credit via secure server API
         try {
-          await fetch('/api/wallet/credit', {
+          await fetch('/api/orders', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              merchantOrderId: order.id,
-              amountCents: Math.round(totalPrice * 100),
-              txId: `wallet_order_${order.id}`,
-              isSuccess: true,
+              action: 'pay_with_wallet',
+              orderId: order.id
             }),
           });
         } catch (apiErr) {

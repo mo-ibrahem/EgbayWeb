@@ -123,48 +123,32 @@ function WalletContent() {
         if (!sessionStorage.getItem(processedKey)) {
           sessionStorage.setItem(processedKey, 'true');
 
-          (async () => {
-            try {
-              // 1. Call server API (server updates Supabase Postgres directly with admin rights)
-              const res = await fetch('/api/wallet/credit', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  merchantOrderId,
-                  targetUserId: pendingTopUpUserId || user?.id,
-                  amountCents,
-                  txId,
-                  isSuccess: true,
-                }),
-              });
-              const json = await res.json();
+          // Webhook is handled securely by Paymob server-to-server.
+          // We just clear session state and show UI success based on URL.
+          sessionStorage.removeItem('pending_topup_order_id');
+          sessionStorage.removeItem('pending_topup_user_id');
 
-              sessionStorage.removeItem('pending_topup_order_id');
-              sessionStorage.removeItem('pending_topup_user_id');
-
-              // If it was a top-up and the currently logged-in user is the intended recipient, show celebrate modal
-              if (json?.type === 'topup' && user && json?.userId === user.id) {
-                setCelebrateModal({
-                  open: true,
-                  amount: json.amountEgp,
-                  newBalance: json.newBalance,
-                });
-              } else if (json?.type === 'order') {
-                router.push(`/orders`);
-                return;
-              } else if (json?.type === 'boost' && json?.productId) {
-                router.push(`/products/${json.productId}?boost=success`);
-                return;
-              }
-            } catch (apiErr) {
-              console.warn('[Wallet] API credit sync warning:', apiErr);
-            } finally {
-              window.history.replaceState({}, '', '/wallet');
-              if (user) {
-                await loadData();
-              }
-            }
-          })();
+          // If it was a top-up, show celebrate modal using the amount from URL
+          if (merchantOrderId?.startsWith('topup_') && user) {
+            const amountEgp = Math.round(Number(amountCents || 0) / 100);
+            setCelebrateModal({
+              open: true,
+              amount: amountEgp,
+              newBalance: (Number(wallet?.available_balance) || 0) + amountEgp,
+            });
+          } else if (merchantOrderId?.startsWith('ord_')) {
+            router.push(`/orders`);
+            return;
+          } else if (merchantOrderId?.startsWith('boost_')) {
+            const parts = merchantOrderId.split('_');
+            if (parts[1]) router.push(`/products/${parts[1]}?boost=success`);
+            return;
+          }
+            
+          window.history.replaceState({}, '', '/wallet');
+          if (user) {
+            loadData();
+          }
         } else {
           window.history.replaceState({}, '', '/wallet');
         }

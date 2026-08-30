@@ -273,27 +273,7 @@ export async function holdEscrowForSeller(
       ? (Number(wallet.available_balance) || 0) + netAmount
       : Number(wallet.available_balance || 0);
 
-    await supabase
-      .from('user_wallets')
-      .update({
-        pending_balance: newPending,
-        available_balance: newAvailable,
-        updated_at: new Date().toISOString(),
-      } as any)
-      .eq('user_id', sellerId);
-
-    await supabase.from('wallet_transactions').insert({
-      wallet_id: wallet.id,
-      order_id: orderId,
-      type: isInstantClearance ? 'escrow_release' : 'escrow_hold',
-      amount: netAmount,
-      fee_amount: totalDeductions,
-      status: 'completed',
-      description: isInstantClearance
-        ? `Instant Order Payout: Order #${orderId.slice(-6).toUpperCase()} (Pro Tier)`
-        : `Escrow Hold: Order #${orderId.slice(-6).toUpperCase()}`,
-      created_at: new Date().toISOString(),
-    } as any);
+    // Direct DB mutation removed. Escrow hold is handled exclusively by the secure backend webhook.
   } catch (err) {
     console.warn('[WalletService] holdEscrowForSeller fallback to memory:', err);
   }
@@ -305,25 +285,7 @@ export async function releaseEscrowToSeller(orderId: string, sellerId: string, n
     const newPending = Math.max(0, (Number(wallet.pending_balance) || 0) - netAmount);
     const newAvailable = (Number(wallet.available_balance) || 0) + netAmount;
 
-    await supabase
-      .from('user_wallets')
-      .update({
-        pending_balance: newPending,
-        available_balance: newAvailable,
-        updated_at: new Date().toISOString(),
-      } as any)
-      .eq('user_id', sellerId);
-
-    await supabase.from('wallet_transactions').insert({
-      wallet_id: wallet.id,
-      order_id: orderId,
-      type: 'escrow_release',
-      amount: netAmount,
-      fee_amount: 0,
-      status: 'completed',
-      description: `Escrow Released: Order #${orderId.slice(-6).toUpperCase()}`,
-      created_at: new Date().toISOString(),
-    } as any);
+    // Direct DB mutation removed. Escrow release is handled exclusively by the secure backend.
   } catch (err) {
     console.warn('[WalletService] releaseEscrowToSeller fallback:', err);
   }
@@ -388,23 +350,18 @@ export async function topUpUserWallet(
   const newAvailable = (Number(wallet.available_balance) || 0) + amount;
 
   try {
-    await supabase
-      .from('user_wallets')
-      .update({
-        available_balance: newAvailable,
-        updated_at: new Date().toISOString(),
-      } as any)
-      .eq('user_id', userId);
-
-    await supabase.from('wallet_transactions').insert({
-      wallet_id: wallet.id,
-      type: 'top_up',
-      amount,
-      fee_amount: 0,
-      status: 'completed',
-      description: `Deposit via ${method === 'instapay' ? 'InstaPay' : method === 'vodafone_cash' ? 'Vodafone Cash' : 'Debit/Credit Card'}`,
-      created_at: new Date().toISOString(),
-    } as any);
+    if (typeof window !== 'undefined') {
+      await fetch('/api/wallet/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'topup_manual',
+          userId,
+          amount,
+          paymentMethod: method
+        })
+      });
+    }
   } catch (err) {
     console.warn('[WalletService] topUpUserWallet fallback to memory:', err);
   }
@@ -441,24 +398,19 @@ export async function deductWalletSpendableFunds(
 
   const newBalance = current - amount;
   try {
-    await supabase
-      .from('user_wallets')
-      .update({
-        available_balance: newBalance,
-        updated_at: new Date().toISOString(),
-      } as any)
-      .eq('user_id', userId);
-
-    await supabase.from('wallet_transactions').insert({
-      wallet_id: wallet.id,
-      order_id: orderId,
-      type: 'escrow_hold',
-      amount: -amount,
-      fee_amount: 0,
-      status: 'completed',
-      description: `Spent on Order: ${itemTitle}`,
-      created_at: new Date().toISOString(),
-    } as any);
+    if (typeof window !== 'undefined') {
+      await fetch('/api/wallet/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'deduct_spendable',
+          userId,
+          amount,
+          orderId,
+          itemTitle
+        })
+      });
+    }
   } catch (err) {
     console.warn('[WalletService] deductWalletSpendableFunds fallback:', err);
   }
@@ -547,21 +499,19 @@ export async function requestPayout(
   const txId = `tx_payout_${Date.now()}`;
 
   try {
-    await supabase
-      .from('user_wallets')
-      .update({ available_balance: newBalance, updated_at: new Date().toISOString() } as any)
-      .eq('user_id', userId);
-
-    await supabase.from('wallet_transactions').insert({
-      id: txId,
-      wallet_id: wallet.id,
-      type: 'payout',
-      amount: -amount,
-      fee_amount: 0,
-      status: 'pending',
-      description: `Payout Withdrawal to Saved Method`,
-      created_at: new Date().toISOString(),
-    } as any);
+    if (typeof window !== 'undefined') {
+      await fetch('/api/wallet/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'request_payout',
+          userId,
+          amount,
+          payoutMethodId,
+          payoutMethodIdentifier: payoutMethodId
+        })
+      });
+    }
   } catch (err) {
     console.warn('[WalletService] requestPayout fallback:', err);
   }

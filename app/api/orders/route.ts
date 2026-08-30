@@ -121,18 +121,41 @@ export async function POST(req: Request) {
       const generatedOrderId = orderData.id || `ord_${Date.now()}`;
       const randomPin = Math.floor(100000 + Math.random() * 900000).toString();
 
+      // SECURITY FIX: Fetch the actual product price from the database
+      const { data: productInfo, error: prodErr } = await supabase
+        .from('products')
+        .select('price, title, images, condition, category')
+        .eq('id', orderData.product_id)
+        .maybeSingle();
+
+      if (prodErr || !productInfo) {
+        return NextResponse.json({ success: false, error: 'Product not found' }, { status: 404 });
+      }
+
+      const hardenedPrice = Number(productInfo.price) || 0;
+
+      const productSnapshot = {
+        id: orderData.product_id,
+        title: productInfo.title,
+        price: hardenedPrice,
+        images: productInfo.images || [],
+        condition: productInfo.condition || 'Used',
+        category: productInfo.category || 'General',
+      };
+
       const insertPayload = {
         id: generatedOrderId,
         product_id: orderData.product_id,
         buyer_id: orderData.buyer_id,
         seller_id: orderData.seller_id,
         status: 'pending_payment',
+        amount: hardenedPrice,
         notes: JSON.stringify({
           handover_method: orderData.handover_method || 'courier',
           meetup_pin: randomPin,
-          amount: orderData.amount,
+          amount: hardenedPrice,
           courier_name: 'Bosta Express',
-          product: orderData.product_snapshot,
+          product: productSnapshot,
         }),
         shipping_address: orderData.shipping_address,
         created_at: new Date().toISOString(),
@@ -156,9 +179,105 @@ export async function POST(req: Request) {
           id: generatedOrderId,
           meetup_pin: randomPin,
           status: 'pending_payment',
-          product: orderData.product_snapshot,
+          product: productSnapshot,
         },
       });
+    }
+
+    // Action 1.5: Pay with Wallet (100% wallet checkout)
+    if (action === 'pay_with_wallet' && orderId) {
+      // Find the order
+      const { data: ord } = await supabase
+        .from('orders')
+        .select('id, product_id, seller_id, amount, buyer_id, status')
+        .eq('id', orderId)
+        .maybeSingle();
+
+      if (!ord || ord.status !== 'pending_payment') {
+        return NextResponse.json({ success: false, error: 'Invalid order' }, { status: 400 });
+      }
+
+      const orderAmount = Number(ord.amount || 0);
+
+      // Verify the buyer has enough funds
+      const { data: buyerWallet } = await supabase
+        .from('user_wallets')
+        .select('id, available_balance')
+        .eq('user_id', ord.buyer_id)
+        .maybeSingle();
+      
+      const buyerAvailable = Number(buyerWallet?.available_balance || 0);
+      if (!buyerWallet || buyerAvailable < orderAmount) {
+         return NextResponse.json({ success: false, error: 'Insufficient wallet balance' }, { status: 400 });
+      }
+
+      // Deduct from buyer
+      await supabase
+        .from('user_wallets')
+        .update({ available_balance: buyerAvailable - orderAmount, updated_at: new Date().toISOString() } as any)
+        .eq('user_id', ord.buyer_id);
+
+      await supabase.from('wallet_transactions').insert({
+        wallet_id: buyerWallet.id,
+        order_id: orderId,
+        type: 'fee_deduction',
+        amount: -orderAmount,
+        fee_amount: 0,
+        status: 'completed',
+        description: `Wallet Payment: Order #${orderId.slice(-6).toUpperCase()}`,
+        created_at: new Date().toISOString(),
+      } as any);
+
+      // Secure the escrow
+      await supabase
+        .from('orders')
+        .update({ status: 'escrow_secured', updated_at: new Date().toISOString() } as any)
+        .eq('id', orderId);
+
+      // Manage Inventory
+      if (ord.product_id) {
+        const { data: prod } = await supabase.from('products').select('id, description').eq('id', ord.product_id).maybeSingle();
+        if (prod) {
+          const stockMatch = (prod.description || '').match(/📦\s*Stock:\s*(\d+)/i) || (prod.description || '').match(/الكمية:\s*(\d+)/i);
+          const currentStock = stockMatch ? parseInt(stockMatch[1], 10) : 1;
+          const remainingStock = currentStock - 1;
+
+          if (remainingStock <= 0) {
+            await supabase.from('products').update({ status: 'sold', updated_at: new Date().toISOString() } as any).eq('id', ord.product_id);
+          } else {
+            const updatedDescription = (prod.description || '').replace(/📦\s*Stock:\s*\d+/i, `📦 Stock: ${remainingStock}`);
+            await supabase.from('products').update({ description: updatedDescription, updated_at: new Date().toISOString() } as any).eq('id', ord.product_id);
+          }
+        }
+      }
+
+      // Credit Seller Escrow
+      const platformCommission = Math.round(orderAmount * 0.04);
+      const netEscrowPayout = Math.max(0, orderAmount - platformCommission); // No Paymob fee for 100% wallet checkout
+      
+      const { data: sellerWallet } = await supabase.from('user_wallets').select('id, pending_balance').eq('user_id', ord.seller_id).maybeSingle();
+      let sellerWalletId = sellerWallet?.id;
+      if (sellerWallet) {
+        await supabase.from('user_wallets').update({ pending_balance: Number(sellerWallet.pending_balance || 0) + netEscrowPayout, updated_at: new Date().toISOString() } as any).eq('user_id', ord.seller_id);
+      } else {
+        const { data: created } = await supabase.from('user_wallets').insert({ user_id: ord.seller_id, pending_balance: netEscrowPayout, available_balance: 0, currency: 'EGP' } as any).select().maybeSingle();
+        sellerWalletId = created?.id;
+      }
+
+      if (sellerWalletId) {
+        await supabase.from('wallet_transactions').insert({
+          wallet_id: sellerWalletId,
+          order_id: orderId,
+          type: 'escrow_hold',
+          amount: netEscrowPayout,
+          fee_amount: platformCommission,
+          status: 'completed',
+          description: `Escrow Hold: Order #${orderId.slice(-6).toUpperCase()}`,
+          created_at: new Date().toISOString(),
+        } as any);
+      }
+
+      return NextResponse.json({ success: true, message: 'Order paid via wallet' });
     }
 
     // Action 2: Release Escrow to Seller (triggered by Buyer approval or Seller PIN verification)
@@ -252,6 +371,96 @@ export async function POST(req: Request) {
         success: true,
         message: '🎉 Escrow released! Net funds moved to Seller available balance.',
       });
+    }
+
+    // Action 3: Update Tracking
+    if (action === 'update_tracking' && orderId) {
+      const { tracking_number, courier_name, status } = body;
+      
+      const { data: order, error: orderErr } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('id', orderId)
+        .maybeSingle();
+
+      if (orderErr || !order) {
+        return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
+      }
+
+      let notesData: any = {};
+      try {
+        notesData = typeof order.notes === 'string' ? JSON.parse(order.notes) : order.notes || {};
+      } catch {}
+
+      const newStatus = status || 'shipped';
+      const courier = courier_name || 'Bosta Express (بوسطة مصر)';
+      
+      let deliveredAt = notesData.delivered_at;
+      let inspectionExpiry = notesData.inspection_expiry_at;
+      if (newStatus === 'delivered') {
+        deliveredAt = new Date().toISOString();
+        inspectionExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      }
+      
+      const bostaUrl = tracking_number ? `https://bosta.co/tracking/?trackingNumber=${encodeURIComponent(tracking_number)}` : undefined;
+
+      const updatedNotes = {
+        ...notesData,
+        tracking_number,
+        courier_name: courier,
+        bosta_tracking_url: bostaUrl,
+        delivered_at: deliveredAt,
+        inspection_expiry_at: inspectionExpiry,
+      };
+
+      await supabase
+        .from('orders')
+        .update({
+          status: newStatus,
+          notes: JSON.stringify(updatedNotes),
+          updated_at: new Date().toISOString(),
+        } as any)
+        .eq('id', orderId);
+
+      return NextResponse.json({ success: true, message: 'Tracking updated' });
+    }
+
+    // Action 4: Dispute
+    if (action === 'dispute' && orderId) {
+      const { reason, notes, evidence } = body;
+      const { data: order, error: orderErr } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('id', orderId)
+        .maybeSingle();
+
+      if (orderErr || !order) {
+        return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
+      }
+      
+      let notesData: any = {};
+      try {
+        notesData = typeof order.notes === 'string' ? JSON.parse(order.notes) : order.notes || {};
+      } catch {}
+      
+      const updatedNotes = {
+        ...notesData,
+        dispute_reason: reason,
+        dispute_notes: notes,
+        dispute_evidence: evidence,
+        dispute_created_at: new Date().toISOString(),
+      };
+
+      await supabase
+        .from('orders')
+        .update({
+          status: 'disputed',
+          notes: JSON.stringify(updatedNotes),
+          updated_at: new Date().toISOString(),
+        } as any)
+        .eq('id', orderId);
+
+      return NextResponse.json({ success: true, message: 'Dispute filed' });
     }
 
     return NextResponse.json({ success: false, error: 'Invalid action' }, { status: 400 });

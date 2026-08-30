@@ -117,36 +117,7 @@ export async function createMarketplaceOrder(orderData: {
     console.warn('[OrderService] /api/orders create API warning:', apiErr);
   }
 
-  try {
-    const { data, error } = await supabase
-      .from('orders')
-      .insert({
-        id: orderId,
-        product_id: orderData.product_id,
-        buyer_id: orderData.buyer_id,
-        seller_id: orderData.seller_id,
-        status: 'pending_payment',
-        notes: JSON.stringify({
-          handover_method: orderData.handover_method,
-          meetup_pin: randomPin,
-          amount: orderData.amount,
-          courier_name: 'Bosta Express',
-          estimated_delivery: estimated,
-          product: orderData.product_snapshot,
-        }),
-        shipping_address: orderData.shipping_address,
-        created_at: new Date().toISOString(),
-      } as any)
-      .select()
-      .maybeSingle();
-
-    if (data && !error) {
-      inMemoryOrders[orderId] = newOrder;
-      return newOrder;
-    }
-  } catch (err) {
-    console.warn('[OrderService] createOrder fallback to memory:', err);
-  }
+  // Direct client-side DB insert removed for security. Relying strictly on API route.
 
   inMemoryOrders[orderId] = newOrder;
   return newOrder;
@@ -160,63 +131,29 @@ export async function confirmOrderPayment(orderId: string): Promise<void> {
   const order = await getOrderById(orderId);
   if (!order) throw new Error('Order not found: ' + orderId);
 
+  // 1. Call server API to guarantee Postgres updates bypassing client RLS
   try {
-    await supabase
-      .from('orders')
-      .update({
-        status: 'escrow_secured',
-        updated_at: new Date().toISOString(),
-      } as any)
-      .eq('id', orderId);
-
-    // Stock & Inventory Management: Decrement quantity or mark sold if last item
-    if (order.product_id) {
-      const { data: prod } = await supabase
-        .from('products')
-        .select('id, description, status')
-        .eq('id', order.product_id)
-        .maybeSingle();
-
-      if (prod) {
-        const stockMatch = (prod.description || '').match(/📦\s*Stock:\s*(\d+)/i) || (prod.description || '').match(/الكمية:\s*(\d+)/i);
-        const currentStock = stockMatch ? parseInt(stockMatch[1], 10) : 1;
-        const remainingStock = currentStock - 1;
-
-        if (remainingStock <= 0) {
-          // Last item in stock — mark SOLD and remove from active marketplace!
-          await supabase
-            .from('products')
-            .update({
-              status: 'sold',
-              updated_at: new Date().toISOString(),
-            } as any)
-            .eq('id', order.product_id);
-        } else {
-          // Multiple in stock — decrement stock tag and keep active for other buyers!
-          const updatedDescription = (prod.description || '').replace(
-            /📦\s*Stock:\s*\d+/i,
-            `📦 Stock: ${remainingStock}`
-          );
-          await supabase
-            .from('products')
-            .update({
-              description: updatedDescription,
-              updated_at: new Date().toISOString(),
-            } as any)
-            .eq('id', order.product_id);
-        }
-      }
+    if (typeof window !== 'undefined') {
+      await fetch('/api/wallet/credit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          merchantOrderId: orderId,
+          amountCents: Math.round(order.amount * 100),
+          txId: `web_confirm_${orderId}`,
+          isSuccess: true,
+        }),
+      });
     }
-  } catch (err) {
-    console.warn('[OrderService] confirmOrderPayment update failed:', err);
+  } catch (apiErr) {
+    console.warn('[OrderService] Web server credit sync warning:', apiErr);
   }
 
   if (inMemoryOrders[orderId]) {
     inMemoryOrders[orderId].status = 'escrow_secured';
   }
 
-  // NOW credit seller escrow — only after real payment confirmed
-  await holdEscrowForSeller(order.seller_id, orderId, order.amount);
+  // Escrow is now handled by the backend /api/wallet/credit. No client-side hold required.
   notifyItemSold(order.seller_id, order.product?.title || 'Your listing', order.amount, orderId, order.shipping_address?.full_name);
 }
 
@@ -389,16 +326,21 @@ export async function updateOrderTracking(
   };
 
   try {
-    await supabase
-      .from('orders')
-      .update({
-        status: newStatus,
-        notes: JSON.stringify(updatedNotes),
-        updated_at: new Date().toISOString(),
-      } as any)
-      .eq('id', orderId);
+    if (typeof window !== 'undefined') {
+      await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_tracking',
+          orderId,
+          tracking_number: trackingData.tracking_number,
+          courier_name: courier,
+          status: newStatus
+        }),
+      });
+    }
   } catch (err) {
-    console.warn('[OrderService] updateOrderTracking fallback:', err);
+    console.warn('[OrderService] updateOrderTracking API fallback:', err);
   }
 
   const updatedOrder: MarketplaceOrder = {
@@ -449,23 +391,13 @@ export async function approveOrderDelivery(
     console.warn('[OrderService] approveOrderDelivery server API fallback:', apiErr);
   }
 
-  try {
-    await supabase
-      .from('orders')
-      .update({
-        status: 'completed',
-        updated_at: new Date().toISOString(),
-      } as any)
-      .eq('id', orderId);
-  } catch (err) {
-    console.warn('[OrderService] approveOrderDelivery fallback:', err);
-  }
-
+  // Direct client-side DB update removed for security. Relying on API route.
+  
   if (inMemoryOrders[orderId]) {
     inMemoryOrders[orderId].status = 'completed';
   }
 
-  await releaseEscrowToSeller(orderId, order.seller_id, order.amount);
+  // releaseEscrowToSeller is handled by the backend /api/orders release_escrow action.
 
   return {
     success: true,
@@ -501,16 +433,21 @@ export async function fileOrderDispute(
   };
 
   try {
-    await supabase
-      .from('orders')
-      .update({
-        status: 'disputed',
-        notes: JSON.stringify(disputeRecord),
-        updated_at: new Date().toISOString(),
-      } as any)
-      .eq('id', orderId);
+    if (typeof window !== 'undefined') {
+      await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'dispute',
+          orderId,
+          reason: disputeData.reason,
+          notes: disputeData.notes,
+          evidence: disputeData.evidence_urls
+        }),
+      });
+    }
   } catch (err) {
-    console.warn('[OrderService] fileOrderDispute fallback:', err);
+    console.warn('[OrderService] fileOrderDispute API fallback:', err);
   }
 
   if (inMemoryOrders[orderId]) {
@@ -561,20 +498,13 @@ export async function verifyAndReleaseOrder(
     console.warn('[OrderService] verifyAndReleaseOrder server API fallback:', apiErr);
   }
 
-  try {
-    await supabase
-      .from('orders')
-      .update({ status: 'completed', updated_at: new Date().toISOString() } as any)
-      .eq('id', orderId);
-  } catch (err) {
-    console.warn('[OrderService] verifyAndReleaseOrder update fallback:', err);
-  }
+  // Direct client-side DB update removed for security. Relying on API route.
 
   if (inMemoryOrders[orderId]) {
     inMemoryOrders[orderId].status = 'completed';
   }
 
-  await releaseEscrowToSeller(orderId, order.seller_id, order.amount);
+  // Escrow release is handled by backend.
 
   return {
     success: true,
