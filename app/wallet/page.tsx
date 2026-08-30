@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { useLanguage } from '@/components/LanguageProvider';
+import { useRouter } from 'next/navigation';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import AnimatedNumber from '@/components/AnimatedNumber';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -27,10 +28,13 @@ import {
   type SellerTierConfig,
 } from '@/lib/walletService';
 import { startPaymobCheckoutSession } from '@/lib/paymobService';
+import { confirmOrderPayment } from '@/lib/orderService';
+import { boostProduct } from '@/lib/boostService';
 
 function WalletContent() {
   const { user } = useAuth();
   const { isRTL } = useLanguage();
+  const router = useRouter();
 
   const [wallet, setWallet] = useState<UserWallet | null>(null);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
@@ -101,14 +105,38 @@ function WalletContent() {
           params.get('success') === 'true' ||
           params.get('txn_response_code') === 'approved';
         const amountCents = params.get('amount_cents');
-        const txId = params.get('id') || params.get('order') || `paymob_${amountCents}`;
+        const merchantOrderId = params.get('merchant_order_id') || params.get('order') || '';
+        const txId = params.get('id') || merchantOrderId || `paymob_${amountCents}`;
 
-        if (isSuccess && amountCents && txId) {
+        if (isSuccess && (amountCents || merchantOrderId) && txId) {
           const processedKey = `paymob_tx_processed_${txId}`;
           if (!sessionStorage.getItem(processedKey)) {
             sessionStorage.setItem(processedKey, 'true');
-            const topUpEgp = Math.round(Number(amountCents) / 100);
+
             (async () => {
+              // 1. If it's a normal marketplace product order (e.g. starts with ord_)
+              if (String(merchantOrderId).startsWith('ord_')) {
+                await confirmOrderPayment(merchantOrderId);
+                window.history.replaceState({}, '', '/wallet');
+                router.push(`/profile?orderSuccess=${merchantOrderId}`);
+                return;
+              }
+
+              // 2. If it's a product boost (e.g. boost_productId_tier_timestamp)
+              if (String(merchantOrderId).startsWith('boost_')) {
+                const parts = String(merchantOrderId).split('_');
+                const boostedProdId = parts[1];
+                const boostedTier = (parts[2] || 'featured') as 'urgent' | 'featured' | 'turbo';
+                if (boostedProdId && user) {
+                  await boostProduct(boostedProdId, user.id, boostedTier, 'paymob');
+                  window.history.replaceState({}, '', '/wallet');
+                  router.push(`/products/${boostedProdId}?boost=success`);
+                  return;
+                }
+              }
+
+              // 3. Otherwise: It's a Wallet Top-Up deposit
+              const topUpEgp = Math.round(Number(amountCents) / 100);
               await topUpUserWallet(user.id, topUpEgp, 'card', String(txId));
               const latest = await getUserWallet(user.id);
               setCelebrateModal({
@@ -125,7 +153,7 @@ function WalletContent() {
         }
       }
     }
-  }, [user, loadData]);
+  }, [user, loadData, router]);
 
   const handleTopUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -239,8 +267,7 @@ function WalletContent() {
       {/* Main Balances Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
         {/* Available Spendable Balance */}
-        <div className="bg-gradient-to-br from-[#0B132B] via-[#1C2541] to-[#3A506B] rounded-3xl p-6 text-white shadow-xl relative overflow-hidden border border-slate-700">
-          <div className="absolute right-0 top-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="bg-slate-900 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden border border-slate-800">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <span className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm">

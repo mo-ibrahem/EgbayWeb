@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -19,6 +19,7 @@ import { startPaymobCheckoutSession } from '@/lib/paymobService';
 function BoostProductContent() {
   const { productId } = useParams<{ productId: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, loading: authLoading } = useAuth();
   const { isRTL } = useLanguage();
 
@@ -48,6 +49,19 @@ function BoostProductContent() {
         if (!p) { router.push('/profile'); return; }
         setProduct(p);
         setWallet(w);
+
+        // Check if returning from Paymob 3D-Secure
+        const isSuccess = searchParams.get('success') === 'true' || searchParams.get('txn_response_code') === 'APPROVED';
+        const txId = searchParams.get('order') || searchParams.get('id');
+        if (isSuccess && txId) {
+          const dedupeKey = `paymob_boost_confirmed_${txId}`;
+          if (!sessionStorage.getItem(dedupeKey)) {
+            sessionStorage.setItem(dedupeKey, '1');
+            await boostProduct(productId, user.id, selectedPkg, 'paymob');
+          }
+          setSuccess(true);
+          setTimeout(() => router.push(`/products/${productId}`), 2500);
+        }
       } catch (e) {
         console.error(e);
         router.push('/profile');
@@ -55,7 +69,7 @@ function BoostProductContent() {
         setLoading(false);
       }
     })();
-  }, [productId, user, authLoading, router]);
+  }, [productId, user, authLoading, router, searchParams, selectedPkg]);
 
   const currentPkg = BOOST_PACKAGES[selectedPkg];
   const walletAvailable = Number(wallet?.available_balance || 0);

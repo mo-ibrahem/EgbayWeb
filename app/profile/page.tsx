@@ -186,10 +186,7 @@ function ProfileContent() {
   return (
     <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 w-full overflow-hidden">
       {/* ─── Profile Header Banner ─── */}
-      <div className="bg-gradient-to-r from-[#2563EB] via-[#3B82F6] to-[#6366F1] rounded-3xl p-4 sm:p-8 lg:p-10 mb-6 sm:mb-8 text-white relative overflow-hidden shadow-lg shadow-blue-500/10">
-        <div className="absolute -right-20 -top-20 w-80 h-80 bg-white/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -left-20 -bottom-20 w-80 h-80 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
-
+      <div className="bg-[#1E293B] rounded-3xl p-4 sm:p-8 lg:p-10 mb-6 sm:mb-8 text-white relative overflow-hidden shadow-lg border border-slate-700/60">
         <div className="relative flex flex-col md:flex-row items-center md:items-start justify-between gap-5 sm:gap-6">
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 text-center sm:text-left rtl:sm:text-right w-full sm:w-auto">
             {/* Avatar with Camera Overlay */}

@@ -41,11 +41,9 @@ export default function LiveDiscoveryPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 pb-24 space-y-10">
       {/* Hero Banner */}
-      <div className="relative bg-gradient-to-br from-gray-950 via-[#0B1426] to-gray-950 rounded-3xl overflow-hidden p-8 border border-gray-800">
-        <div className="absolute right-0 top-0 w-64 h-64 bg-red-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute left-0 bottom-0 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="relative bg-slate-900 rounded-3xl overflow-hidden p-8 border border-slate-800 shadow-xl">
         <div className="relative z-10">
-          <div className="inline-flex items-center gap-2 bg-red-600/20 border border-red-600/30 text-red-400 text-xs font-black px-3 py-1 rounded-full mb-4">
+          <div className="inline-flex items-center gap-2 bg-red-600/10 border border-red-600/30 text-red-400 text-xs font-black px-3 py-1 rounded-full mb-4">
             <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
             {isRTL ? 'بيع مباشر وحصري — EgyBay Live' : 'LIVE SHOPPING — EgyBay Live'}
           </div>

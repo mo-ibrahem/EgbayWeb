@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
   ArrowLeft, ShieldCheck, Truck, QrCode, CreditCard,
   Smartphone, Wallet, CheckCircle2, AlertCircle, MapPin,
-  Lock, ChevronRight, Package, User
+  Lock, ChevronRight, Package, User, Sparkles
 } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { useLanguage } from '@/components/LanguageProvider';
@@ -39,6 +39,7 @@ const GOVERNORATES = [
 function CheckoutContent() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, loading: authLoading } = useAuth();
   const { isRTL } = useLanguage();
 
@@ -78,6 +79,19 @@ function CheckoutContent() {
         setProduct(prod);
         setWallet(w);
         setFullName(user.user_metadata?.full_name || '');
+
+        // Check if returning from Paymob 3D-Secure
+        const isSuccess = searchParams.get('success') === 'true' || searchParams.get('txn_response_code') === 'APPROVED';
+        const txOrderId = searchParams.get('order') || searchParams.get('merchant_order_id') || searchParams.get('id');
+        if (isSuccess && txOrderId) {
+          const dedupeKey = `paymob_order_confirmed_${txOrderId}`;
+          if (!sessionStorage.getItem(dedupeKey)) {
+            sessionStorage.setItem(dedupeKey, '1');
+            await confirmOrderPayment(txOrderId);
+          }
+          setCreatedOrderId(txOrderId);
+          setOrderComplete(true);
+        }
       } catch (e) {
         console.error(e);
         router.push('/');
@@ -85,7 +99,7 @@ function CheckoutContent() {
         setLoading(false);
       }
     })();
-  }, [id, user, authLoading, router]);
+  }, [id, user, authLoading, router, searchParams]);
 
   const deliveryFee = deliveryMethod === 'courier' ? 65 : 0;
   const itemPrice = Number(product?.price || 0);
