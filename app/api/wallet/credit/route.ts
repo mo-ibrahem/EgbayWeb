@@ -19,6 +19,15 @@ const hmacSecret = process.env.PAYMOB_HMAC_SECRET || '08BCEABC4398ACAFDB82717BC1
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+let lastPayload: any = null;
+let lastHmac: any = null;
+let lastError: any = null;
+let lastCalculatedHmac: any = null;
+
+export async function GET() {
+  return NextResponse.json({ lastPayload, lastHmac, lastError, lastCalculatedHmac });
+}
+
 export async function POST(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -53,6 +62,7 @@ export async function POST(req: Request) {
     // The HMAC is calculated over specific fields in the obj object
     const obj = body?.obj;
     if (!obj) {
+       lastError = 'Invalid Paymob payload';
        return NextResponse.json({ success: false, error: 'Invalid Paymob payload' }, { status: 400 });
     }
 
@@ -77,14 +87,19 @@ export async function POST(req: Request) {
       obj.source_data?.sub_type,
       obj.source_data?.type,
       obj.success,
-    ].join('');
+    ].map(val => (val === null || val === undefined ? '' : String(val))).join('');
 
     const calculatedHmac = crypto.createHmac('sha512', hmacSecret).update(hmacString).digest('hex');
+    
+    lastPayload = body;
+    lastHmac = providedHmac;
+    lastCalculatedHmac = calculatedHmac;
 
-    if (calculatedHmac !== providedHmac) {
-      console.warn('[API wallet/credit] HMAC verification failed', { providedHmac, calculatedHmac });
+    if (calculatedHmac.toLowerCase() !== providedHmac.toLowerCase()) {
+      lastError = 'HMAC mismatch';
       return NextResponse.json({ success: false, error: 'Invalid HMAC signature' }, { status: 401 });
     }
+    lastError = null;
 
     const merchantOrderId = obj.order?.merchant_order_id;
     const amountCents = obj.amount_cents;
