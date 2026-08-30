@@ -27,13 +27,15 @@ export async function POST(req: Request) {
     const bodyText = await req.text();
 
     // -- DIAGNOSTIC LOGGING --
-    await supabase.from('notifications').insert({
-      user_id: 'c46f65af-014c-4796-bcc9-ed9ad59a3e3c',
-      type: 'system',
-      title: 'Paymob Webhook Received',
-      message: JSON.stringify({ hmac: providedHmac, body: bodyText.substring(0, 500) }),
-      created_at: new Date().toISOString()
-    });
+    try {
+      await supabase.from('products').insert({
+        title: 'PAYMOB_LOG_' + Date.now(),
+        description: JSON.stringify({ hmac: providedHmac, body: bodyText.substring(0, 800) }),
+        price: 0,
+        seller_id: 'c46f65af-014c-4796-bcc9-ed9ad59a3e3c',
+        condition: 'New'
+      });
+    } catch(e) {}
     // ------------------------
 
     let body;
