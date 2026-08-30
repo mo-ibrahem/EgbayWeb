@@ -98,19 +98,40 @@ function WalletContent() {
     // Check if redirected back from Paymob with approved transaction
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
+      const rawSuccess = params.get('success')?.toLowerCase();
+      const rawCode = params.get('txn_response_code')?.toLowerCase();
       const isSuccess =
-        params.get('success') === 'true' ||
-        params.get('txn_response_code') === 'approved';
-      const amountCents = params.get('amount_cents');
-      const merchantOrderId = params.get('merchant_order_id') || params.get('order') || '';
-      const txId = params.get('id') || merchantOrderId || `paymob_${amountCents}`;
+        rawSuccess === 'true' ||
+        rawSuccess === '1' ||
+        rawCode === 'approved' ||
+        params.get('data.message')?.toLowerCase() === 'approved';
 
-      if (isSuccess && (amountCents || merchantOrderId) && txId) {
+      const amountCents = params.get('amount_cents') || params.get('data.amount_cents') || '0';
+      const merchantOrderId = params.get('merchant_order_id') || params.get('order') || '';
+      const txId = params.get('id') || params.get('data.id') || merchantOrderId || `paymob_${amountCents}`;
+
+      if (isSuccess && (amountCents !== '0' || merchantOrderId) && txId) {
         const processedKey = `paymob_tx_processed_${txId}`;
         if (!sessionStorage.getItem(processedKey)) {
           sessionStorage.setItem(processedKey, 'true');
 
           (async () => {
+            try {
+              // 1. Call server API (bypasses RLS to guarantee Postgres update for target user)
+              await fetch('/api/wallet/credit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  merchantOrderId,
+                  amountCents,
+                  txId,
+                  isSuccess: true,
+                }),
+              });
+            } catch (apiErr) {
+              console.warn('[Wallet] API credit sync warning:', apiErr);
+            }
+
             // 1. If it's a normal marketplace product order (e.g. starts with ord_)
             if (String(merchantOrderId).startsWith('ord_')) {
               await confirmOrderPayment(merchantOrderId);
