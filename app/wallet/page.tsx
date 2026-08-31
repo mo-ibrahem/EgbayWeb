@@ -84,16 +84,22 @@ function WalletContent() {
       setWallet(w);
       setTransactions(txs);
       setPayoutMethods(pms);
-      if (pms.length > 0 && !selectedPayoutMethod) {
-        setSelectedPayoutMethod(pms[0].id);
-      }
+      setSelectedPayoutMethod(prev => {
+        if (!prev && pms.length > 0) return pms[0].id;
+        return prev;
+      });
       setSellerTier(tier);
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
     }
-  }, [user, selectedPayoutMethod]);
+  }, [user]);
+
+  // Initial load
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   useEffect(() => {
     // Check if we are waiting for a top-up to complete
