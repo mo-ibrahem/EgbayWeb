@@ -259,7 +259,7 @@ export async function POST(req: Request) {
       
       const { data: order, error: orderErr } = await supabaseAdmin
         .from('orders')
-        .select('seller_id, buyer_id, notes')
+        .select('seller_id, buyer_id, notes, status')
         .eq('id', orderId)
         .maybeSingle();
 
@@ -276,15 +276,11 @@ export async function POST(req: Request) {
         notesData = typeof order.notes === 'string' ? JSON.parse(order.notes) : order.notes || {};
       } catch {}
 
-      const newStatus = status || 'shipped';
+      const newStatus = order.status === 'escrow_secured' ? 'shipped' : order.status;
       const courier = courier_name || 'Bosta Express (بوسطة مصر)';
       
       let deliveredAt = notesData.delivered_at;
       let inspectionExpiry = notesData.inspection_expiry_at;
-      if (newStatus === 'delivered') {
-        deliveredAt = new Date().toISOString();
-        inspectionExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-      }
       
       const bostaUrl = tracking_number ? `https://bosta.co/tracking/?trackingNumber=${encodeURIComponent(tracking_number)}` : undefined;
 
@@ -338,6 +334,10 @@ export async function POST(req: Request) {
         notesData = typeof order.notes === 'string' ? JSON.parse(order.notes) : order.notes || {};
       } catch {}
       
+      if (order.status !== 'escrow_secured' && order.status !== 'shipped' && order.status !== 'delivered') {
+        return NextResponse.json({ success: false, error: 'Order cannot be disputed in its current state' }, { status: 400 });
+      }
+
       const updatedNotes = {
         ...notesData,
         dispute_reason: reason,
