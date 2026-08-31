@@ -11,6 +11,7 @@ export interface Product {
   images: string[];
   seller_id: string;
   status: string;
+  stock?: number;
   created_at: string;
   updated_at: string;
   seller?: { full_name: string; avatar_url?: string };

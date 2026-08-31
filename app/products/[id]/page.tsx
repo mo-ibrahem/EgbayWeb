@@ -375,13 +375,20 @@ export default function ProductDetailPage() {
             {/* CTA Buttons */}
             {!isOwner ? (
               <div className="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-sm space-y-3">
-                <Link
-                  href={`/checkout/${product.id}`}
-                  className="w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black py-4 rounded-2xl transition-all shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 text-sm hover:scale-[1.01] active:scale-[0.99]"
-                >
-                  <ShoppingBag className="w-4 h-4" />
-                  <span>{isRTL ? 'شراء الآن — محمي بالضمان المالي' : 'BUY NOW — ESCROW PROTECTED'}</span>
-                </Link>
+                {(product.stock ?? 1) <= 0 || product.status === 'sold' ? (
+                  <div className="w-full bg-slate-100 text-slate-500 font-black py-4 rounded-2xl text-center shadow-inner flex items-center justify-center gap-2 text-sm cursor-not-allowed">
+                    <X className="w-4 h-4" />
+                    <span>{isRTL ? 'نفذت الكمية (مباع)' : 'OUT OF STOCK (SOLD)'}</span>
+                  </div>
+                ) : (
+                  <Link
+                    href={`/checkout/${product.id}`}
+                    className="w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black py-4 rounded-2xl transition-all shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 text-sm hover:scale-[1.01] active:scale-[0.99]"
+                  >
+                    <ShoppingBag className="w-4 h-4" />
+                    <span>{isRTL ? 'شراء الآن — محمي بالضمان المالي' : 'BUY NOW — ESCROW PROTECTED'}</span>
+                  </Link>
+                )}
 
                 <div className="grid grid-cols-2 gap-3">
                   <button

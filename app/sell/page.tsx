@@ -185,7 +185,6 @@ function SellContent() {
       const stockNum = Math.max(1, parseInt(stock, 10) || 1);
       const tags = [
         location ? `📍 ${location}` : '',
-        `📦 Stock: ${stockNum}`,
       ].filter(Boolean).join('\n');
 
       const fullDescription = `${description.trim()}\n\n${tags}`;
@@ -198,10 +197,11 @@ function SellContent() {
           category,
           condition,
           price: p,
+          stock: stockNum,
           images: uploadedUrls,
           status: 'active',
         })
-        .select('id')
+        .select()
         .single();
 
       if (insertError) throw insertError;

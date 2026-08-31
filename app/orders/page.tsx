@@ -273,7 +273,8 @@ function OrdersContent() {
             return (
               <div
                 key={order.id}
-                className="bg-white rounded-3xl border border-gray-200/80 shadow-sm overflow-hidden transition-all hover:shadow-md"
+                onClick={() => router.push(`/orders/${order.id}`)}
+                className="bg-white rounded-3xl border border-gray-200/80 shadow-sm overflow-hidden transition-all hover:shadow-md cursor-pointer relative"
               >
                 {/* Order Top Ribbon */}
                 <div className="bg-gray-50/80 border-b border-gray-100 px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-2 text-xs">
@@ -376,7 +377,8 @@ function OrdersContent() {
                     <div className="flex items-center gap-2 self-end sm:self-center">
                       <Link
                         href={`/chat/${order.product_id}`}
-                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold transition-colors z-10 relative"
                       >
                         <MessageSquare className="w-3.5 h-3.5 text-gray-500" />
                         <span>{isBuyer ? (isRTL ? 'محادثة البائع' : 'Chat Seller') : (isRTL ? 'محادثة المشتري' : 'Chat Buyer')}</span>
@@ -456,6 +458,7 @@ function OrdersContent() {
                             href={order.bosta_tracking_url || getBostaTrackingUrl(order.tracking_number)}
                             target="_blank"
                             rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
                             className="inline-flex items-center gap-1.5 text-xs font-bold text-[#3665F3] hover:underline"
                           >
                             <span>{isRTL ? 'فتح التتبع المباشر على بوسطة' : 'Track Live on Bosta Portal'}</span>
@@ -510,7 +513,7 @@ function OrdersContent() {
 
                       <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                         <button
-                          onClick={() => handleApproveDelivery(order.id)}
+                          onClick={(e) => { e.stopPropagation(); handleApproveDelivery(order.id); }}
                           disabled={approvingOrderId === order.id}
                           className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm transition-colors flex items-center justify-center gap-1.5"
                         >
@@ -519,7 +522,7 @@ function OrdersContent() {
                         </button>
 
                         <button
-                          onClick={() => { setDisputeModalOrder(order); setDisputeNotes(''); setDisputeErrorMsg(''); setDisputeSuccessMsg(''); }}
+                          onClick={(e) => { e.stopPropagation(); setDisputeModalOrder(order); setDisputeNotes(''); setDisputeErrorMsg(''); setDisputeSuccessMsg(''); }}
                           className="flex-1 sm:flex-none bg-white hover:bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold px-4 py-2.5 rounded-xl transition-colors flex items-center justify-center gap-1.5"
                         >
                           <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
@@ -546,7 +549,8 @@ function OrdersContent() {
                       <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                         {isBosta ? (
                           <button
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.stopPropagation();
                               setTrackingModalOrder(order);
                               setTrackingNumberInput(order.tracking_number || '');
                               setTrackingCourierInput(order.courier_name || 'Bosta Express (بوسطة مصر)');

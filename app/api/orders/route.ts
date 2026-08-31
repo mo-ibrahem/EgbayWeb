@@ -105,74 +105,32 @@ export async function POST(req: Request) {
       const randomPin = Math.floor(100000 + Math.random() * 900000).toString();
       const pinHash = await bcrypt.hash(randomPin, 10);
 
-      // Fetch the actual product price from the database
-      const { data: productInfo, error: prodErr } = await supabaseAdmin
-        .from('products')
-        .select('price, title, images, condition, category, seller_id')
-        .eq('id', orderData.product_id)
-        .maybeSingle();
+      // Execute single, transaction-safe RPC that reserves stock AND creates the order
+      const { data: newOrderId, error: rpcError } = await supabaseAdmin
+        .rpc('create_marketplace_order', {
+          p_product_id: orderData.product_id,
+          p_buyer_id: userId,
+          p_handover_method: orderData.handover_method || 'courier',
+          p_handover_pin_hash: pinHash,
+          p_shipping_address: orderData.shipping_address || null
+        });
 
-      if (prodErr || !productInfo) {
-        return NextResponse.json({ success: false, error: 'Product not found' }, { status: 404 });
+      if (rpcError || !newOrderId) {
+        console.error('[API /api/orders create] RPC error:', rpcError);
+        const errMessage = rpcError?.message || 'Transaction failed';
+        if (errMessage.includes('Out of stock') || errMessage.includes('out of stock')) {
+          return NextResponse.json({ success: false, error: 'Product is no longer available (Out of stock)' }, { status: 409 });
+        }
+        return NextResponse.json({ success: false, error: errMessage }, { status: 400 });
       }
-
-      let hardenedPrice = Number(productInfo.price) || 0;
-      if (orderData.handover_method === 'courier') {
-        hardenedPrice += 65;
-      }
-
-      const productSnapshot = {
-        id: orderData.product_id,
-        title: productInfo.title,
-        price: hardenedPrice,
-        images: productInfo.images || [],
-        condition: productInfo.condition || 'Used',
-        category: productInfo.category || 'General',
-      };
-
-      const insertPayload = {
-        product_id: orderData.product_id,
-        buyer_id: userId,
-        seller_id: productInfo.seller_id,
-        status: 'pending_payment',
-        amount: hardenedPrice,
-        product_snapshot: productSnapshot,
-        handover_method: orderData.handover_method || 'courier',
-        handover_pin_hash: pinHash, // Store ONLY the secure hash
-        notes: JSON.stringify({
-          amount: hardenedPrice,
-          courier_name: 'Bosta Express',
-        }), // NO meetup_pin IN NOTES
-        shipping_address: orderData.shipping_address,
-        created_at: new Date().toISOString(),
-      };
-
-      const { data, error } = await supabaseAdmin
-        .from('orders')
-        .insert(insertPayload)
-        .select()
-        .maybeSingle();
-
-      if (error) {
-        console.error('[API /api/orders create] error:', error);
-        return NextResponse.json({ success: false, error: error.message }, { status: 400 });
-      }
-
-      // Record immutable event using real UUID
-      await supabaseAdmin.from('order_events').insert({
-        order_id: data.id,
-        event_type: 'order_placed',
-        payload: { amount: hardenedPrice }
-      });
 
       return NextResponse.json({
         success: true,
         order: {
           ...orderData,
-          id: data.id,
+          id: newOrderId,
           meetup_pin: randomPin, // Return RAW pin strictly to the buyer ONCE
           status: 'pending_payment',
-          product: productSnapshot,
         },
       });
     }

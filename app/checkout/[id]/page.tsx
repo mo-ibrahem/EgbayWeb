@@ -90,8 +90,7 @@ function CheckoutContent() {
             sessionStorage.setItem(dedupeKey, '1');
             await confirmOrderPayment(txOrderId);
           }
-          setCreatedOrderId(txOrderId);
-          setOrderComplete(true);
+          router.push(`/orders/success?orderId=${txOrderId}`);
         }
       } catch (e) {
         console.error(e);
@@ -156,6 +155,10 @@ function CheckoutContent() {
         if (!order) throw new Error(isRTL ? 'تعذر إنشاء الطلب، يرجى المحاولة ثانية' : 'Failed to create order');
         currentOrderId = order.id;
         setCreatedOrderId(order.id);
+
+        if (order.meetup_pin || (order as any).handover_pin) {
+          sessionStorage.setItem(`egbay_pin_${order.id}`, order.meetup_pin || (order as any).handover_pin);
+        }
       }
 
       // Wallet deduction is handled purely by the final /api/wallet/action endpoint
@@ -218,63 +221,6 @@ function CheckoutContent() {
   }
 
   if (!product) return null;
-
-  if (orderComplete) {
-    return (
-      <div className="min-h-[75vh] flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-3xl border border-slate-200/80 p-8 text-center shadow-xl space-y-5">
-          <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/20">
-            <CheckCircle2 className="w-8 h-8" />
-          </div>
-
-          <div>
-            <h2 className="text-2xl font-black text-slate-900 mb-1">
-              {isRTL ? 'تم تأكيد طلبك بنجاح! 🎉' : 'Order Confirmed! 🎉'}
-            </h2>
-            <p className="text-xs text-slate-500">
-              {isRTL
-                ? 'تم حجز المبلغ بأمان في حساب الضمان، وسيتم إشعار البائع لتجهيز وشحن السلعة فوراً.'
-                : 'Funds are held safely in escrow. The seller has been notified to dispatch your package.'}
-            </p>
-          </div>
-
-          <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 text-xs space-y-2 text-left rtl:text-right">
-            <div className="flex justify-between">
-              <span className="text-slate-500">{isRTL ? 'رقم الطلب:' : 'Order ID:'}</span>
-              <span className="font-mono font-bold text-slate-800">{createdOrderId.slice(0, 8)}...</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-500">{isRTL ? 'المبلغ المحجوز في الضمان:' : 'Total Locked in Escrow:'}</span>
-              <span className="font-black text-emerald-700">{formatEGP(totalPrice)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-500">{isRTL ? 'طريقة الاستلام:' : 'Handover:'}</span>
-              <span className="font-bold text-slate-800">
-                {deliveryMethod === 'courier'
-                  ? (isRTL ? 'شحن لباب البيت (بوسطة)' : 'Doorstep Courier (Bosta)')
-                  : (isRTL ? 'تسليم يدوي بكود PIN' : 'In-Person PIN Meetup')}
-              </span>
-            </div>
-          </div>
-
-          <div className="space-y-2 pt-2">
-            <Link
-              href="/orders"
-              className="block w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 text-white font-bold py-3.5 rounded-2xl text-xs shadow-md transition-all text-center"
-            >
-              {isRTL ? 'تتبع حالة الطلب والضمان' : 'View in My Orders'}
-            </Link>
-            <Link
-              href="/"
-              className="block w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-2xl text-xs transition-colors text-center"
-            >
-              {isRTL ? 'العودة للتسوق' : 'Back to Marketplace'}
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-slate-50 py-8">
