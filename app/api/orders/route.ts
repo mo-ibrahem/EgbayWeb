@@ -161,7 +161,7 @@ export async function POST(req: Request) {
       // Record immutable event
       await supabaseAdmin.from('order_events').insert({
         order_id: generatedOrderId,
-        event_type: 'order_created',
+        event_type: 'order_placed',
         payload: { amount: hardenedPrice }
       });
 
