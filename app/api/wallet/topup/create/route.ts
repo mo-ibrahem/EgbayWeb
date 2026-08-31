@@ -120,8 +120,8 @@ export async function POST(req: Request) {
     }
     const paymobOrderId = orderData.id;
 
-    // Update DB with Paymob Order ID
-    await userClient
+    // Update DB with Paymob Order ID using backend authority
+    await supabaseAdmin
       .from('wallet_topups')
       .update({ paymob_order_id: paymobOrderId })
       .eq('id', topupRow.id);
@@ -179,6 +179,6 @@ export async function POST(req: Request) {
 
   } catch (err: any) {
     console.error('[API wallet/topup/create] Error:', err);
-    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ success: false, error: err.message || 'Internal server error', details: err }, { status: 500 });
   }
 }
