@@ -152,8 +152,11 @@ export async function getOrderById(orderId: string): Promise<MarketplaceOrder | 
   try {
     if (typeof window !== 'undefined') {
       const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
       if (session) {
-        const res = await fetch(`/api/orders?userId=${session.user.id}`);
+        const res = await fetch(`/api/orders?userId=${session.user.id}`, {
+          headers: token ? { Authorization: `Bearer ${token}`, 'Cache-Control': 'no-cache' } : {}
+        });
         const json = await res.json();
         if (json?.success && Array.isArray(json?.orders)) {
           const found = json.orders.find((o: any) => o.id === orderId);

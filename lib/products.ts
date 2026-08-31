@@ -77,6 +77,7 @@ export const productService = {
           .from('products')
           .select('*')
           .eq('status', 'active')
+          .gt('stock', 0)
           .order('created_at', { ascending: false });
 
         if (filters?.category && filters.category !== 'All Categories' && filters.category !== 'All' && filters.category.trim() !== '') {
