@@ -3,10 +3,10 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://fpqbocohjzwlfcmfropr.supabase.co';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwcWJvY29oanp3bGZjbWZyb3ByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg5NTkzNDMsImV4cCI6MjA2NDUzNTM0M30.P6atGZ_u0rkbr76qoIBJN5bRGhe2nESQctXoc25d3xU';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || supabaseAnonKey;
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.EXPO_PUBLIC_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
 
 export async function GET(req: Request) {
   try {
@@ -24,20 +24,23 @@ export async function GET(req: Request) {
     }
 
     const authToken = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: jwtError } = await supabaseAdmin.auth.getUser(authToken);
+    if (!supabaseServiceKey) {
+      console.error('[API wallet/topup/status] Missing SUPABASE_SERVICE_ROLE_KEY credential.');
+      return NextResponse.json({ success: false, error: 'Server misconfiguration: Missing required backend credential' }, { status: 500 });
+    }
 
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+    
+    // 1. Verify user token
+    const { data: { user }, error: jwtError } = await supabaseAdmin.auth.getUser(authToken);
     if (jwtError || !user) {
       return NextResponse.json({ success: false, error: 'Unauthorized: Invalid token' }, { status: 401 });
     }
 
     const userId = user.id;
 
-    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: `Bearer ${authToken}` } }
-    });
-
-    // 2. Fetch topup status from DB using user's context
-    const { data: topup, error } = await userClient
+    // 2. Fetch topup status from DB using service role, explicitly enforcing user ownership
+    const { data: topup, error } = await supabaseAdmin
       .from('wallet_topups')
       .select('user_id, status, amount, currency')
       .eq('id', topupId)

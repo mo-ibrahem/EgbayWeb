@@ -9,13 +9,19 @@ const PAYMOB_INTEGRATION_ID = process.env.PAYMOB_INTEGRATION_ID || process.env.N
 const PAYMOB_IFRAME_ID = process.env.PAYMOB_IFRAME_ID || process.env.NEXT_PUBLIC_PAYMOB_IFRAME_ID || process.env.EXPO_PUBLIC_PAYMOB_IFRAME_ID || '';
 
 // Use service role for database mutations (wallet_topups)
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://fpqbocohjzwlfcmfropr.supabase.co';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwcWJvY29oanp3bGZjbWZyb3ByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg5NTkzNDMsImV4cCI6MjA2NDUzNTM0M30.P6atGZ_u0rkbr76qoIBJN5bRGhe2nESQctXoc25d3xU';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || supabaseAnonKey;
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.EXPO_PUBLIC_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export async function POST(req: Request) {
   try {
+    if (!supabaseServiceKey) {
+      console.error('[API wallet/topup/create] Missing SUPABASE_SERVICE_ROLE_KEY credential.');
+      return NextResponse.json({ success: false, error: 'Server misconfiguration: Missing required backend credential' }, { status: 500 });
+    }
+
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
     // 1. Authenticate user
     const authHeader = req.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -31,8 +37,9 @@ export async function POST(req: Request) {
 
     const userId = user.id;
 
-    // Create a client with the user's JWT to safely perform RLS operations
+    // Create an authenticated client on behalf of the user
     const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
       global: { headers: { Authorization: `Bearer ${authToken}` } }
     });
 
@@ -58,8 +65,8 @@ export async function POST(req: Request) {
     // 4. Generate unique merchant order ID
     const merchantOrderId = `topup_${crypto.randomUUID()}`;
 
-    // 5. Create persistent top-up intent in DB
-    const { data: topupRow, error: topupError } = await userClient
+    // 5. Create persistent top-up intent in DB using backend authority
+    const { data: topupRow, error: topupError } = await supabaseAdmin
       .from('wallet_topups')
       .insert({
         user_id: userId,
