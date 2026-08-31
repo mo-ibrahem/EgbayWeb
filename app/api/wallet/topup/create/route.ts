@@ -10,7 +10,8 @@ const PAYMOB_IFRAME_ID = process.env.PAYMOB_IFRAME_ID || process.env.NEXT_PUBLIC
 
 // Use service role for database mutations (wallet_topups)
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://fpqbocohjzwlfcmfropr.supabase.co';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'dummy_key_for_build';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwcWJvY29oanp3bGZjbWZyb3ByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg5NTkzNDMsImV4cCI6MjA2NDUzNTM0M30.P6atGZ_u0rkbr76qoIBJN5bRGhe2nESQctXoc25d3xU';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || supabaseAnonKey;
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
 export async function POST(req: Request) {
@@ -29,6 +30,11 @@ export async function POST(req: Request) {
     }
 
     const userId = user.id;
+
+    // Create a client with the user's JWT to safely perform RLS operations
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: `Bearer ${authToken}` } }
+    });
 
     // 2. Parse request body
     const bodyText = await req.text();
@@ -53,7 +59,7 @@ export async function POST(req: Request) {
     const merchantOrderId = `topup_${crypto.randomUUID()}`;
 
     // 5. Create persistent top-up intent in DB
-    const { data: topupRow, error: topupError } = await supabaseAdmin
+    const { data: topupRow, error: topupError } = await userClient
       .from('wallet_topups')
       .insert({
         user_id: userId,
@@ -108,14 +114,14 @@ export async function POST(req: Request) {
     const paymobOrderId = orderData.id;
 
     // Update DB with Paymob Order ID
-    await supabaseAdmin
+    await userClient
       .from('wallet_topups')
       .update({ paymob_order_id: paymobOrderId })
       .eq('id', topupRow.id);
 
     // Step C: Payment Key Request
     // Get user details for billing data
-    const { data: userProfile } = await supabaseAdmin
+    const { data: userProfile } = await userClient
       .from('user_profiles')
       .select('full_name, phone_number, email')
       .eq('id', userId)
