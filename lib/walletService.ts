@@ -403,11 +403,20 @@ export async function deductWalletSpendableFunds(
   try {
     if (typeof window !== 'undefined') {
       const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      
+      console.log('[DEBUG WalletDeduct] Session exists?', !!session);
+      console.log('[DEBUG WalletDeduct] User exists?', !!session?.user);
+      console.log('[DEBUG WalletDeduct] Access token exists?', !!token);
+      
+      const authHeader = token ? `Bearer ${token.substring(0, 10)}...` : 'NONE';
+      console.log('[DEBUG WalletDeduct] Sending Auth Header:', authHeader);
+
       await fetch('/api/wallet/action', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          ...(session && { 'Authorization': `Bearer ${session.access_token}` })
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
         },
         body: JSON.stringify({
           action: 'deduct_spendable',

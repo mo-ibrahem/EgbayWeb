@@ -17,6 +17,7 @@ import { getUserWallet, deductWalletSpendableFunds, type UserWallet } from '@/li
 import { createMarketplaceOrder, confirmOrderPayment } from '@/lib/orderService';
 import { startPaymobCheckoutSession } from '@/lib/paymobService';
 import SmartImage from '@/components/SmartImage';
+import { supabase } from '@/lib/supabase';
 
 const GOVERNORATES = [
   { en: 'Cairo', ar: 'القاهرة' },
@@ -145,19 +146,21 @@ function CheckoutContent() {
 
       if (!order) throw new Error(isRTL ? 'تعذر إنشاء الطلب، يرجى المحاولة ثانية' : 'Failed to create order');
 
-      // Deduct wallet portion first (real money the user already has)
-      if (walletDeduction > 0) {
-        await deductWalletSpendableFunds(user.id, walletDeduction, order.id, product.title);
-      }
+      // Wallet deduction is handled purely by the final /api/wallet/action endpoint
+      // for 100% wallet checkout. Split payments are not supported by the backend.
 
       setCreatedOrderId(order.id);
 
       if (useWalletBalance && remainingDue === 0) {
         // 100% wallet — process order confirmation & escrow credit via secure server API
         try {
+          const { data: { session } } = await supabase.auth.getSession();
           const res = await fetch('/api/wallet/action', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+              'Content-Type': 'application/json',
+              ...(session ? { Authorization: `Bearer ${session.access_token}` } : {})
+            },
             body: JSON.stringify({ action: 'deduct_spendable', orderId: order.id }),
           });
           const walletResult = await res.json();

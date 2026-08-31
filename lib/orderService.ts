@@ -101,6 +101,13 @@ export async function createMarketplaceOrder(orderData: {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
       
+      console.log('[DEBUG Checkout] Session exists?', !!session);
+      console.log('[DEBUG Checkout] User exists?', !!session?.user);
+      console.log('[DEBUG Checkout] Access token exists?', !!token);
+      
+      const authHeader = token ? `Bearer ${token.substring(0, 10)}...` : 'NONE';
+      console.log('[DEBUG Checkout] Sending Auth Header:', authHeader);
+
       const res = await fetch('/api/orders', {
         method: 'POST',
         headers: { 
@@ -114,7 +121,8 @@ export async function createMarketplaceOrder(orderData: {
       });
       const json = await res.json();
       if (json?.success && json?.order) {
-        inMemoryOrders[orderId] = json.order; // Uses the backend generated PIN and snapshot
+        json.order.meetup_pin = json.order.handover_pin;
+        inMemoryOrders[json.order.id] = json.order; // Uses the backend generated PIN and snapshot
         return json.order;
       } else {
         throw new Error(json?.error || 'Failed to create order on server');
