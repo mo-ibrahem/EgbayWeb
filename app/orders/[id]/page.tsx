@@ -312,12 +312,12 @@ export default function OrderDetailsPage() {
             </div>
           </div>
 
-          {/* 6. HANDOVER PIN (If Meetup & Eligible) */}
-          {isMeetup && order.status !== 'completed' && order.status !== 'cancelled' && (
+          {/* 6. HANDOVER PIN */}
+          {(isMeetup || (isCourier && isBuyer)) && order.status !== 'completed' && order.status !== 'cancelled' && (
             <div className={`rounded-2xl p-6 sm:p-8 shadow-sm border ${isBuyer ? 'bg-indigo-900 border-indigo-800 text-white' : 'bg-white border-blue-200'}`}>
               <h2 className={`text-lg font-black mb-2 uppercase tracking-wide flex items-center gap-2 ${isBuyer ? 'text-indigo-300' : 'text-slate-900'}`}>
                 <Lock className="w-5 h-5" />
-                {isRTL ? 'رمز التسليم الخاص بك' : 'Your Handover PIN'}
+                {isRTL ? 'رمز التسليم الخاص بك' : (isCourier ? 'Your Delivery PIN' : 'Your Handover PIN')}
               </h2>
               
               {isBuyer ? (
@@ -332,9 +332,9 @@ export default function OrderDetailsPage() {
                       <div className="bg-indigo-800/50 p-4 rounded-xl flex gap-3">
                         <AlertTriangle className="w-5 h-5 text-indigo-300 flex-shrink-0 mt-0.5" />
                         <p className="text-indigo-100 text-sm font-medium leading-relaxed">
-                          {isRTL 
-                            ? 'افحص المنتج قبل الاستلام. أعط هذا الرمز للبائع فقط بعد استلامك للمنتج. إعطاء الرمز يحرر الأموال.' 
-                            : 'Inspect the item before handover. Give this PIN to the seller ONLY after you have received the item.'}
+                          {isCourier 
+                            ? (isRTL ? 'أعط هذا الرمز لمندوب الشحن فقط بعد استلامك للطلب.' : 'Give this PIN to the courier associate ONLY after you receive your order.') 
+                            : (isRTL ? 'افحص المنتج قبل الاستلام. أعط هذا الرمز للبائع فقط بعد استلامك للمنتج.' : 'Inspect the item before handover. Give this PIN to the seller ONLY after you have received the item.')}
                         </p>
                       </div>
                     </div>
@@ -449,18 +449,10 @@ export default function OrderDetailsPage() {
                     {markingDispatched ? <Loader2 className="w-5 h-5 animate-spin" /> : (isRTL ? 'تحديد كـ تم الشحن' : 'Mark as Dispatched')}
                   </button>
                 )}
-                {isCourier && isBuyer && ['escrow_secured', 'shipped', 'out_for_delivery'].includes(order.status) && (
-                  <button
-                    onClick={() => handleReleaseEscrow(null)}
-                    disabled={releasing || order.status === 'escrow_secured'} // Strict: buyer confirm only if shipped
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:bg-emerald-300 text-white font-bold py-3 px-4 rounded-xl transition-colors flex items-center justify-center shadow-md"
-                  >
-                    {releasing ? <Loader2 className="w-5 h-5 animate-spin" /> : (isRTL ? 'تأكيد الاستلام' : 'Confirm Delivery')}
-                  </button>
-                )}
+                
                 {isCourier && isBuyer && order.status === 'escrow_secured' && (
-                  <p className="text-xs text-slate-500 text-center font-medium">
-                    {isRTL ? 'تأكيد الاستلام متاح بعد الشحن' : 'Confirmation available after dispatch.'}
+                  <p className="text-xs text-slate-500 text-center font-medium mb-2">
+                    {isRTL ? 'ستتمكن من تتبع طلبك بمجرد الشحن.' : 'Tracking will be available after dispatch.'}
                   </p>
                 )}
 

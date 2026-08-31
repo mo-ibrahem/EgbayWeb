@@ -193,8 +193,8 @@ export async function POST(req: Request) {
           return NextResponse.json({ success: false, error: 'Invalid Handover PIN' }, { status: 403 });
         }
       } else if (order.handover_method === 'courier') {
-        if (isSellerApproval) {
-          return NextResponse.json({ success: false, error: 'Sellers cannot manually release courier escrow. The buyer must confirm delivery.' }, { status: 403 });
+        if (isSellerApproval || isBuyerApproval) {
+          return NextResponse.json({ success: false, error: 'Buyers and sellers cannot manually release courier escrow. The courier must confirm delivery with the PIN.' }, { status: 403 });
         }
       }
 

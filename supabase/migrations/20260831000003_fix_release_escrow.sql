@@ -38,8 +38,8 @@ BEGIN
             RAISE EXCEPTION 'Unauthorized: Only the seller can release escrow for meetup orders'; 
         END IF;
     ELSIF v_handover_method = 'courier' THEN
-        IF p_user_id != v_buyer_id THEN 
-            RAISE EXCEPTION 'Unauthorized: Only the buyer can confirm delivery for courier orders'; 
+        IF p_user_id IN (v_buyer_id, v_seller_id) THEN 
+            RAISE EXCEPTION 'Unauthorized: Buyers and sellers cannot manually release courier escrow. Only the courier can submit the PIN.'; 
         END IF;
     ELSE
         -- Fallback for any other/legacy methods
