@@ -8,7 +8,7 @@ import { getOrderById, MarketplaceOrder } from '@/lib/orderService';
 import { 
   ArrowLeft, Package, ShieldCheck, Truck, Clock, MapPin, 
   Loader2, AlertCircle, CheckCircle2, Lock, AlertTriangle, 
-  User, MessageCircle, BadgeCheck, FileText, ChevronRight 
+  User, MessageCircle, BadgeCheck, FileText, ChevronRight, DollarSign 
 } from 'lucide-react';
 import SmartImage from '@/components/SmartImage';
 import { useAuth } from '@/components/AuthProvider';
