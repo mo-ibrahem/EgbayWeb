@@ -109,6 +109,12 @@ function CheckoutContent() {
   const walletDeduction = useWalletBalance ? Math.min(walletAvailable, totalPrice) : 0;
   const remainingDue = Math.max(0, totalPrice - walletDeduction);
 
+  // Clear existing order ID if the user changes any shipping or checkout parameters
+  // so we don't accidentally check out an old row with outdated address info.
+  useEffect(() => {
+    setCreatedOrderId('');
+  }, [deliveryMethod, fullName, phoneNumber, governorate, city, streetAddress, useWalletBalance]);
+
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!product || !user) return;
@@ -121,35 +127,39 @@ function CheckoutContent() {
     setErrorMsg('');
 
     try {
-      const order = await createMarketplaceOrder({
-        product_id: product.id,
-        buyer_id: user.id,
-        seller_id: product.seller_id,
-        amount: totalPrice,
-        handover_method: deliveryMethod,
-        shipping_address: {
-          full_name: fullName || 'Buyer',
-          phone: phoneNumber,
-          governorate,
-          city,
-          street: streetAddress,
-        },
-        product_snapshot: {
-          id: product.id,
-          title: product.title,
-          price: product.price,
-          images: product.images,
-          condition: product.condition,
-          category: product.category,
-        },
-      });
+      let currentOrderId = createdOrderId;
 
-      if (!order) throw new Error(isRTL ? 'تعذر إنشاء الطلب، يرجى المحاولة ثانية' : 'Failed to create order');
+      if (!currentOrderId) {
+        const order = await createMarketplaceOrder({
+          product_id: product.id,
+          buyer_id: user.id,
+          seller_id: product.seller_id,
+          amount: totalPrice,
+          handover_method: deliveryMethod,
+          shipping_address: {
+            full_name: fullName || 'Buyer',
+            phone: phoneNumber,
+            governorate,
+            city,
+            street: streetAddress,
+          },
+          product_snapshot: {
+            id: product.id,
+            title: product.title,
+            price: product.price,
+            images: product.images,
+            condition: product.condition,
+            category: product.category,
+          },
+        });
+
+        if (!order) throw new Error(isRTL ? 'تعذر إنشاء الطلب، يرجى المحاولة ثانية' : 'Failed to create order');
+        currentOrderId = order.id;
+        setCreatedOrderId(order.id);
+      }
 
       // Wallet deduction is handled purely by the final /api/wallet/action endpoint
       // for 100% wallet checkout. Split payments are not supported by the backend.
-
-      setCreatedOrderId(order.id);
 
       if (useWalletBalance && remainingDue === 0) {
         // 100% wallet — process order confirmation & escrow credit via secure server API
@@ -161,23 +171,23 @@ function CheckoutContent() {
               'Content-Type': 'application/json',
               ...(session ? { Authorization: `Bearer ${session.access_token}` } : {})
             },
-            body: JSON.stringify({ action: 'deduct_spendable', orderId: order.id }),
+            body: JSON.stringify({ action: 'deduct_spendable', orderId: currentOrderId }),
           });
           const walletResult = await res.json();
           if (!walletResult.success) throw new Error(walletResult.error || 'Wallet payment failed');
           
-          router.push(`/orders/success?orderId=${order.id}`);
+          router.push(`/orders/success?orderId=${currentOrderId}`);
         } catch (err: any) {
           setErrorMsg(err.message || 'Failed to confirm wallet payment');
           setSubmitting(false);
         }
         return;
       } else {
-        // Remaining due > 0 (Full or Split payment) — open Paymob iFrame modal
+        // Remaining due > 0 (Full payment) — open Paymob iFrame modal
         const nameParts = (fullName || 'Buyer EgyBay').split(' ');
         const session = await startPaymobCheckoutSession({
           purpose: 'order',
-          referenceId: order.id,
+          referenceId: currentOrderId,
           billingData: {
             first_name: nameParts[0] || 'Buyer',
             last_name: nameParts[1] || 'EgyBay',
