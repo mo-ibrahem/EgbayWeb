@@ -163,7 +163,7 @@ export async function POST(req: Request) {
 
       const { data: order, error: orderErr } = await supabaseAdmin
         .from('orders')
-        .select('buyer_id, seller_id, handover_pin_hash, status')
+        .select('buyer_id, seller_id, handover_pin_hash, status, handover_method')
         .eq('id', orderId)
         .maybeSingle();
 
@@ -178,20 +178,23 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 403 });
       }
 
-      // If seller is approving, they MUST supply the correct PIN
-      if (isSellerApproval) {
+      if (order.handover_method === 'qr_meetup') {
+        if (isBuyerApproval) {
+          return NextResponse.json({ success: false, error: 'Buyers cannot manually release meetup escrow. The seller must enter the PIN.' }, { status: 403 });
+        }
         if (!pin) {
           return NextResponse.json({ success: false, error: 'PIN required for seller release' }, { status: 403 });
         }
-        
         if (!order.handover_pin_hash) {
            return NextResponse.json({ success: false, error: 'Order not configured for PIN handover' }, { status: 400 });
         }
-
-        // BCRYPT Verification in the backend
         const isPinValid = await bcrypt.compare(String(pin).trim(), order.handover_pin_hash);
         if (!isPinValid) {
           return NextResponse.json({ success: false, error: 'Invalid Handover PIN' }, { status: 403 });
+        }
+      } else if (order.handover_method === 'courier') {
+        if (isSellerApproval) {
+          return NextResponse.json({ success: false, error: 'Sellers cannot manually release courier escrow. The buyer must confirm delivery.' }, { status: 403 });
         }
       }
 
@@ -209,6 +212,48 @@ export async function POST(req: Request) {
         success: true,
         message: '🎉 Escrow released successfully!',
       });
+    }
+
+    // Action 3: Mark Dispatched (Courier MVP)
+    if (action === 'mark_dispatched' && orderId) {
+      const { data: order, error: orderErr } = await supabaseAdmin
+        .from('orders')
+        .select('seller_id, status, handover_method')
+        .eq('id', orderId)
+        .maybeSingle();
+
+      if (orderErr || !order) {
+        return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
+      }
+
+      if (userId !== order.seller_id) {
+        return NextResponse.json({ success: false, error: 'Unauthorized. Only the seller can mark as dispatched.' }, { status: 403 });
+      }
+
+      if (order.handover_method !== 'courier') {
+        return NextResponse.json({ success: false, error: 'Only courier orders can be marked as dispatched.' }, { status: 400 });
+      }
+
+      if (order.status !== 'escrow_secured') {
+        return NextResponse.json({ success: false, error: 'Order is not in a valid state to be marked dispatched.' }, { status: 400 });
+      }
+
+      const { error: updateErr } = await supabaseAdmin
+        .from('orders')
+        .update({ status: 'shipped', updated_at: new Date().toISOString() })
+        .eq('id', orderId);
+
+      if (updateErr) {
+        return NextResponse.json({ success: false, error: updateErr.message }, { status: 400 });
+      }
+
+      await supabaseAdmin.from('order_events').insert({
+        order_id: orderId,
+        event_type: 'shipped',
+        created_at: new Date().toISOString()
+      });
+
+      return NextResponse.json({ success: true, message: 'Order marked as dispatched.' });
     }
 
     // Action 3: Update Tracking

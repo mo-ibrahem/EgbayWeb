@@ -18,6 +18,7 @@ DECLARE
     v_seller_id UUID;
     v_buyer_id UUID;
     v_status TEXT;
+    v_handover_method TEXT;
     v_seller_wallet_id UUID;
     v_seller_pending_balance NUMERIC(12, 2);
     v_net_escrow NUMERIC(12, 2);
@@ -25,15 +26,32 @@ DECLARE
 BEGIN
     v_order_uuid := p_order_id::UUID;
 
-    SELECT seller_id, buyer_id, status
-    INTO v_seller_id, v_buyer_id, v_status
+    SELECT seller_id, buyer_id, status, handover_method
+    INTO v_seller_id, v_buyer_id, v_status, v_handover_method
     FROM public.orders WHERE id = v_order_uuid FOR UPDATE;
 
     IF NOT FOUND THEN RAISE EXCEPTION 'Order not found'; END IF;
-    IF p_user_id NOT IN (v_seller_id, v_buyer_id) THEN RAISE EXCEPTION 'Unauthorized'; END IF;
+
+    -- Security hardening: Enforce the actor based on the handover_method
+    IF v_handover_method = 'qr_meetup' THEN
+        IF p_user_id != v_seller_id THEN 
+            RAISE EXCEPTION 'Unauthorized: Only the seller can release escrow for meetup orders'; 
+        END IF;
+    ELSIF v_handover_method = 'courier' THEN
+        IF p_user_id != v_buyer_id THEN 
+            RAISE EXCEPTION 'Unauthorized: Only the buyer can confirm delivery for courier orders'; 
+        END IF;
+    ELSE
+        -- Fallback for any other/legacy methods
+        IF p_user_id NOT IN (v_seller_id, v_buyer_id) THEN 
+            RAISE EXCEPTION 'Unauthorized'; 
+        END IF;
+    END IF;
     
     IF v_status = 'completed' THEN RAISE EXCEPTION 'Order already completed and escrow released'; END IF;
-    IF v_status != 'escrow_secured' THEN RAISE EXCEPTION 'Order is not escrow_secured'; END IF;
+    IF v_status NOT IN ('escrow_secured', 'shipped', 'out_for_delivery') THEN 
+        RAISE EXCEPTION 'Order is not in a valid state for escrow release (current state: %)', v_status; 
+    END IF;
 
     SELECT id, pending_balance INTO v_seller_wallet_id, v_seller_pending_balance 
     FROM public.user_wallets WHERE user_id = v_seller_id FOR UPDATE;

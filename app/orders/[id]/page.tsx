@@ -34,6 +34,9 @@ export default function OrderDetailsPage() {
   const [releasing, setReleasing] = useState(false);
   const [releaseSuccess, setReleaseSuccess] = useState(false);
   const [releaseError, setReleaseError] = useState('');
+  
+  const [markingDispatched, setMarkingDispatched] = useState(false);
+  const [dispatchError, setDispatchError] = useState('');
 
   useEffect(() => {
     async function loadOrder() {
@@ -73,8 +76,8 @@ export default function OrderDetailsPage() {
     }
   }, [orderId, user, isRTL]);
 
-  const handleReleaseEscrow = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleReleaseEscrow = async (e: React.FormEvent | null) => {
+    if (e) e.preventDefault();
     if (!orderId || !user) return;
     setReleasing(true);
     setReleaseError('');
@@ -100,6 +103,33 @@ export default function OrderDetailsPage() {
       setReleaseError(err.message || 'Invalid PIN or server error');
     } finally {
       setReleasing(false);
+    }
+  };
+
+  const handleMarkDispatched = async () => {
+    if (!orderId || !user) return;
+    setMarkingDispatched(true);
+    setDispatchError('');
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(session ? { Authorization: `Bearer ${session.access_token}` } : {})
+        },
+        body: JSON.stringify({ action: 'mark_dispatched', orderId })
+      });
+      const data = await res.json();
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to mark as dispatched');
+      }
+      const fetchedOrder = await getOrderById(orderId as string);
+      if (fetchedOrder) setOrder(fetchedOrder);
+    } catch (err: any) {
+      setDispatchError(err.message || 'Server error');
+    } finally {
+      setMarkingDispatched(false);
     }
   };
 
@@ -200,81 +230,152 @@ export default function OrderDetailsPage() {
           </div>
         </div>
 
-        {/* Handover PIN Section (Critical Security Flow) */}
+        {/* Handover / Escrow Section */}
         {order.status !== 'completed' && order.status !== 'cancelled' && (
           <div className={`rounded-[2rem] p-6 sm:p-8 shadow-sm border ${isBuyer ? 'bg-indigo-900 border-indigo-800 text-white' : 'bg-white border-blue-200'}`}>
             <div className="flex items-start gap-4">
               <div className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 ${isBuyer ? 'bg-indigo-800 text-indigo-300' : 'bg-blue-50 text-blue-600'}`}>
-                <Lock className="w-6 h-6" />
+                {order.handover_method === 'courier' ? <Package className="w-6 h-6" /> : <Lock className="w-6 h-6" />}
               </div>
               <div className="flex-1">
-                <h2 className={`text-lg font-bold mb-2 ${isBuyer ? 'text-white' : 'text-slate-900'}`}>
-                  {isRTL ? 'رمز التسليم الآمن (PIN)' : 'Secure Handover PIN'}
-                </h2>
-                
-                {isBuyer ? (
-                  <div>
-                    {buyerPin ? (
-                      <div>
-                        <p className="text-indigo-200 text-sm mb-4">
-                          {isRTL 
-                            ? 'هذا هو الرمز السري الخاص بك. أعطه للبائع فقط عند استلامك المنتج وتأكدك من مطابقته للمواصفات. إعطاء الرمز للبائع يعني تحرير الأموال له.' 
-                            : 'This is your secure PIN. Only give this to the seller/courier AFTER you have received and inspected the item. Giving them the PIN releases your funds.'}
-                        </p>
-                        <div className="bg-indigo-950/50 border border-indigo-500/30 rounded-xl p-4 text-center">
-                          <div className="text-4xl font-mono font-black tracking-[0.25em] text-white">
-                            {buyerPin}
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="bg-rose-500/10 border border-rose-500/20 rounded-xl p-4">
-                        <p className="text-rose-200 text-sm flex items-start gap-2">
-                          <AlertTriangle className="w-5 h-5 flex-shrink-0" />
-                          {isRTL 
-                            ? 'لدواعي أمنية، الرمز السري يظهر مرة واحدة فقط بعد الدفع مباشرة. إذا فقدت الرمز، يرجى مراجعة بريدك الإلكتروني أو التواصل مع الدعم الفني.' 
-                            : 'For your security, the plaintext PIN was only shown immediately after checkout. If you lost it, please check your email receipt or contact support.'}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div>
-                    <p className="text-slate-500 text-sm mb-4">
-                      {isRTL 
-                        ? 'أدخل الرمز السري المكون من ٦ أرقام الذي سيعطيه لك المشتري عند استلام المنتج لتحرير أموالك فوراً إلى محفظتك.' 
-                        : 'Enter the 6-digit PIN provided by the buyer upon successful handover to immediately release funds to your wallet.'}
-                    </p>
+                {order.handover_method === 'qr_meetup' ? (
+                  // Meetup UX
+                  <>
+                    <h2 className={`text-lg font-bold mb-2 ${isBuyer ? 'text-white' : 'text-slate-900'}`}>
+                      {isRTL ? 'رمز التسليم الآمن (PIN)' : 'Your Handover PIN'}
+                    </h2>
                     
-                    {releaseSuccess ? (
-                      <div className="bg-emerald-50 text-emerald-700 p-4 rounded-xl border border-emerald-200 flex items-center gap-3 font-bold">
-                        <CheckCircle2 className="w-5 h-5" />
-                        {isRTL ? 'تم تحرير الأموال بنجاح!' : 'Funds released successfully!'}
+                    {isBuyer ? (
+                      <div>
+                        {buyerPin ? (
+                          <div>
+                            <p className="text-indigo-200 text-sm mb-4">
+                              {isRTL 
+                                ? 'افحص المنتج قبل الاستلام. أعط هذا الرمز للبائع فقط بعد استلام المنتج.' 
+                                : 'Inspect the item before handover. Give this PIN to the seller after you receive the item.'}
+                            </p>
+                            <div className="bg-indigo-950/50 border border-indigo-500/30 rounded-xl p-4 text-center">
+                              <div className="text-4xl font-mono font-black tracking-[0.25em] text-white">
+                                {buyerPin}
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="bg-rose-500/10 border border-rose-500/20 rounded-xl p-4">
+                            <p className="text-rose-200 text-sm flex items-start gap-2">
+                              <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+                              {isRTL 
+                                ? 'لدواعي أمنية، الرمز السري يظهر مرة واحدة فقط. إذا فقدته، تحقق من بريدك الإلكتروني.' 
+                                : 'For security, the PIN was only shown at checkout. Check your email receipt if lost.'}
+                            </p>
+                          </div>
+                        )}
                       </div>
                     ) : (
-                      <form onSubmit={handleReleaseEscrow} className="flex gap-2">
-                        <input
-                          type="text"
-                          value={sellerPinInput}
-                          onChange={(e) => setSellerPinInput(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
-                          placeholder="123456"
-                          className="flex-1 border border-slate-300 rounded-xl px-4 py-3 text-lg font-mono tracking-widest outline-none focus:border-blue-500"
-                          required
-                          disabled={releasing}
-                        />
-                        <button 
-                          type="submit" 
-                          disabled={releasing || sellerPinInput.length !== 6}
-                          className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold px-6 py-3 rounded-xl transition-colors whitespace-nowrap"
-                        >
-                          {releasing ? <Loader2 className="w-5 h-5 animate-spin" /> : (isRTL ? 'تأكيد وتحرير' : 'Release Funds')}
-                        </button>
-                      </form>
+                      <div>
+                        <p className="text-slate-500 text-sm mb-4">
+                          {isRTL 
+                            ? 'أدخل الرمز السري الذي أعطاه لك المشتري لتحرير أموالك.' 
+                            : 'Enter the 6-digit PIN provided by the buyer upon successful handover to release funds.'}
+                        </p>
+                        
+                        {releaseSuccess ? (
+                          <div className="bg-emerald-50 text-emerald-700 p-4 rounded-xl border border-emerald-200 flex items-center gap-3 font-bold">
+                            <CheckCircle2 className="w-5 h-5" />
+                            {isRTL ? 'تم تحرير الأموال بنجاح!' : 'Funds released successfully!'}
+                          </div>
+                        ) : (
+                          <form onSubmit={handleReleaseEscrow} className="flex gap-2">
+                            <input
+                              type="text"
+                              value={sellerPinInput}
+                              onChange={(e) => setSellerPinInput(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
+                              placeholder="123456"
+                              className="flex-1 border border-slate-300 rounded-xl px-4 py-3 text-lg font-mono tracking-widest outline-none focus:border-blue-500"
+                              required
+                              disabled={releasing}
+                            />
+                            <button 
+                              type="submit" 
+                              disabled={releasing || sellerPinInput.length !== 6}
+                              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold px-6 py-3 rounded-xl transition-colors whitespace-nowrap"
+                            >
+                              {releasing ? <Loader2 className="w-5 h-5 animate-spin" /> : (isRTL ? 'تأكيد وتحرير' : 'Release Funds')}
+                            </button>
+                          </form>
+                        )}
+                        {releaseError && (
+                          <p className="text-rose-600 text-xs mt-2 font-bold">{releaseError}</p>
+                        )}
+                      </div>
                     )}
-                    {releaseError && (
-                      <p className="text-rose-600 text-xs mt-2 font-bold">{releaseError}</p>
+                  </>
+                ) : (
+                  // Courier UX
+                  <>
+                    <h2 className={`text-lg font-bold mb-2 ${isBuyer ? 'text-white' : 'text-slate-900'}`}>
+                      {isRTL ? 'المدفوعات محمية' : 'Payment Protected'}
+                    </h2>
+                    {isBuyer ? (
+                      <div>
+                        <p className="text-indigo-200 text-sm mb-6">
+                          {isRTL
+                            ? 'أموالك بأمان في الضمان. قم بتأكيد الاستلام فقط بعد استلام ومعاينة المنتج.'
+                            : 'Your payment is safely held in escrow. Confirm delivery only after you receive and inspect the item.'}
+                        </p>
+                        
+                        {releaseSuccess ? (
+                           <div className="bg-emerald-500/20 text-emerald-300 p-4 rounded-xl border border-emerald-500/30 flex items-center gap-3 font-bold">
+                            <CheckCircle2 className="w-5 h-5" />
+                            {isRTL ? 'تم تأكيد الاستلام!' : 'Delivery Confirmed!'}
+                          </div>
+                        ) : (
+                          <div className="flex flex-col sm:flex-row gap-3">
+                            <button
+                              onClick={() => handleReleaseEscrow(null)}
+                              disabled={releasing || !['escrow_secured', 'shipped', 'out_for_delivery'].includes(order.status)}
+                              className="flex-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-colors flex items-center justify-center"
+                            >
+                              {releasing ? <Loader2 className="w-5 h-5 animate-spin" /> : (isRTL ? 'تأكيد الاستلام' : 'Confirm Delivery')}
+                            </button>
+                            <button
+                              className="flex-1 bg-indigo-800 hover:bg-indigo-700 border border-indigo-700 text-white font-bold py-3 rounded-xl transition-colors"
+                            >
+                              {isRTL ? 'فتح نزاع' : 'Open Dispute'}
+                            </button>
+                          </div>
+                        )}
+                        {releaseError && (
+                          <p className="text-rose-400 text-xs mt-2 font-bold">{releaseError}</p>
+                        )}
+                      </div>
+                    ) : (
+                      <div>
+                         <p className="text-slate-500 text-sm mb-6">
+                          {isRTL 
+                            ? 'أموالك محفوظة في الضمان. سيتم تحريرها فور تأكيد المشتري لاستلام المنتج.' 
+                            : 'Your funds are secured in escrow and will be released after the buyer confirms delivery.'}
+                        </p>
+                        {order.status === 'escrow_secured' ? (
+                           <button
+                             onClick={handleMarkDispatched}
+                             disabled={markingDispatched}
+                             className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-colors flex justify-center items-center"
+                           >
+                             {markingDispatched ? <Loader2 className="w-5 h-5 animate-spin" /> : (isRTL ? 'تحديد كـ تم الشحن' : 'Mark as Dispatched')}
+                           </button>
+                        ) : order.status === 'shipped' || order.status === 'out_for_delivery' ? (
+                           <div className="bg-blue-50 text-blue-700 p-4 rounded-xl border border-blue-200 flex items-center gap-3 font-bold justify-center text-sm">
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              {isRTL ? 'بانتظار تأكيد المشتري' : 'Waiting for buyer to confirm delivery'}
+                           </div>
+                        ) : null}
+                        {dispatchError && (
+                          <p className="text-rose-600 text-xs mt-2 font-bold text-center">{dispatchError}</p>
+                        )}
+                      </div>
                     )}
-                  </div>
+                  </>
                 )}
               </div>
             </div>
