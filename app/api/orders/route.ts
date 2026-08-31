@@ -101,8 +101,6 @@ export async function POST(req: Request) {
 
     // Action 1: Create Order
     if (action === 'create' && orderData) {
-      const generatedOrderId = orderData.id || `ord_${Date.now()}`;
-      
       // Generate secure PIN server-side
       const randomPin = Math.floor(100000 + Math.random() * 900000).toString();
       const pinHash = await bcrypt.hash(randomPin, 10);
@@ -118,7 +116,10 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: false, error: 'Product not found' }, { status: 404 });
       }
 
-      const hardenedPrice = Number(productInfo.price) || 0;
+      let hardenedPrice = Number(productInfo.price) || 0;
+      if (orderData.handover_method === 'courier') {
+        hardenedPrice += 65;
+      }
 
       const productSnapshot = {
         id: orderData.product_id,
@@ -130,7 +131,6 @@ export async function POST(req: Request) {
       };
 
       const insertPayload = {
-        id: generatedOrderId,
         product_id: orderData.product_id,
         buyer_id: userId,
         seller_id: productInfo.seller_id,
@@ -158,9 +158,9 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: false, error: error.message }, { status: 400 });
       }
 
-      // Record immutable event
+      // Record immutable event using real UUID
       await supabaseAdmin.from('order_events').insert({
-        order_id: generatedOrderId,
+        order_id: data.id,
         event_type: 'order_placed',
         payload: { amount: hardenedPrice }
       });
@@ -169,7 +169,7 @@ export async function POST(req: Request) {
         success: true,
         order: {
           ...orderData,
-          id: generatedOrderId,
+          id: data.id,
           meetup_pin: randomPin, // Return RAW pin strictly to the buyer ONCE
           status: 'pending_payment',
           product: productSnapshot,
