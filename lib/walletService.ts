@@ -13,11 +13,13 @@ export interface WalletTransaction {
   id: string;
   wallet_id?: string;
   order_id?: string;
-  type: 'escrow_hold' | 'escrow_release' | 'payout' | 'fee_deduction' | 'refund' | 'deposit' | 'top_up';
+  type: 'escrow_hold' | 'escrow_release' | 'payout' | 'fee_deduction' | 'refund' | 'deposit' | 'top_up' | 'purchase';
   amount: number;
   fee_amount: number;
   status: 'pending' | 'completed' | 'failed' | 'cancelled';
   description?: string;
+  delta_available?: number;
+  delta_pending?: number;
   created_at: string;
 }
 

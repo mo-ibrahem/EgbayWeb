@@ -446,13 +446,22 @@ function WalletContent() {
           ) : (
             <div className="bg-white rounded-2xl border border-slate-200/80 divide-y divide-slate-100 shadow-sm overflow-hidden">
               {filteredTransactions.map(tx => {
-                const isPositive = tx.amount > 0 && tx.type !== 'fee_deduction';
+                let isPositive = ['deposit', 'top_up', 'escrow_release'].includes(tx.type);
+                if (tx.delta_available !== undefined && tx.delta_available !== null && tx.delta_available !== 0) {
+                  isPositive = tx.delta_available > 0;
+                } else if (tx.delta_pending !== undefined && tx.delta_pending !== null && tx.delta_pending !== 0) {
+                  isPositive = tx.delta_pending > 0;
+                }
+                
+                const isPending = tx.type === 'escrow_hold';
+                
                 return (
                   <div key={tx.id} className="p-4 flex items-center gap-3.5 hover:bg-slate-50/50 transition-colors">
                     <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                      isPending ? 'bg-amber-50 text-amber-600' :
                       isPositive ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
                     }`}>
-                      {isPositive ? <ArrowDownLeft className="w-4 h-4" /> : <ArrowUpRight className="w-4 h-4" />}
+                      {isPending ? <ShieldCheck className="w-4 h-4" /> : isPositive ? <ArrowDownLeft className="w-4 h-4" /> : <ArrowUpRight className="w-4 h-4" />}
                     </div>
 
                     <div className="min-w-0 flex-1">
@@ -467,8 +476,11 @@ function WalletContent() {
                     </div>
 
                     <div className="text-right rtl:text-left">
-                      <p className={`text-xs sm:text-sm font-black ${isPositive ? 'text-emerald-600' : 'text-slate-900'}`}>
-                        {isPositive ? '+' : ''}{isRTL ? 'ج.م ' : 'EGP '}{Math.abs(tx.amount).toLocaleString(isRTL ? 'ar-EG' : 'en-EG')}
+                      <p className={`text-xs sm:text-sm font-black ${
+                        isPending ? 'text-amber-600' :
+                        isPositive ? 'text-emerald-600' : 'text-slate-900'
+                      }`}>
+                        {isPositive ? '+' : '-'}{isRTL ? 'ج.م ' : 'EGP '}{Math.abs(tx.amount).toLocaleString(isRTL ? 'ar-EG' : 'en-EG')}
                       </p>
                       <span className="text-[10px] text-slate-400 capitalize">{tx.status}</span>
                     </div>
