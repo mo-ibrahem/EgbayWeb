@@ -98,9 +98,15 @@ export async function createMarketplaceOrder(orderData: {
 
   try {
     if (typeof window !== 'undefined') {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      
       const res = await fetch('/api/orders', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({
           action: 'create',
           orderData: newOrder,
@@ -110,13 +116,16 @@ export async function createMarketplaceOrder(orderData: {
       if (json?.success && json?.order) {
         inMemoryOrders[orderId] = json.order; // Uses the backend generated PIN and snapshot
         return json.order;
+      } else {
+        throw new Error(json?.error || 'Failed to create order on server');
       }
     }
-  } catch (apiErr) {
-    console.warn('[OrderService] /api/orders create API warning:', apiErr);
+  } catch (apiErr: any) {
+    console.error('[OrderService] /api/orders create API error:', apiErr);
+    throw new Error(apiErr.message || 'Network error while creating order');
   }
 
-  inMemoryOrders[orderId] = newOrder;
+  // Fallback for SSR
   return newOrder;
 }
 
