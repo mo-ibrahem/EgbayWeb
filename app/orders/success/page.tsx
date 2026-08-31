@@ -4,13 +4,12 @@ import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
-import { getOrderById, MarketplaceOrder } from '@/lib/orderService';
-import { CheckCircle2, ShieldCheck, ArrowRight, Package, Loader2, AlertCircle } from 'lucide-react';
+import { MarketplaceOrder } from '@/lib/orderService';
+import { CheckCircle2, ShieldCheck, ArrowRight, Package, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import SmartImage from '@/components/SmartImage';
+import { useLanguage } from '@/components/LanguageProvider';
 
-const isRTL = true; // Hardcoded for EgbayWeb default
-
-function formatEGP(amount: number) {
+function formatEGP(amount: number, isRTL: boolean) {
   return new Intl.NumberFormat(isRTL ? 'ar-EG' : 'en-EG', {
     style: 'currency',
     currency: 'EGP',
@@ -21,6 +20,7 @@ function formatEGP(amount: number) {
 function OrderSuccessContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { isRTL } = useLanguage();
   const orderId = searchParams.get('orderId');
 
   const [order, setOrder] = useState<MarketplaceOrder | null>(null);
@@ -44,9 +44,13 @@ function OrderSuccessContent() {
           return;
         }
 
-        const fetchedOrder = await getOrderById(orderId);
+        const { data: fetchedOrder, error: fetchErr } = await supabase
+          .from('orders')
+          .select('*, product:products(*)')
+          .eq('id', orderId)
+          .single();
         
-        if (!fetchedOrder) {
+        if (fetchErr || !fetchedOrder) {
           setErrorMsg('Order not found');
           setLoading(false);
           return;
@@ -140,7 +144,7 @@ function OrderSuccessContent() {
             </div>
             <div className="flex justify-between items-center pt-3 border-t border-slate-200/60">
               <span className="text-slate-500 font-medium">{isRTL ? 'إجمالي المدفوع' : 'Total Paid'}</span>
-              <span className="font-black text-lg text-emerald-600">{formatEGP(order.amount)}</span>
+              <span className="font-black text-lg text-emerald-600">{formatEGP(order.amount, isRTL)}</span>
             </div>
           </div>
         </div>
