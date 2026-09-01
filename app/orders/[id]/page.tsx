@@ -337,8 +337,8 @@ export default function OrderDetailsPage() {
                         <AlertTriangle className="w-5 h-5 text-indigo-300 flex-shrink-0 mt-0.5" />
                         <p className="text-indigo-100 text-sm font-medium leading-relaxed">
                           {isCourier 
-                            ? (isRTL ? 'أعط هذا الرمز لمندوب الشحن فقط بعد استلامك للطلب.' : 'Give this PIN to the courier associate ONLY after you receive your order.') 
-                            : (isRTL ? 'افحص المنتج قبل الاستلام. أعط هذا الرمز للبائع فقط بعد استلامك للمنتج.' : 'Inspect the item before handover. Give this PIN to the seller ONLY after you have received the item.')}
+                            ? (isRTL ? 'أعط هذا الرمز لمندوب الشحن فقط بعد استلامك وفحصك للطلب.' : 'Give this PIN to the courier only after you receive and inspect the item.') 
+                            : (isRTL ? 'أعط هذا الرمز للبائع فقط بعد استلامك وفحصك للمنتج.' : 'Give this PIN to the seller only after you receive and inspect the item.')}
                         </p>
                       </div>
                     </div>
