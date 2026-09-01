@@ -469,9 +469,14 @@ export default function OrderDetailsPage() {
             )}
             
             {/* Seller Action Info */}
-            {isCourier && isSeller && (order.status === 'shipped' || order.status === 'out_for_delivery') && (
+            {isCourier && isSeller && order.status === 'shipped' && (
                <div className="bg-amber-50 text-amber-700 p-4 rounded-xl border border-amber-200 text-center text-sm font-bold">
-                 {isRTL ? 'بانتظار تأكيد المشتري' : 'Waiting for buyer to confirm delivery'}
+                 {isRTL ? 'بانتظار توصيل المندوب' : 'Awaiting Courier Delivery'}
+               </div>
+            )}
+            {isCourier && isSeller && order.status === 'out_for_delivery' && (
+               <div className="bg-blue-50 text-blue-700 p-4 rounded-xl border border-blue-200 text-center text-sm font-bold">
+                 {isRTL ? 'المندوب يقوم بتوصيل طلبك' : 'Courier is delivering your order'}
                </div>
             )}
             {dispatchError && <p className="text-rose-600 text-xs mt-1 font-bold text-center">{dispatchError}</p>}
