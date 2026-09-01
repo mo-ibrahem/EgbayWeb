@@ -90,6 +90,35 @@ export default function CourierSimulatorPage() {
             />
           </div>
 
+          {process.env.NODE_ENV !== 'production' && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mt-4">
+              <button
+                onClick={async () => {
+                  if (!orderId) {
+                    setError('Please enter an Order ID first.');
+                    return;
+                  }
+                  try {
+                    setLoading(true);
+                    const res = await fetch(`/api/orders/${orderId}/reset-pin`, { method: 'POST' });
+                    const data = await res.json();
+                    if (!data.success) throw new Error(data.error || 'Failed to reset PIN');
+                    setSuccess(`TEST ONLY: New PIN is ${data.newPin}`);
+                    setPin(data.newPin);
+                  } catch (err: any) {
+                    setError(err.message || 'Error resetting PIN');
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                disabled={loading || !orderId}
+                className="w-full bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold py-2 rounded-lg text-xs tracking-wider transition-colors disabled:opacity-50"
+              >
+                TEST ONLY — RESETS TEST PIN
+              </button>
+            </div>
+          )}
+
           <div className="border-t-2 border-dashed border-slate-200 pt-6">
             <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
               <span className="bg-blue-600 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px]">1</span>

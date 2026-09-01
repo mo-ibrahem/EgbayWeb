@@ -1,8 +1,13 @@
+BEGIN;
+
 -- 20260901000001_add_encrypted_pin.sql
 ALTER TABLE public.orders
 ADD COLUMN IF NOT EXISTS handover_pin_encrypted TEXT;
 
--- Update the RPC signature to accept the ciphertext
+-- Drop the old 5-argument signature to prevent overload ambiguity
+DROP FUNCTION IF EXISTS public.create_marketplace_order(UUID, UUID, TEXT, TEXT, JSONB);
+
+-- Create the single, canonical 6-argument signature
 CREATE OR REPLACE FUNCTION public.create_marketplace_order(
   p_product_id UUID,
   p_buyer_id UUID,
@@ -26,7 +31,21 @@ DECLARE
   v_category TEXT;
   v_order_id UUID;
   v_product_snapshot JSONB;
+  v_handover_method TEXT;
 BEGIN
+  -- 1. Normalize handover method once
+  v_handover_method := COALESCE(p_handover_method, 'courier');
+
+  -- 2. Validate supported methods
+  IF v_handover_method NOT IN ('courier', 'qr_meetup') THEN
+    RAISE EXCEPTION 'Unsupported handover method';
+  END IF;
+
+  -- 3. Fail-closed validation for PIN
+  IF p_handover_pin_hash IS NULL OR p_handover_pin_encrypted IS NULL THEN
+    RAISE EXCEPTION 'Secure handover PIN data is required';
+  END IF;
+
   -- Backend Idempotency: Prevent double-checkouts from the same buyer for the same product within 5 minutes
   IF EXISTS (
       SELECT 1 FROM public.orders 
@@ -52,7 +71,7 @@ BEGIN
 
   -- Calculate pricing
   v_hardened_price := COALESCE(v_price, 0);
-  IF p_handover_method = 'courier' THEN
+  IF v_handover_method = 'courier' THEN
     v_hardened_price := v_hardened_price + 65;
   END IF;
 
@@ -73,7 +92,7 @@ BEGIN
     notes, shipping_address, created_at
   ) VALUES (
     p_product_id, p_buyer_id, v_seller_id, 'pending_payment', v_hardened_price,
-    v_product_snapshot, COALESCE(p_handover_method, 'courier'), p_handover_pin_hash, p_handover_pin_encrypted,
+    v_product_snapshot, v_handover_method, p_handover_pin_hash, p_handover_pin_encrypted,
     jsonb_build_object('amount', v_hardened_price, 'courier_name', 'Bosta Express'),
     p_shipping_address, NOW()
   ) RETURNING id INTO v_order_id;
@@ -86,6 +105,12 @@ BEGIN
 END;
 $$;
 
--- Secure the RPC
-REVOKE ALL ON FUNCTION public.create_marketplace_order FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.create_marketplace_order TO service_role;
+-- Secure the RPC: Revoke from all public/anon/authenticated access
+REVOKE ALL ON FUNCTION public.create_marketplace_order(UUID, UUID, TEXT, TEXT, TEXT, JSONB) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.create_marketplace_order(UUID, UUID, TEXT, TEXT, TEXT, JSONB) FROM authenticated;
+REVOKE ALL ON FUNCTION public.create_marketplace_order(UUID, UUID, TEXT, TEXT, TEXT, JSONB) FROM anon;
+
+-- Grant exclusively to service_role
+GRANT EXECUTE ON FUNCTION public.create_marketplace_order(UUID, UUID, TEXT, TEXT, TEXT, JSONB) TO service_role;
+
+COMMIT;
