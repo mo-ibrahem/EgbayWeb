@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
-import { getOrderById, MarketplaceOrder } from '@/lib/orderService';
+import { getOrderById, MarketplaceOrder, COURIER_DELIVERY_FEE_EGP } from '@/lib/orderService';
 import { 
   ArrowLeft, Package, ShieldCheck, Truck, Clock, MapPin, 
   Loader2, AlertCircle, CheckCircle2, Lock, AlertTriangle, 
@@ -56,6 +56,7 @@ export default function OrderDetailsPage() {
   
   const [markingDispatched, setMarkingDispatched] = useState(false);
   const [dispatchError, setDispatchError] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
 
   useEffect(() => {
     async function loadOrder() {
@@ -77,10 +78,10 @@ export default function OrderDetailsPage() {
 
         // Fetch seller profile securely
         const { data: profile } = await supabase
-          .from('profiles')
-          .select('id, full_name, role, is_verified, avatar_url')
+          .from('public_profiles')
+          .select('id, full_name, avatar_url, is_verified_seller')
           .eq('id', fetchedOrder.seller_id)
-          .single();
+          .maybeSingle();
         if (profile) {
           setSellerProfile(profile);
         }
@@ -165,7 +166,38 @@ export default function OrderDetailsPage() {
   };
 
   const handleOpenDispute = () => {
-    window.location.href = `mailto:support@egbay.com?subject=Dispute for Order ${orderId}`;
+    window.location.href = `mailto:info@egbay.shop?subject=Dispute for Order ${orderId}`;
+  };
+
+  const handleChatSeller = async () => {
+    if (!user || !order || chatLoading) return;
+    setChatLoading(true);
+    try {
+      const participants = [user.id, order.seller_id].sort();
+      const { data: existing } = await supabase
+        .from('chat_rooms')
+        .select('id')
+        .contains('participant_ids', participants)
+        .maybeSingle();
+
+      let roomId: string;
+      if (existing) {
+        roomId = existing.id;
+      } else {
+        const { data: created, error } = await supabase
+          .from('chat_rooms')
+          .insert({ participant_ids: participants })
+          .select('id')
+          .single();
+        if (error || !created) throw error;
+        roomId = created.id;
+      }
+      router.push(`/chat/${roomId}`);
+    } catch (err) {
+      console.error('[OrderDetails] Failed to open chat:', err);
+    } finally {
+      setChatLoading(false);
+    }
   };
 
   if (loading) {
@@ -195,8 +227,12 @@ export default function OrderDetailsPage() {
   const isMeetup = order.handover_method === 'qr_meetup';
   const isCourier = order.handover_method === 'courier';
 
-  const productPrice = order.product?.price || order.amount;
-  const deliveryFee = Math.max(0, order.amount - productPrice);
+  // order.amount (and the product snapshot's price) already include the
+  // courier fee for courier orders -- there's no separately stored base
+  // item price, so derive it from the known fee constant instead of
+  // computing a (structurally always-zero) difference.
+  const deliveryFee = isCourier ? COURIER_DELIVERY_FEE_EGP : 0;
+  const productPrice = Math.max(0, order.amount - deliveryFee);
 
   // 1. STATUS BADGE COLOR
   let badgeColor = 'bg-slate-100 text-slate-700 border-slate-200';
@@ -460,6 +496,28 @@ export default function OrderDetailsPage() {
                   </p>
                 )}
 
+                {isCourier && isBuyer && (order.status === 'shipped' || order.status === 'out_for_delivery') && (
+                  releaseSuccess ? (
+                    <div className="bg-emerald-50 text-emerald-700 p-4 rounded-xl border border-emerald-200 flex items-center gap-3 font-bold justify-center">
+                      <CheckCircle2 className="w-5 h-5" />
+                      {isRTL ? 'تم تأكيد الاستلام وتحرير الأموال!' : 'Delivery confirmed, funds released!'}
+                    </div>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => handleReleaseEscrow(null)}
+                        disabled={releasing}
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-xl transition-colors flex justify-center items-center gap-2 shadow-md"
+                      >
+                        {releasing ? <Loader2 className="w-5 h-5 animate-spin" /> : (isRTL ? 'تأكيد استلام الطلب' : 'Confirm Delivery Received')}
+                      </button>
+                      <p className="text-xs text-slate-500 text-center font-medium">
+                        {isRTL ? 'اضغط فقط بعد استلام وفحص طلبك. سيتم تحرير الأموال للبائع فوراً.' : 'Only confirm after you’ve received and inspected your item. This immediately releases funds to the seller.'}
+                      </p>
+                    </>
+                  )
+                )}
+
                 {/* Dispute CTA */}
                 {isBuyer && (
                   <button
@@ -537,21 +595,19 @@ export default function OrderDetailsPage() {
                     <div>
                       <p className="text-sm font-bold text-slate-900 flex items-center gap-1">
                         {sellerProfile.full_name || 'Marketplace Seller'}
-                        {sellerProfile.is_verified && <BadgeCheck className="w-4 h-4 text-blue-500" />}
-                      </p>
-                      <p className="text-xs text-slate-500 flex items-center gap-1">
-                        ★ 4.9 <span className="text-slate-300">•</span> 120+ orders
+                        {sellerProfile.is_verified_seller && <BadgeCheck className="w-4 h-4 text-blue-500" />}
                       </p>
                     </div>
                   </div>
-                  <Link
-                    href={`/messages/${order.seller_id}`}
-                    onClick={(e) => e.stopPropagation()}
-                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                  <button
+                    type="button"
+                    onClick={handleChatSeller}
+                    disabled={chatLoading}
+                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-colors disabled:opacity-50"
                     title={isRTL ? 'مراسلة البائع' : 'Chat Seller'}
                   >
                     <MessageCircle className="w-5 h-5" />
-                  </Link>
+                  </button>
                 </div>
               </div>
             )}

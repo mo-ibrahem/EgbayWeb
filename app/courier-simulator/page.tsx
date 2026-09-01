@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Package, Lock, Loader2, CheckCircle2, AlertCircle, Truck } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 export default function CourierSimulatorPage() {
   const [orderId, setOrderId] = useState('');
@@ -17,10 +18,13 @@ export default function CourierSimulatorPage() {
     setError('');
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
       const res = await fetch('/api/orders/simulate-courier', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({ action, orderId, pin: action === 'verify_delivery' ? pin : undefined })
       });
@@ -100,7 +104,12 @@ export default function CourierSimulatorPage() {
                   }
                   try {
                     setLoading(true);
-                    const res = await fetch(`/api/orders/${orderId}/reset-pin`, { method: 'POST' });
+                    const { data: { session } } = await supabase.auth.getSession();
+                    const token = session?.access_token;
+                    const res = await fetch(`/api/orders/${orderId}/reset-pin`, { 
+                      method: 'POST',
+                      headers: token ? { Authorization: `Bearer ${token}` } : {}
+                    });
                     const data = await res.json();
                     if (!data.success) throw new Error(data.error || 'Failed to reset PIN');
                     setSuccess(`TEST ONLY: New PIN is ${data.newPin}`);

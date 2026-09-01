@@ -130,7 +130,7 @@ export async function POST(req: Request) {
     // Get user details for billing data
     const { data: userProfile } = await userClient
       .from('user_profiles')
-      .select('full_name, phone_number, email')
+      .select('full_name, phone, email')
       .eq('id', userId)
       .maybeSingle();
 
@@ -141,7 +141,7 @@ export async function POST(req: Request) {
       first_name: userProfile?.full_name?.split(' ')[0] || 'User',
       street: 'NA',
       building: 'NA',
-      phone_number: userProfile?.phone_number || '+201000000000',
+      phone_number: userProfile?.phone || '+201000000000',
       shipping_method: 'NA',
       postal_code: 'NA',
       city: 'Cairo',

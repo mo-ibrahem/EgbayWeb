@@ -117,7 +117,7 @@ export const productService = {
         if (sellerIds.length > 0) {
           try {
             const { data: profiles } = await supabase
-              .from('user_profiles')
+              .from('public_profiles')
               .select('id, full_name, avatar_url')
               .in('id', sellerIds);
 
@@ -188,7 +188,7 @@ export const productService = {
       let seller: { id: string; full_name: string; avatar_url?: string } | null = null;
       try {
         const { data: s } = await supabase
-          .from('user_profiles')
+          .from('public_profiles')
           .select('id, full_name, avatar_url')
           .eq('id', product.seller_id)
           .single();
@@ -280,16 +280,18 @@ export const productService = {
     condition: string;
     location?: string;
     images: string[];
+    stock?: number;
   }): Promise<Product> => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user?.id) throw new Error('Not authenticated');
 
-    const { location, ...payload } = productData;
+    const { location, stock, ...payload } = productData;
     const fullDescription = location ? `${payload.description.trim()}\n\n📍 ${location}` : payload.description.trim();
+    const stockNum = Math.max(1, Math.floor(Number(stock) || 1));
 
     const { data, error } = await supabase
       .from('products')
-      .insert([{ ...payload, description: fullDescription, seller_id: session.user.id, status: 'active' }])
+      .insert([{ ...payload, description: fullDescription, seller_id: session.user.id, status: 'active', stock: stockNum }])
       .select()
       .single();
     if (error) throw error;

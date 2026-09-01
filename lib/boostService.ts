@@ -20,7 +20,7 @@ export const BOOST_PACKAGES: Record<'urgent' | 'featured' | 'turbo', BoostPackag
     title: 'Urgent Sale (بيع عاجل)',
     badgeText: '🔥 URGENT DEAL',
     badgeEmoji: '🔥',
-    priceEGP: 15,
+    priceEGP: 50,
     durationDays: 3,
     multiplierText: '2x More Views',
     description: 'Highlights your listing with an amber urgent badge for quick buyer response.',
@@ -32,7 +32,7 @@ export const BOOST_PACKAGES: Record<'urgent' | 'featured' | 'turbo', BoostPackag
     title: 'Featured Spotlight (إعلان مميز)',
     badgeText: '⚡ FEATURED SPOTLIGHT',
     badgeEmoji: '⚡',
-    priceEGP: 35,
+    priceEGP: 150,
     durationDays: 7,
     multiplierText: '5x More Views',
     description: 'Pins your listing to top search spots & home screen featured rails for a full week.',
@@ -49,7 +49,7 @@ export const BOOST_PACKAGES: Record<'urgent' | 'featured' | 'turbo', BoostPackag
     title: 'Turbo 10x Max (ترويج شامل)',
     badgeText: '👑 TURBO 10X BOOST',
     badgeEmoji: '👑',
-    priceEGP: 75,
+    priceEGP: 300,
     durationDays: 14,
     multiplierText: '10x Max Exposure',
     description: 'Maximum marketplace power — top hero placements, 14 days duration & instant buyer alerts.',
@@ -65,50 +65,42 @@ export const BOOST_PACKAGES: Record<'urgent' | 'featured' | 'turbo', BoostPackag
 
 const inMemoryPromotions: Record<string, { tier: string; until: string }> = {};
 
+/**
+ * Purchases a boost package using the seller's wallet balance.
+ *
+ * Card/Paymob checkout for boosts is intentionally not supported: the
+ * payment webhook has no handler that activates a boost after a card
+ * charge succeeds, so a card-paid boost would take the seller's money
+ * and apply nothing. Wallet balance is the only path with a working,
+ * server-authoritative activation (see /api/boost -> purchase_boost RPC).
+ */
 export async function boostProduct(
   productId: string,
-  userId: string, // Kept for signature compatibility, backend will ignore
-  packageId: 'urgent' | 'featured' | 'turbo',
-  paymentSource: 'wallet_balance' | 'paymob'
+  packageId: 'urgent' | 'featured' | 'turbo'
 ): Promise<{ success: boolean; message: string; promotedUntil: string }> {
   const pkg = BOOST_PACKAGES[packageId];
   if (!pkg) throw new Error('Invalid boost package selected');
 
-  if (paymentSource === 'wallet_balance') {
-    try {
-      if (typeof window !== 'undefined') {
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        const res = await fetch('/api/boost', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            ...(session && { 'Authorization': `Bearer ${session.access_token}` })
-          },
-          body: JSON.stringify({ productId, packageId })
-        });
-        
-        const data = await res.json();
-        if (!data.success) {
-           throw new Error(data.error || 'Failed to purchase boost');
-        }
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Not authenticated');
 
-        return {
-          success: true,
-          message: `Your product is now boosted with ${pkg.title}!`,
-          promotedUntil: data.promotedUntil,
-        };
-      }
-    } catch (err: any) {
-      console.warn('[BoostService] API boost error:', err);
-      throw err;
-    }
+  const res = await fetch('/api/boost', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({ productId, packageId }),
+  });
+
+  const data = await res.json();
+  if (!data.success) {
+    throw new Error(data.error || 'Failed to purchase boost');
   }
 
-  // Paymob flow expects the webhook to handle activation
   return {
     success: true,
-    message: `Payment initiated for ${pkg.title}`,
-    promotedUntil: '',
+    message: `Your product is now boosted with ${pkg.title}!`,
+    promotedUntil: data.promotedUntil,
   };
 }

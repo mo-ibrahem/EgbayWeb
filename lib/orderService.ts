@@ -1,6 +1,4 @@
 import { supabase } from './supabase';
-import { holdEscrowForSeller, releaseEscrowToSeller } from './walletService';
-import { notifyItemSold } from './notificationService';
 
 export interface MarketplaceOrder {
   id: string;
@@ -53,10 +51,11 @@ export interface MarketplaceOrder {
 
 const inMemoryOrders: Record<string, MarketplaceOrder> = {};
 
-export function getBostaTrackingUrl(trackingNumber: string): string {
-  if (!trackingNumber) return 'https://bosta.co/tracking';
-  return `https://bosta.co/tracking/?trackingNumber=${encodeURIComponent(trackingNumber.trim())}`;
-}
+// Must match the courier surcharge hardcoded in the create_marketplace_order
+// database function. The order's stored amount/snapshot price already has
+// this baked in (there is no separate "base item price" column), so the UI
+// derives the delivery fee from this constant rather than from stored data.
+export const COURIER_DELIVERY_FEE_EGP = 65;
 
 export function calculateEstimatedDelivery(governorate?: string): string {
   const gov = (governorate || '').toLowerCase();
@@ -101,13 +100,6 @@ export async function createMarketplaceOrder(orderData: {
     if (typeof window !== 'undefined') {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
-      
-      console.log('[DEBUG Checkout] Session exists?', !!session);
-      console.log('[DEBUG Checkout] User exists?', !!session?.user);
-      console.log('[DEBUG Checkout] Access token exists?', !!token);
-      
-      const authHeader = token ? `Bearer ${token.substring(0, 10)}...` : 'NONE';
-      console.log('[DEBUG Checkout] Sending Auth Header:', authHeader);
 
       const res = await fetch('/api/orders', {
         method: 'POST',
@@ -136,17 +128,6 @@ export async function createMarketplaceOrder(orderData: {
 
   // Fallback for SSR
   return newOrder;
-}
-
-export async function confirmOrderPayment(orderId: string): Promise<void> {
-  const order = await getOrderById(orderId);
-  if (!order) throw new Error('Order not found: ' + orderId);
-
-  if (inMemoryOrders[orderId]) {
-    inMemoryOrders[orderId].status = 'escrow_secured';
-  }
-
-  notifyItemSold(order.seller_id, order.product?.title || 'Your listing', order.amount, orderId, order.shipping_address?.full_name);
 }
 
 export async function getOrderById(orderId: string): Promise<MarketplaceOrder | null> {
@@ -192,211 +173,4 @@ export async function getUserOrders(userId: string): Promise<MarketplaceOrder[]>
   return Object.values(inMemoryOrders).filter(
     (o) => o.buyer_id === userId || o.seller_id === userId
   );
-}
-
-export async function updateOrderTracking(
-  orderId: string,
-  trackingData: {
-    tracking_number: string;
-    courier_name?: string;
-    status?: MarketplaceOrder['status'];
-  }
-): Promise<MarketplaceOrder> {
-  const order = await getOrderById(orderId);
-  if (!order) throw new Error('Order not found');
-
-  const newStatus = trackingData.status || 'shipped';
-  const courier = trackingData.courier_name || 'Bosta Express (بوسطة مصر)';
-  const bostaUrl = getBostaTrackingUrl(trackingData.tracking_number);
-
-  let deliveredAt: string | undefined = undefined;
-  let inspectionExpiry: string | undefined = undefined;
-
-  if (newStatus === 'delivered') {
-    deliveredAt = new Date().toISOString();
-    inspectionExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-  }
-
-  try {
-    if (typeof window !== 'undefined') {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      
-      await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify({
-          action: 'update_tracking',
-          orderId,
-          tracking_number: trackingData.tracking_number,
-          courier_name: courier,
-          status: newStatus
-        }),
-      });
-    }
-  } catch (err) {
-    console.warn('[OrderService] updateOrderTracking API fallback:', err);
-  }
-
-  const updatedOrder: MarketplaceOrder = {
-    ...order,
-    status: newStatus,
-    tracking_number: trackingData.tracking_number,
-    courier_name: courier,
-    bosta_tracking_url: bostaUrl,
-    delivered_at: deliveredAt || order.delivered_at,
-    inspection_expiry_at: inspectionExpiry || order.inspection_expiry_at,
-    updated_at: new Date().toISOString(),
-  };
-
-  inMemoryOrders[orderId] = updatedOrder;
-  return updatedOrder;
-}
-
-export async function approveOrderDelivery(
-  orderId: string,
-  buyerId: string
-): Promise<{ success: boolean; message: string }> {
-  const order = await getOrderById(orderId);
-  if (!order) throw new Error('Order not found');
-  if (order.buyer_id !== buyerId) throw new Error('Unauthorized action');
-
-  try {
-    if (typeof window !== 'undefined') {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      
-      const res = await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify({
-          action: 'release_escrow',
-          orderId,
-        }),
-      });
-      const json = await res.json();
-      if (!json?.success) {
-        throw new Error(json?.error || 'Failed to release escrow');
-      }
-      
-      if (inMemoryOrders[orderId]) inMemoryOrders[orderId].status = 'completed';
-      return json;
-    }
-  } catch (apiErr: any) {
-    console.warn('[OrderService] approveOrderDelivery server API fallback:', apiErr);
-    throw new Error(apiErr.message);
-  }
-
-  if (inMemoryOrders[orderId]) {
-    inMemoryOrders[orderId].status = 'completed';
-  }
-
-  return {
-    success: true,
-    message: '🎉 Order confirmed & closed! Escrow funds released to Seller.',
-  };
-}
-
-export async function fileOrderDispute(
-  orderId: string,
-  disputeData: {
-    buyer_id: string;
-    reason: string;
-    notes: string;
-    evidence_urls?: string[];
-  }
-): Promise<{ success: boolean; message: string }> {
-  const order = await getOrderById(orderId);
-  if (!order) throw new Error('Order not found');
-  if (order.buyer_id !== disputeData.buyer_id) throw new Error('Unauthorized action');
-
-  try {
-    if (typeof window !== 'undefined') {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      
-      await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify({
-          action: 'dispute',
-          orderId,
-          reason: disputeData.reason,
-          notes: disputeData.notes,
-          evidence: disputeData.evidence_urls
-        }),
-      });
-    }
-  } catch (err) {
-    console.warn('[OrderService] fileOrderDispute API fallback:', err);
-  }
-
-  if (inMemoryOrders[orderId]) {
-    inMemoryOrders[orderId].status = 'disputed';
-    inMemoryOrders[orderId].dispute_reason = disputeData.reason;
-    inMemoryOrders[orderId].dispute_notes = disputeData.notes;
-    inMemoryOrders[orderId].dispute_created_at = new Date().toISOString();
-  }
-
-  return {
-    success: true,
-    message: '⚠️ Dispute claim filed successfully. Escrow funds are safely frozen. Compliance team is reviewing within 24 hours.',
-  };
-}
-
-export async function verifyAndReleaseOrder(
-  orderId: string,
-  enteredPin: string,
-  sellerId: string
-): Promise<{ success: boolean; message: string }> {
-  const order = await getOrderById(orderId);
-  if (!order) throw new Error('Order not found');
-
-  try {
-    if (typeof window !== 'undefined') {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      
-      const res = await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify({
-          action: 'release_escrow',
-          orderId,
-          pin: enteredPin,
-        }),
-      });
-      const json = await res.json();
-      if (!json?.success) {
-         throw new Error(json?.error || 'Failed to verify PIN');
-      }
-      
-      if (inMemoryOrders[orderId]) inMemoryOrders[orderId].status = 'completed';
-      return json;
-    }
-  } catch (apiErr: any) {
-    console.warn('[OrderService] verifyAndReleaseOrder server API error:', apiErr);
-    throw new Error(apiErr.message);
-  }
-
-  if (inMemoryOrders[orderId]) {
-    inMemoryOrders[orderId].status = 'completed';
-  }
-
-  return {
-    success: true,
-    message: '🎉 Handover PIN Verified! Funds released to your spendable balance.',
-  };
 }

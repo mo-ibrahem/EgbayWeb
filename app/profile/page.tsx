@@ -93,7 +93,7 @@ function ProfileContent() {
           .from('chat_rooms').select('id, participant_ids').contains('participant_ids', [user.id]);
         if (rooms?.length) {
           const otherIds = rooms.map(r => r.participant_ids.find((p: string) => p !== user.id)).filter(Boolean);
-          const { data: profiles } = await supabase.from('user_profiles').select('id, full_name, avatar_url').in('id', otherIds);
+          const { data: profiles } = await supabase.from('public_profiles').select('id, full_name, avatar_url').in('id', otherIds);
           const chatList: ChatRoom[] = await Promise.all(rooms.map(async (room) => {
             const otherId = room.participant_ids.find((p: string) => p !== user.id);
             const otherProfile = profiles?.find((p: {id: string}) => p.id === otherId);

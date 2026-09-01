@@ -4,7 +4,6 @@ import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
-import { MarketplaceOrder } from '@/lib/orderService';
 import { CheckCircle2, ShieldCheck, ArrowRight, Package, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import SmartImage from '@/components/SmartImage';
 import { useLanguage } from '@/components/LanguageProvider';
@@ -17,13 +16,22 @@ function formatEGP(amount: number, isRTL: boolean) {
   }).format(amount);
 }
 
+interface OrderStatusSummary {
+  id: string;
+  buyer_id: string;
+  status: string;
+  created_at: string;
+  amount: number;
+  handover_method: 'courier' | 'qr_meetup';
+}
+
 function OrderSuccessContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { isRTL } = useLanguage();
   const orderId = searchParams.get('orderId');
 
-  const [order, setOrder] = useState<MarketplaceOrder | null>(null);
+  const [order, setOrder] = useState<OrderStatusSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
   const [plaintextPin, setPlaintextPin] = useState<string | null>(null);
@@ -44,9 +52,15 @@ function OrderSuccessContent() {
           return;
         }
 
+        // Explicit column list -- never select('*') on orders from the
+        // client. handover_pin_hash/handover_pin_encrypted must not be
+        // readable directly (a seller could otherwise read the hash for
+        // an order they're on and brute-force the 6-digit PIN offline);
+        // the buyer-only decrypted PIN is delivered exclusively via
+        // /api/orders, not via a direct table select.
         const { data: fetchedOrder, error: fetchErr } = await supabase
           .from('orders')
-          .select('*, product:products(*)')
+          .select('id, buyer_id, status, created_at, amount, handover_method')
           .eq('id', orderId)
           .single();
         

@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
   ArrowLeft, Zap, Sparkles, CheckCircle2, AlertCircle,
-  Crown, Flame, Wallet, CreditCard, ShieldCheck, ChevronRight
+  Crown, Flame, Wallet, ChevronRight
 } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { useLanguage } from '@/components/LanguageProvider';
@@ -14,26 +14,20 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import { productService, formatEGP, type Product } from '@/lib/products';
 import { getUserWallet, type UserWallet } from '@/lib/walletService';
 import { BOOST_PACKAGES, boostProduct, type BoostPackage } from '@/lib/boostService';
-import { startPaymobCheckoutSession } from '@/lib/paymobService';
 
 function BoostProductContent() {
   const { productId } = useParams<{ productId: string }>();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { user, loading: authLoading } = useAuth();
   const { isRTL } = useLanguage();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [wallet, setWallet] = useState<UserWallet | null>(null);
   const [selectedPkg, setSelectedPkg] = useState<'urgent' | 'featured' | 'turbo'>('featured');
-  const [paymentSource, setPaymentSource] = useState<'wallet_balance' | 'paymob'>('wallet_balance');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  // Paymob iFrame Modal
-  const [paymobIframeUrl, setPaymobIframeUrl] = useState('');
-  const [showPaymobModal, setShowPaymobModal] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -49,19 +43,6 @@ function BoostProductContent() {
         if (!p) { router.push('/profile'); return; }
         setProduct(p);
         setWallet(w);
-
-        // Check if returning from Paymob 3D-Secure
-        const isSuccess = searchParams.get('success') === 'true' || searchParams.get('txn_response_code') === 'APPROVED';
-        const txId = searchParams.get('order') || searchParams.get('id');
-        if (isSuccess && txId) {
-          const dedupeKey = `paymob_boost_confirmed_${txId}`;
-          if (!sessionStorage.getItem(dedupeKey)) {
-            sessionStorage.setItem(dedupeKey, '1');
-            await boostProduct(productId, user.id, selectedPkg, 'paymob');
-          }
-          setSuccess(true);
-          setTimeout(() => router.push(`/products/${productId}`), 2500);
-        }
       } catch (e) {
         console.error(e);
         router.push('/profile');
@@ -69,7 +50,7 @@ function BoostProductContent() {
         setLoading(false);
       }
     })();
-  }, [productId, user, authLoading, router, searchParams, selectedPkg]);
+  }, [productId, user, authLoading, router]);
 
   const currentPkg = BOOST_PACKAGES[selectedPkg];
   const walletAvailable = Number(wallet?.available_balance || 0);
@@ -80,39 +61,13 @@ function BoostProductContent() {
     setSubmitting(true);
     setErrorMsg('');
 
-    if (paymentSource === 'wallet_balance') {
-      try {
-        await boostProduct(product.id, user.id, selectedPkg, 'wallet_balance');
-        setSuccess(true);
-        setTimeout(() => router.push(`/products/${product.id}`), 2000);
-      } catch (err: any) {
-        setErrorMsg(err?.message || (isRTL ? 'تعذر تفعيل باقة الترويج' : 'Failed to apply boost package'));
-        setSubmitting(false);
-      }
-    } else {
-      // Paymob Direct Card Flow
-      try {
-        const nameParts = (user.user_metadata?.full_name || 'Seller Owner').split(' ');
-        const session = await startPaymobCheckoutSession({
-          purpose: 'boost',
-          referenceId: product.id,
-          tier: selectedPkg,
-          billingData: {
-            first_name: nameParts[0] || 'Seller',
-            last_name: nameParts[1] || 'Owner',
-            email: user.email || 'seller@egbay.market',
-            phone_number: '+201000000000',
-            city: 'Cairo',
-            state: 'Cairo',
-          },
-        });
-        setPaymobIframeUrl(session.iframeUrl);
-        setShowPaymobModal(true);
-      } catch (err: any) {
-        setErrorMsg(err?.message || (isRTL ? 'فشل بدء جلسة الدفع' : 'Failed to initiate Paymob session'));
-      } finally {
-        setSubmitting(false);
-      }
+    try {
+      await boostProduct(product.id, selectedPkg);
+      setSuccess(true);
+      setTimeout(() => router.push(`/products/${product.id}`), 2000);
+    } catch (err: any) {
+      setErrorMsg(err?.message || (isRTL ? 'تعذر تفعيل باقة الترويج' : 'Failed to apply boost package'));
+      setSubmitting(false);
     }
   };
 
@@ -235,53 +190,25 @@ function BoostProductContent() {
         })}
       </div>
 
-      {/* Payment Selection */}
+      {/* Payment Source — wallet balance only. Card checkout for boosts is
+          not offered: there is no backend activation path for a card-paid
+          boost, so offering it would charge sellers for nothing. */}
       <div className="bg-white rounded-3xl border border-gray-100 p-6 shadow-sm space-y-4 mb-6">
         <h3 className="text-sm font-bold text-gray-900">
           {isRTL ? 'طريقة الدفع' : 'Payment Source'}
         </h3>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <button
-            type="button"
-            onClick={() => setPaymentSource('wallet_balance')}
-            className={`p-4 rounded-2xl border-2 text-left rtl:text-right transition-all ${
-              paymentSource === 'wallet_balance'
-                ? 'border-blue-600 bg-blue-50/50'
-                : 'border-gray-100 hover:border-gray-200'
-            }`}
-          >
-            <div className="flex items-center gap-2 mb-1">
-              <Wallet className="w-4 h-4 text-blue-600" />
-              <span className="font-bold text-xs text-gray-900">
-                {isRTL ? 'رصيد محفظة إيجي باي' : 'Spendable Wallet Balance'}
-              </span>
-            </div>
-            <p className="text-xs text-gray-500">
-              {isRTL ? 'المتاح:' : 'Available:'} <strong>{isRTL ? `${walletAvailable.toLocaleString('ar-EG')} ج.م` : `EGP ${walletAvailable.toLocaleString('en-EG')}`}</strong>
-              {!hasEnoughWallet && <span className="text-rose-500 ml-1">({isRTL ? 'غير كافٍ' : 'Insufficient'})</span>}
-            </p>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setPaymentSource('paymob')}
-            className={`p-4 rounded-2xl border-2 text-left rtl:text-right transition-all ${
-              paymentSource === 'paymob'
-                ? 'border-blue-600 bg-blue-50/50'
-                : 'border-gray-100 hover:border-gray-200'
-            }`}
-          >
-            <div className="flex items-center gap-2 mb-1">
-              <CreditCard className="w-4 h-4 text-blue-600" />
-              <span className="font-bold text-xs text-gray-900">
-                {isRTL ? 'بطاقة بنكية (فيزا / ماستركارد)' : 'Credit / Debit Card'}
-              </span>
-            </div>
-            <p className="text-xs text-gray-500">
-              {isRTL ? 'دفع فوري آمن عبر Paymob' : 'Instant direct card charge via Paymob'}
-            </p>
-          </button>
+        <div className="p-4 rounded-2xl border-2 border-blue-600 bg-blue-50/50 text-left rtl:text-right">
+          <div className="flex items-center gap-2 mb-1">
+            <Wallet className="w-4 h-4 text-blue-600" />
+            <span className="font-bold text-xs text-gray-900">
+              {isRTL ? 'رصيد محفظة إيجي باي' : 'Spendable Wallet Balance'}
+            </span>
+          </div>
+          <p className="text-xs text-gray-500">
+            {isRTL ? 'المتاح:' : 'Available:'} <strong>{isRTL ? `${walletAvailable.toLocaleString('ar-EG')} ج.م` : `EGP ${walletAvailable.toLocaleString('en-EG')}`}</strong>
+            {!hasEnoughWallet && <span className="text-rose-500 ml-1">({isRTL ? 'غير كافٍ — يرجى شحن المحفظة أولاً' : 'Insufficient — top up your wallet first'})</span>}
+          </p>
         </div>
       </div>
 
@@ -289,7 +216,7 @@ function BoostProductContent() {
       <div className="flex justify-end">
         <button
           onClick={handleBoost}
-          disabled={submitting || (paymentSource === 'wallet_balance' && !hasEnoughWallet)}
+          disabled={submitting || !hasEnoughWallet}
           className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 text-white font-bold px-8 py-3.5 rounded-2xl text-sm transition-all shadow-lg shadow-blue-500/25 flex items-center gap-2"
         >
           <Zap className="w-4 h-4" />
@@ -298,60 +225,6 @@ function BoostProductContent() {
             : (isRTL ? `ترويج الإعلان الآن بمبلغ ${currentPkg.priceEGP} ج.م` : `Boost Now for EGP ${currentPkg.priceEGP}`)}
         </button>
       </div>
-
-      {/* ── Paymob Card Payment Modal for Boost ─────────────────── */}
-      {showPaymobModal && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-white w-full sm:max-w-lg sm:rounded-3xl rounded-t-3xl flex flex-col overflow-hidden shadow-2xl"
-               style={{ height: '85vh', maxHeight: 680 }}>
-            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 flex-shrink-0">
-              <div>
-                <h3 className="font-black text-slate-900 text-sm flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-blue-600" />
-                  {isRTL ? 'الدفع الآمن لترويج الإعلان' : 'Secure Boost Checkout'}
-                </h3>
-                <p className="text-[11px] text-slate-400 mt-0.5">
-                  {currentPkg.title} · EGP {currentPkg.priceEGP}
-                </p>
-              </div>
-              <button
-                onClick={() => { setShowPaymobModal(false); setPaymobIframeUrl(''); }}
-                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-800 transition-colors text-lg font-light"
-                aria-label="Close"
-              >
-                ×
-              </button>
-            </div>
-            <iframe
-              src={paymobIframeUrl}
-              className="flex-1 w-full border-0"
-              title="Paymob Boost Payment"
-            />
-            <div className="p-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-3 flex-shrink-0">
-              <div className="flex items-center gap-2 text-xs text-slate-600">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                <span className="text-[11px]">
-                  {isRTL ? 'بعد ظهور علامة Approved، اضغط لتفعيل الترويج' : 'After "Approved", click to activate your boost'}
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={async () => {
-                  setShowPaymobModal(false);
-                  if (product && user) {
-                    await boostProduct(product.id, user.id, selectedPkg, 'paymob');
-                    setSuccess(true);
-                    setTimeout(() => router.push(`/products/${product.id}`), 2000);
-                  }
-                }}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1.5 flex-shrink-0"
-              >
-                <span>{isRTL ? 'تم الدفع بنجاح ✅' : 'I Paid — Done ✅'}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

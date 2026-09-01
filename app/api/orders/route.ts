@@ -212,8 +212,12 @@ export async function POST(req: Request) {
           return NextResponse.json({ success: false, error: 'Invalid Handover PIN' }, { status: 403 });
         }
       } else if (order.handover_method === 'courier') {
-        if (isSellerApproval || isBuyerApproval) {
-          return NextResponse.json({ success: false, error: 'Buyers and sellers cannot manually release courier escrow. The courier must confirm delivery with the PIN.' }, { status: 403 });
+        // Interim model pending real courier (Bosta) integration: the
+        // buyer confirms their own delivery, matching what release_escrow
+        // already enforces at the database layer. Sellers cannot release
+        // their own courier orders.
+        if (isSellerApproval) {
+          return NextResponse.json({ success: false, error: 'Sellers cannot release courier escrow. The buyer must confirm delivery.' }, { status: 403 });
         }
       }
 

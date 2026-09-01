@@ -6,7 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import {
   ArrowLeft, ShieldCheck, Truck, QrCode, CreditCard,
-  Smartphone, Wallet, CheckCircle2, AlertCircle, MapPin,
+  Wallet, CheckCircle2, AlertCircle, MapPin,
   Lock, ChevronRight, Package, User, Sparkles
 } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
@@ -14,7 +14,7 @@ import { useLanguage } from '@/components/LanguageProvider';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { productService, formatEGP, type Product } from '@/lib/products';
 import { getUserWallet, deductWalletSpendableFunds, type UserWallet } from '@/lib/walletService';
-import { createMarketplaceOrder, confirmOrderPayment } from '@/lib/orderService';
+import { createMarketplaceOrder, COURIER_DELIVERY_FEE_EGP } from '@/lib/orderService';
 import { startPaymobCheckoutSession } from '@/lib/paymobService';
 import SmartImage from '@/components/SmartImage';
 import { supabase } from '@/lib/supabase';
@@ -49,7 +49,6 @@ function CheckoutContent() {
   const [useWalletBalance, setUseWalletBalance] = useState(true);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [orderComplete, setOrderComplete] = useState(false);
   const [createdOrderId, setCreatedOrderId] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   // Paymob iFrame modal
@@ -58,7 +57,6 @@ function CheckoutContent() {
 
   // Form
   const [deliveryMethod, setDeliveryMethod] = useState<'courier' | 'qr_meetup'>('courier');
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'instapay' | 'cod'>('card');
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [governorate, setGovernorate] = useState('Cairo');
@@ -81,15 +79,13 @@ function CheckoutContent() {
         setWallet(w);
         setFullName(user.user_metadata?.full_name || '');
 
-        // Check if returning from Paymob 3D-Secure
+        // Check if returning from Paymob 3D-Secure. We never mark the order
+        // paid client-side here — /orders/success fetches the real order
+        // status from the server (the payment webhook is the only thing
+        // authorized to move an order out of pending_payment).
         const isSuccess = searchParams.get('success') === 'true' || searchParams.get('txn_response_code') === 'APPROVED';
         const txOrderId = searchParams.get('order') || searchParams.get('merchant_order_id') || searchParams.get('id');
         if (isSuccess && txOrderId) {
-          const dedupeKey = `paymob_order_confirmed_${txOrderId}`;
-          if (!sessionStorage.getItem(dedupeKey)) {
-            sessionStorage.setItem(dedupeKey, '1');
-            await confirmOrderPayment(txOrderId);
-          }
           router.push(`/orders/success?orderId=${txOrderId}`);
         }
       } catch (e) {
@@ -101,12 +97,17 @@ function CheckoutContent() {
     })();
   }, [id, user, authLoading, router, searchParams]);
 
-  const deliveryFee = deliveryMethod === 'courier' ? 65 : 0;
+  const deliveryFee = deliveryMethod === 'courier' ? COURIER_DELIVERY_FEE_EGP : 0;
   const itemPrice = Number(product?.price || 0);
   const totalPrice = itemPrice + deliveryFee;
   const walletAvailable = Number(wallet?.available_balance || 0);
-  const walletDeduction = useWalletBalance ? Math.min(walletAvailable, totalPrice) : 0;
-  const remainingDue = Math.max(0, totalPrice - walletDeduction);
+  // Wallet payment only covers checkout when it can pay the FULL total —
+  // the backend has no split-payment support (a partial wallet deduction
+  // plus a card charge for the remainder), so we never offer or imply one.
+  const canPayFullyWithWallet = walletAvailable >= totalPrice && totalPrice > 0;
+  const payingWithWallet = useWalletBalance && canPayFullyWithWallet;
+  const walletDeduction = payingWithWallet ? totalPrice : 0;
+  const remainingDue = payingWithWallet ? 0 : totalPrice;
 
   // Clear existing order ID if the user changes any shipping or checkout parameters
   // so we don't accidentally check out an old row with outdated address info.
@@ -162,9 +163,10 @@ function CheckoutContent() {
       }
 
       // Wallet deduction is handled purely by the final /api/wallet/action endpoint
-      // for 100% wallet checkout. Split payments are not supported by the backend.
+      // for 100% wallet checkout. Split payments are not supported by the backend,
+      // so payingWithWallet is only true when the wallet covers the full total.
 
-      if (useWalletBalance && remainingDue === 0) {
+      if (payingWithWallet) {
         // 100% wallet — process order confirmation & escrow credit via secure server API
         try {
           const { data: { session } } = await supabase.auth.getSession();
@@ -267,7 +269,7 @@ function CheckoutContent() {
                     <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center">
                       <Truck className="w-4 h-4" />
                     </div>
-                    <span className="text-xs font-black text-blue-700">65 EGP</span>
+                    <span className="text-xs font-black text-blue-700">{COURIER_DELIVERY_FEE_EGP} EGP</span>
                   </div>
                   <div>
                     <h4 className="text-xs font-bold text-slate-900">
@@ -400,67 +402,48 @@ function CheckoutContent() {
                 {isRTL ? '٣. طريقة الدفع لحساب الضمان' : '3. Escrow Payment Method'}
               </h2>
 
-              {/* Wallet deduction toggle if available */}
+              {/* Wallet balance toggle — only usable when it covers the full
+                  total. The backend has no split-payment support, so we
+                  never offer a partial wallet deduction plus a card charge
+                  for the remainder. */}
               {walletAvailable > 0 && (
-                <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200/80 flex items-center justify-between">
+                <div className={`p-4 rounded-2xl border flex items-center justify-between ${
+                  canPayFullyWithWallet
+                    ? 'bg-emerald-50/70 border-emerald-200/80'
+                    : 'bg-slate-50 border-slate-200 opacity-70'
+                }`}>
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center">
+                    <div className={`w-8 h-8 rounded-xl text-white flex items-center justify-center ${canPayFullyWithWallet ? 'bg-emerald-600' : 'bg-slate-400'}`}>
                       <Wallet className="w-4 h-4" />
                     </div>
                     <div>
-                      <h4 className="text-xs font-bold text-emerald-950">
+                      <h4 className={`text-xs font-bold ${canPayFullyWithWallet ? 'text-emerald-950' : 'text-slate-600'}`}>
                         {isRTL ? 'استخدام رصيد محفظة إيجي باي' : 'Use EgyBay Wallet Balance'}
                       </h4>
-                      <p className="text-[11px] text-emerald-700">
+                      <p className={`text-[11px] ${canPayFullyWithWallet ? 'text-emerald-700' : 'text-slate-500'}`}>
                         {isRTL ? `المتاح: ${formatEGP(walletAvailable)}` : `Available: ${formatEGP(walletAvailable)}`}
+                        {!canPayFullyWithWallet && (isRTL ? ' — غير كافٍ لتغطية كامل المبلغ، سيتم الدفع بالبطاقة' : ' — not enough to cover the full total, so this order will be paid by card')}
                       </p>
                     </div>
                   </div>
                   <input
                     type="checkbox"
-                    checked={useWalletBalance}
+                    checked={payingWithWallet}
+                    disabled={!canPayFullyWithWallet}
                     onChange={e => setUseWalletBalance(e.target.checked)}
-                    className="w-4 h-4 accent-emerald-600 rounded"
+                    className="w-4 h-4 accent-emerald-600 rounded disabled:opacity-40"
                   />
                 </div>
               )}
 
               {remainingDue > 0 && (
-                <div className="space-y-2">
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod('card')}
-                      className={`p-3.5 rounded-2xl border-2 flex items-center gap-3 transition-all ${
-                        paymentMethod === 'card'
-                          ? 'border-blue-600 bg-blue-50/50'
-                          : 'border-slate-200 hover:border-slate-300'
-                      }`}
-                    >
-                      <CreditCard className="w-5 h-5 text-blue-600" />
-                      <div className="text-left rtl:text-right">
-                        <p className="text-xs font-bold text-slate-900">
-                          {isRTL ? 'بطاقة بنكية' : 'Bank Card'}
-                        </p>
-                        <p className="text-[10px] text-slate-400">Visa / Mastercard</p>
-                      </div>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod('instapay')}
-                      className={`p-3.5 rounded-2xl border-2 flex items-center gap-3 transition-all ${
-                        paymentMethod === 'instapay'
-                          ? 'border-blue-600 bg-blue-50/50'
-                          : 'border-slate-200 hover:border-slate-300'
-                      }`}
-                    >
-                      <Smartphone className="w-5 h-5 text-indigo-600" />
-                      <div className="text-left rtl:text-right">
-                        <p className="text-xs font-bold text-slate-900">InstaPay</p>
-                        <p className="text-[10px] text-slate-400">{isRTL ? 'تحويل فوري' : 'Direct IPA Transfer'}</p>
-                      </div>
-                    </button>
+                <div className="p-3.5 rounded-2xl border-2 border-blue-600 bg-blue-50/50 flex items-center gap-3">
+                  <CreditCard className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                  <div className="text-left rtl:text-right">
+                    <p className="text-xs font-bold text-slate-900">
+                      {isRTL ? 'بطاقة بنكية عبر Paymob' : 'Bank Card via Paymob'}
+                    </p>
+                    <p className="text-[10px] text-slate-400">Visa / Mastercard · {formatEGP(remainingDue)}</p>
                   </div>
                 </div>
               )}
@@ -470,7 +453,7 @@ function CheckoutContent() {
               type="submit"
               disabled={submitting}
               className={`w-full text-white font-black py-4 rounded-2xl transition-all shadow-lg flex items-center justify-center gap-2 text-sm ${
-                remainingDue === 0
+                payingWithWallet
                   ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/25'
                   : 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/25'
               }`}
@@ -478,10 +461,8 @@ function CheckoutContent() {
               <ShieldCheck className="w-5 h-5" />
               {submitting
                 ? (isRTL ? 'جاري تأكيد وحجز المبلغ في الضمان...' : 'Securing Funds in Escrow...')
-                : remainingDue === 0
+                : payingWithWallet
                 ? (isRTL ? `⚡ شراء فوري برصيد المحفظة (${formatEGP(totalPrice)})` : `⚡ 1-Click Buy with Wallet Balance (${formatEGP(totalPrice)})`)
-                : walletDeduction > 0
-                ? (isRTL ? `دفع المتبقي ${formatEGP(remainingDue)} بالفيزا (دفع مدمج)` : `Pay Remaining ${formatEGP(remainingDue)} via Card (Split Payment)`)
                 : (isRTL ? `الدفع ببطاقة بنكية ${formatEGP(totalPrice)} (باي موب)` : `Pay ${formatEGP(totalPrice)} via Paymob Card 💳`)}
             </button>
           </form>
@@ -598,7 +579,10 @@ function CheckoutContent() {
                 type="button"
                 onClick={() => {
                   setShowPaymobModal(false);
-                  setOrderComplete(true);
+                  // Navigate to the order status page, which fetches the
+                  // real order from the server. We never mark the order
+                  // paid client-side — only the payment webhook does that.
+                  router.push(`/orders/success?orderId=${createdOrderId}`);
                 }}
                 className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1.5 flex-shrink-0"
               >

@@ -57,7 +57,7 @@ function ChatContent() {
 
         const otherId = room.participant_ids.find((p: string) => p !== user.id);
         if (otherId) {
-          const { data: profile } = await supabase.from('user_profiles').select('full_name, avatar_url').eq('id', otherId).single();
+          const { data: profile } = await supabase.from('public_profiles').select('full_name, avatar_url').eq('id', otherId).single();
           setChatDetails({
             other_user_name: profile?.full_name || (isRTL ? 'مستخدم إيجي باي' : 'EgyBay User'),
             other_user_avatar: profile?.avatar_url,

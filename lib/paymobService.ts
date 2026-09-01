@@ -7,9 +7,8 @@ export interface PaymobSession {
 }
 
 interface StartSessionParams {
-  purpose: 'order' | 'boost';
+  purpose: 'order';
   referenceId: string;
-  tier?: string;
   billingData: {
     first_name: string;
     last_name: string;

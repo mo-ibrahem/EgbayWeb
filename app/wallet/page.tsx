@@ -19,7 +19,6 @@ import {
   getWalletTransactions,
   getPayoutMethods,
   getSellerTier,
-  topUpUserWallet,
   requestPayout,
   SELLER_TIERS,
   type UserWallet,
@@ -27,10 +26,7 @@ import {
   type PayoutMethod,
   type SellerTierConfig,
 } from '@/lib/walletService';
-import { startPaymobCheckoutSession } from '@/lib/paymobService';
-import { confirmOrderPayment } from '@/lib/orderService';
 import { supabase } from '@/lib/supabase';
-import { boostProduct } from '@/lib/boostService';
 
 function WalletContent() {
   const { user } = useAuth();
@@ -229,9 +225,9 @@ function WalletContent() {
 
   const filteredTransactions = transactions.filter(t => {
     if (txFilter === 'all') return true;
-    if (txFilter === 'escrow') return t.type === 'escrow_hold' || t.type === 'escrow_release';
+    if (txFilter === 'escrow') return t.type === 'escrow_hold' || t.type === 'earning';
     if (txFilter === 'top_up') return t.type === 'top_up';
-    if (txFilter === 'payout') return t.type === 'payout';
+    if (txFilter === 'payout') return t.type === 'withdrawal';
     return true;
   });
 
@@ -446,7 +442,7 @@ function WalletContent() {
           ) : (
             <div className="bg-white rounded-2xl border border-slate-200/80 divide-y divide-slate-100 shadow-sm overflow-hidden">
               {filteredTransactions.map(tx => {
-                let isPositive = ['deposit', 'top_up', 'escrow_release'].includes(tx.type);
+                let isPositive = ['top_up', 'earning'].includes(tx.type);
                 if (tx.delta_available !== undefined && tx.delta_available !== null && tx.delta_available !== 0) {
                   isPositive = tx.delta_available > 0;
                 } else if (tx.delta_pending !== undefined && tx.delta_pending !== null && tx.delta_pending !== 0) {

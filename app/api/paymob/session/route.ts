@@ -26,7 +26,7 @@ export async function POST(req: Request) {
 
     const userId = user.id;
     const body = await req.json();
-    const { purpose, referenceId, tier, billingData } = body;
+    const { purpose, referenceId, billingData } = body;
 
     let amountEgp = 0;
     let merchantOrderId = '';
@@ -47,25 +47,11 @@ export async function POST(req: Request) {
       merchantOrderId = order.id;
       itemName = `EgyBay Order #${order.id.slice(-6).toUpperCase()}`;
 
-    } else if (purpose === 'boost') {
-      const { data: product } = await supabaseAdmin
-        .from('products')
-        .select('id, title, seller_id')
-        .eq('id', referenceId)
-        .maybeSingle();
-
-      if (!product) return NextResponse.json({ success: false, error: 'Product not found' }, { status: 404 });
-      if (product.seller_id !== userId) return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
-
-      const boostPrices: Record<string, number> = { urgent: 50, featured: 150, turbo: 300 };
-      const selectedTier = tier || 'featured';
-      
-      amountEgp = boostPrices[selectedTier];
-      if (!amountEgp) return NextResponse.json({ success: false, error: 'Invalid boost tier' }, { status: 400 });
-
-      merchantOrderId = `boost_${product.id}_${selectedTier}_${userId}_${Date.now()}`;
-      itemName = `Boost: ${product.title} (${selectedTier})`;
     } else {
+      // 'boost' is intentionally not offered here: boost purchases are
+      // wallet-balance-only (see /api/boost -> purchase_boost RPC). A
+      // card-paid boost has no activation path on the webhook side, so
+      // offering one would take a seller's money and apply nothing.
       return NextResponse.json({ success: false, error: 'Invalid purpose' }, { status: 400 });
     }
 

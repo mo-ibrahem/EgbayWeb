@@ -105,12 +105,7 @@ export default function ProductDetailPage() {
       } else {
         const { data: created, error } = await supabase
           .from('chat_rooms')
-          .insert({
-            product_id: product.id,
-            participant_ids: participants,
-            buyer_id: user.id,
-            seller_id: product.seller_id,
-          })
+          .insert({ participant_ids: participants })
           .select('id')
           .single();
         if (error || !created) throw error;

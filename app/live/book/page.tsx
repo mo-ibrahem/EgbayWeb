@@ -49,6 +49,8 @@ function BookLiveContent() {
         ]);
         setBalance(wallet?.available_balance ?? 0);
         setListings(prods?.filter(p => p.status === 'active') ?? []);
+      } catch (err) {
+        console.error('[LiveBook] Failed to load wallet/listings:', err);
       } finally {
         setLoading(false);
       }
