@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
+import { encryptPin, decryptPin } from '@/lib/encryption';
 import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
 
@@ -61,6 +62,13 @@ export async function GET(req: Request) {
         new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
       );
 
+      const isBuyer = userId === order.buyer_id;
+      const isRecoverableStatus = ['pending_payment', 'escrow_secured', 'shipped', 'out_for_delivery', 'delivered'].includes(order.status);
+      let recoveredPin: string | null = null;
+      if (isBuyer && isRecoverableStatus && order.handover_pin_encrypted) {
+        recoveredPin = decryptPin(order.handover_pin_encrypted);
+      }
+
       return {
         id: order.id,
         product_id: order.product_id,
@@ -70,6 +78,7 @@ export async function GET(req: Request) {
         currency: 'EGP',
         status: order.status,
         handover_method: order.handover_method || notesData.handover_method || 'courier',
+        handover_pin: recoveredPin,
         shipping_address: order.shipping_address,
         product: order.product_snapshot || fallbackProduct,
         tracking_number: notesData.tracking_number,
@@ -104,6 +113,7 @@ export async function POST(req: Request) {
       // Generate secure PIN server-side
       const randomPin = Math.floor(100000 + Math.random() * 900000).toString();
       const pinHash = await bcrypt.hash(randomPin, 10);
+      const encryptedPin = encryptPin(randomPin);
 
       // Execute single, transaction-safe RPC that reserves stock AND creates the order
       const { data: newOrderId, error: rpcError } = await supabaseAdmin
@@ -123,6 +133,12 @@ export async function POST(req: Request) {
         }
         return NextResponse.json({ success: false, error: errMessage }, { status: 400 });
       }
+
+      // Immediately save the encrypted PIN payload. 
+      // We do this outside the RPC to avoid altering complex financial schema logic.
+      await supabaseAdmin.from('orders')
+        .update({ handover_pin_encrypted: encryptedPin })
+        .eq('id', newOrderId);
 
       return NextResponse.json({
         success: true,

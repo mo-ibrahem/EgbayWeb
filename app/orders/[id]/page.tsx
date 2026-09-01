@@ -85,11 +85,15 @@ export default function OrderDetailsPage() {
           setSellerProfile(profile);
         }
 
-        // Load PIN from sessionStorage if buyer
+        // Load PIN from order or sessionStorage if buyer
         if (fetchedOrder.buyer_id === user.id) {
-          const storedPin = sessionStorage.getItem(`egbay_pin_${orderId}`);
-          if (storedPin) {
-            setBuyerPin(storedPin);
+          if (fetchedOrder.handover_pin) {
+            setBuyerPin(fetchedOrder.handover_pin);
+          } else {
+            const storedPin = sessionStorage.getItem(`egbay_pin_${orderId}`);
+            if (storedPin) {
+              setBuyerPin(storedPin);
+            }
           }
         }
       } catch (err: any) {
@@ -205,8 +209,8 @@ export default function OrderDetailsPage() {
   // 2. TIMELINE LOGIC
   const timelineSteps = [
     { id: 'payment', label: isRTL ? 'الدفع مضمون' : 'Payment Secured', desc: isRTL ? 'أموالك محمية في الضمان' : 'Your payment is protected in escrow.', active: true },
-    { id: 'dispatch', label: isRTL ? 'تنسيق الطلب' : (isMeetup ? 'Meetup Arranged' : 'Awaiting Dispatch'), desc: isRTL ? 'جاري تجهيز طلبك' : 'The seller is preparing your order.', active: ['shipped', 'out_for_delivery', 'delivered', 'completed'].includes(order.status) || !!order.tracking_number },
-    { id: 'transit', label: isRTL ? 'في الطريق' : (isMeetup ? 'Handover' : 'In Transit'), desc: isRTL ? 'الطلب في طريقه إليك' : 'Your order is on the way.', active: ['shipped', 'out_for_delivery', 'delivered', 'completed'].includes(order.status) && (isMeetup || !!order.tracking_number) },
+    { id: 'dispatch', label: isRTL ? 'تنسيق الطلب' : (isMeetup ? 'Meetup Arranged' : 'Awaiting Dispatch'), desc: isRTL ? 'جاري تجهيز طلبك' : 'The seller is preparing your order.', active: ['escrow_secured', 'shipped', 'out_for_delivery', 'delivered', 'completed'].includes(order.status) },
+    { id: 'transit', label: isRTL ? 'في الطريق' : (isMeetup ? 'Handover' : 'In Transit'), desc: isRTL ? 'الطلب في طريقه إليك' : 'Your order is on the way.', active: ['shipped', 'out_for_delivery', 'delivered', 'completed'].includes(order.status) },
     { id: 'delivered', label: isRTL ? 'تم التوصيل' : 'Delivered', desc: isRTL ? 'تم توصيل الطلب' : 'The item has been delivered.', active: ['delivered', 'completed'].includes(order.status) },
     { id: 'completed', label: isRTL ? 'مكتمل' : 'Completed', desc: isRTL ? 'الطلب مكتمل وتم تحرير الضمان' : 'The order is complete and escrow has been released.', active: order.status === 'completed' },
   ];
@@ -343,8 +347,8 @@ export default function OrderDetailsPage() {
                       <p className="text-rose-200 text-sm font-medium flex items-start gap-3">
                         <AlertTriangle className="w-5 h-5 flex-shrink-0" />
                         {isRTL 
-                          ? 'لدواعي أمنية، يظهر الرمز السري مرة واحدة فقط. إذا فقدته، يرجى مراجعة بريدك الإلكتروني.' 
-                          : 'For your security, the plaintext PIN was only shown immediately after checkout. Check your email receipt if lost.'}
+                          ? 'الرمز السري غير متاح لهذا الطلب (قد يكون الطلب قديماً أو مكتملاً).' 
+                          : 'PIN is no longer available for this order (it may be a legacy order or already completed).'}
                       </p>
                     </div>
                   )}

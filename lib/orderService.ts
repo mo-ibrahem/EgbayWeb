@@ -19,6 +19,7 @@ export interface MarketplaceOrder {
     | 'disputed'
     | 'cancelled';
   handover_method: 'courier' | 'qr_meetup';
+  handover_pin?: string;
   meetup_pin?: string;
   shipping_address?: {
     full_name: string;
