@@ -89,7 +89,13 @@ export async function GET(req: Request) {
       };
     });
 
-    return NextResponse.json({ success: true, orders: mapped });
+    return NextResponse.json({ success: true, orders: mapped }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    });
   } catch (err: any) {
     console.error('[API /api/orders GET] fatal error:', err);
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
@@ -110,18 +116,21 @@ export async function POST(req: Request) {
 
     // Action 1: Create Order
     if (action === 'create' && orderData) {
-      // Generate secure PIN server-side
+      // 1. Generate secure PIN server-side
       const randomPin = Math.floor(100000 + Math.random() * 900000).toString();
       const pinHash = await bcrypt.hash(randomPin, 10);
+      
+      // 2. Encrypt PIN (will throw 500 error before RPC if key is missing)
       const encryptedPin = encryptPin(randomPin);
 
-      // Execute single, transaction-safe RPC that reserves stock AND creates the order
+      // 3. Execute single, transaction-safe RPC that reserves stock AND creates the order
       const { data: newOrderId, error: rpcError } = await supabaseAdmin
         .rpc('create_marketplace_order', {
           p_product_id: orderData.product_id,
           p_buyer_id: userId,
           p_handover_method: orderData.handover_method || 'courier',
           p_handover_pin_hash: pinHash,
+          p_handover_pin_encrypted: encryptedPin,
           p_shipping_address: orderData.shipping_address || null
         });
 
@@ -133,12 +142,6 @@ export async function POST(req: Request) {
         }
         return NextResponse.json({ success: false, error: errMessage }, { status: 400 });
       }
-
-      // Immediately save the encrypted PIN payload. 
-      // We do this outside the RPC to avoid altering complex financial schema logic.
-      await supabaseAdmin.from('orders')
-        .update({ handover_pin_encrypted: encryptedPin })
-        .eq('id', newOrderId);
 
       return NextResponse.json({
         success: true,
