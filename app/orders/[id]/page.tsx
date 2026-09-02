@@ -244,7 +244,7 @@ export default function OrderDetailsPage() {
 
   // 2. TIMELINE LOGIC
   const timelineSteps = [
-    { id: 'payment', label: isRTL ? 'الدفع مضمون' : 'Payment Secured', desc: isRTL ? 'أموالك محمية في الضمان' : 'Your payment is protected in escrow.', active: true },
+    { id: 'payment', label: isRTL ? 'الدفع مضمون' : 'Payment Secured', desc: isRTL ? 'أموالك محمية في الضمان' : 'Your payment is protected in escrow.', active: order.status !== 'pending_payment' },
     { id: 'dispatch', label: isRTL ? 'تنسيق الطلب' : (isMeetup ? 'Meetup Arranged' : 'Awaiting Dispatch'), desc: isRTL ? 'جاري تجهيز طلبك' : 'The seller is preparing your order.', active: ['escrow_secured', 'shipped', 'out_for_delivery', 'delivered', 'completed'].includes(order.status) },
     { id: 'transit', label: isRTL ? 'في الطريق' : (isMeetup ? 'Handover' : 'In Transit'), desc: isRTL ? 'الطلب في طريقه إليك' : 'Your order is on the way.', active: ['shipped', 'out_for_delivery', 'delivered', 'completed'].includes(order.status) },
     { id: 'delivered', label: isRTL ? 'تم التوصيل' : 'Delivered', desc: isRTL ? 'تم توصيل الطلب' : 'The item has been delivered.', active: ['delivered', 'completed'].includes(order.status) },
@@ -286,8 +286,22 @@ export default function OrderDetailsPage() {
         {/* LEFT COLUMN: Main Info */}
         <div className="md:col-span-2 space-y-6">
           
-          {/* 3. ESCROW PROTECTION — HIGH PRIORITY */}
-          {order.status !== 'completed' && order.status !== 'cancelled' && (
+          {/* 3. PAYMENT STATUS — HIGH PRIORITY */}
+          {order.status === 'pending_payment' ? (
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6">
+              <div className="flex items-center gap-3 mb-3">
+                <Clock className="w-6 h-6 text-amber-600" />
+                <h2 className="text-lg font-black text-amber-900 uppercase tracking-wide">
+                  {isRTL ? 'بانتظار تأكيد الدفع' : 'Awaiting Payment Confirmation'}
+                </h2>
+              </div>
+              <p className="text-amber-800 text-sm font-medium leading-relaxed">
+                {isRTL
+                  ? `لم يتم تأكيد استلام مبلغ ${formatEGP(order.amount, isRTL)} بعد. إذا أكملت الدفع للتو، قد يستغرق التأكيد بضع دقائق. إذا لم تكمل الدفع بعد، يرجى إتمامه لتأمين طلبك.`
+                  : `Payment of ${formatEGP(order.amount, isRTL)} has not been confirmed yet. If you just completed checkout, confirmation can take a few minutes. If you haven't paid yet, complete payment to secure your order.`}
+              </p>
+            </div>
+          ) : order.status !== 'completed' && order.status !== 'cancelled' && (
             <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6">
               <div className="flex items-center gap-3 mb-3">
                 <ShieldCheck className="w-6 h-6 text-blue-600" />
@@ -297,8 +311,8 @@ export default function OrderDetailsPage() {
               </div>
               <p className="text-blue-800 text-sm font-medium leading-relaxed mb-4">
                 {formatEGP(order.amount, isRTL)} {isRTL ? 'في أمان بحساب الضمان.' : 'is safely held in escrow.'} <br/>
-                {isRTL 
-                  ? 'لم يستلم البائع أمواله بعد. سيتم تحريرها فقط بعد تأكيد الاستلام.' 
+                {isRTL
+                  ? 'لم يستلم البائع أمواله بعد. سيتم تحريرها فقط بعد تأكيد الاستلام.'
                   : 'The seller has NOT received the funds yet. Funds are released only after the delivery/confirmation requirements are successfully completed.'}
               </p>
               <div className="space-y-2 text-sm text-blue-800 font-medium bg-blue-100/50 p-4 rounded-xl">
@@ -674,10 +688,12 @@ export default function OrderDetailsPage() {
                 <>
                   <div className="flex flex-col">
                     <span className="text-xs text-slate-400 font-medium">{isRTL ? 'شركة الشحن' : 'Courier'}</span>
-                    <span className="text-sm font-bold text-slate-900">{order.courier_name || 'Bosta Express'}</span>
+                    <span className="text-sm font-bold text-slate-900">
+                      {order.courier_name || (isRTL ? 'سيتم تحديدها من قبل البائع' : 'To be arranged by seller')}
+                    </span>
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-xs text-slate-400 font-medium">{isRTL ? 'رقم التتبع (AWB)' : 'AWB / Tracking'}</span>
+                    <span className="text-xs text-slate-400 font-medium">{isRTL ? 'رقم التتبع' : 'Tracking Number'}</span>
                     {order.tracking_number ? (
                       <span className="text-sm font-mono font-bold text-blue-600">{order.tracking_number}</span>
                     ) : (

@@ -63,7 +63,7 @@ export default function CourierSimulatorPage() {
         
         <h1 className="text-2xl font-black text-center text-slate-900 mb-2">Courier Simulator</h1>
         <p className="text-slate-500 text-center mb-8 text-sm">
-          Simulate Bosta lifecycle actions to test escrow behavior.
+          Simulate courier lifecycle actions to test escrow behavior.
         </p>
 
         {success && (
@@ -141,7 +141,7 @@ export default function CourierSimulatorPage() {
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Truck className="w-4 h-4" />}
               Mark Out for Delivery
             </button>
-            <p className="text-[10px] text-slate-400 mt-2 text-center">Requires order to be in 'shipped' state.</p>
+            <p className="text-[10px] text-slate-400 mt-2 text-center">Requires order to be in &apos;shipped&apos; state.</p>
           </div>
 
           <div className="border-t-2 border-dashed border-slate-200 pt-6">
@@ -152,7 +152,7 @@ export default function CourierSimulatorPage() {
             
             <div className="mb-4">
               <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                Buyer's 6-Digit PIN
+                Buyer&apos;s 6-Digit PIN
               </label>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -174,7 +174,7 @@ export default function CourierSimulatorPage() {
               {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
               Verify & Complete Delivery
             </button>
-            <p className="text-[10px] text-slate-400 mt-2 text-center">Requires order to be 'out_for_delivery' and correct PIN.</p>
+            <p className="text-[10px] text-slate-400 mt-2 text-center">Requires order to be &apos;out_for_delivery&apos; and correct PIN.</p>
           </div>
         </div>
       </div>

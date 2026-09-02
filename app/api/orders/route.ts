@@ -2,21 +2,13 @@ export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
 import { encryptPin, decryptPin } from '@/lib/encryption';
-import { createClient } from '@supabase/supabase-js';
+import { createSupabaseAdmin } from '@/lib/adminAuth';
 import bcrypt from 'bcryptjs';
 
-const supabaseUrl =
-  process.env.NEXT_PUBLIC_SUPABASE_URL ||
-  process.env.EXPO_PUBLIC_SUPABASE_URL ||
-  'https://fpqbocohjzwlfcmfropr.supabase.co';
-
-const supabaseKey =
-  process.env.SUPABASE_SERVICE_ROLE_KEY ||
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwcWJvY29oanp3bGZjbWZyb3ByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg5NTkzNDMsImV4cCI6MjA2NDUzNTM0M30.P6atGZ_u0rkbr76qoIBJN5bRGhe2nESQctXoc25d3xU';
-
-const supabaseAdmin = createClient(supabaseUrl, supabaseKey);
+// Financial mutation endpoint -- must run with the real service role or
+// not at all. No anon-key fallback: a silent downgrade here would let
+// RLS quietly gate operations that are supposed to be server-authoritative.
+const supabaseAdmin = createSupabaseAdmin();
 
 async function getAuthenticatedUser(req: Request) {
   const authHeader = req.headers.get('authorization');
@@ -82,7 +74,7 @@ export async function GET(req: Request) {
         shipping_address: order.shipping_address,
         product: order.product_snapshot || fallbackProduct,
         tracking_number: notesData.tracking_number,
-        courier_name: notesData.courier_name || 'Bosta Express (بوسطة مصر)',
+        courier_name: notesData.courier_name || undefined,
         created_at: order.created_at,
         updated_at: order.updated_at,
         events: events
@@ -131,7 +123,8 @@ export async function POST(req: Request) {
           p_handover_method: orderData.handover_method || 'courier',
           p_handover_pin_hash: pinHash,
           p_handover_pin_encrypted: encryptedPin,
-          p_shipping_address: orderData.shipping_address || null
+          p_shipping_address: orderData.shipping_address || null,
+          p_live_session_id: orderData.live_session_id || null
         });
 
       if (rpcError || !newOrderId) {
@@ -292,9 +285,14 @@ export async function POST(req: Request) {
       if (orderErr || !order) {
         return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
       }
-      
-      if (order.seller_id !== userId && order.buyer_id !== userId) {
-         return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 403 });
+
+      // Only the seller ships the order / sets tracking info -- matches
+      // the mark_dispatched action's authorization. Buyers have no
+      // legitimate reason to call this (no UI caller does), and without
+      // this check a buyer could advance their own order's status
+      // directly against the API.
+      if (order.seller_id !== userId) {
+         return NextResponse.json({ success: false, error: 'Unauthorized. Only the seller can update tracking.' }, { status: 403 });
       }
 
       let notesData: any = {};
@@ -303,18 +301,23 @@ export async function POST(req: Request) {
       } catch {}
 
       const newStatus = order.status === 'escrow_secured' ? 'shipped' : order.status;
-      const courier = courier_name || 'Bosta Express (بوسطة مصر)';
-      
+      // The seller arranges their own courier (there is no integrated
+      // logistics partner) and self-reports the carrier name and tracking
+      // number here. Never auto-build a link to a specific real courier's
+      // tracking site from that -- Egbay has no relationship with any
+      // named carrier and can't know which one, if any, the seller
+      // actually used, so a constructed link would point buyers to a real
+      // company's site with a tracking number that company has never
+      // issued.
+      const courier = courier_name || 'Courier (details pending from seller)';
+
       let deliveredAt = notesData.delivered_at;
       let inspectionExpiry = notesData.inspection_expiry_at;
-      
-      const bostaUrl = tracking_number ? `https://bosta.co/tracking/?trackingNumber=${encodeURIComponent(tracking_number)}` : undefined;
 
       const updatedNotes = {
         ...notesData,
         tracking_number,
         courier_name: courier,
-        bosta_tracking_url: bostaUrl,
         delivered_at: deliveredAt,
         inspection_expiry_at: inspectionExpiry,
       };
@@ -332,7 +335,7 @@ export async function POST(req: Request) {
       await supabaseAdmin.from('order_events').insert({
         order_id: orderId,
         event_type: newStatus === 'delivered' ? 'delivered' : 'shipped',
-        payload: { tracking_number, courier_name: courier, bosta_url: bostaUrl }
+        payload: { tracking_number, courier_name: courier }
       });
 
       return NextResponse.json({ success: true, message: 'Tracking updated' });
@@ -360,7 +363,7 @@ export async function POST(req: Request) {
         notesData = typeof order.notes === 'string' ? JSON.parse(order.notes) : order.notes || {};
       } catch {}
       
-      if (order.status !== 'escrow_secured' && order.status !== 'shipped' && order.status !== 'delivered') {
+      if (!['escrow_secured', 'shipped', 'out_for_delivery', 'delivered'].includes(order.status)) {
         return NextResponse.json({ success: false, error: 'Order cannot be disputed in its current state' }, { status: 400 });
       }
 

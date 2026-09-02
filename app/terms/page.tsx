@@ -25,31 +25,28 @@ A. Buyer Payment Holding:
 When a buyer purchases an item, funds are immediately secured in a neutral escrow holding ledger. The seller is notified to prepare and dispatch the item.
 
 B. Courier & In-Person PIN Verification:
-• Courier Delivery (Bosta): Upon delivery, the buyer receives a 24-hour inspection window to verify that the item matches the seller's photos and description.
-• In-Person Meetup: The buyer inspects the item physically, and upon total satisfaction, provides the confidential 4-digit PIN to the seller to authorize instantaneous fund release.
+• Courier Delivery: The seller arranges delivery via a courier of their choice. Upon delivery, the buyer verifies that the item matches the seller's photos and description and confirms receipt to release funds.
+• In-Person Meetup: The buyer inspects the item physically, and upon total satisfaction, provides the confidential 6-digit PIN to the seller to authorize instantaneous fund release.
 
 C. Seller Payout Execution:
-Upon PIN confirmation or inspection window expiry without dispute, seller net proceeds are transferred directly to their registered Egyptian payout method:
+Upon PIN confirmation (in-person meetup) or the buyer confirming receipt (courier delivery), seller net proceeds are transferred directly to their registered Egyptian payout method:
 • InstaPay (Instant Transfer via IPA)
 • Vodafone Cash / Smart Wallet (Same-Day)
 • Egyptian Bank IBAN (1–2 Business Days)
 
 D. Fee Structure:
-EgyBay charges a transparent marketplace platform commission (between 3% to 6%) automatically deducted from the seller's gross payout. There are no hidden fees.`,
+EgyBay charges a transparent marketplace platform commission (between 1.5% and 3.5%, depending on seller tier) automatically deducted from the seller's gross payout, plus a card processing fee (2.75% + 3 EGP) for card-paid orders only -- wallet-balance payments have no processing fee. There are no hidden fees.`,
     },
     {
       id: 'disputes',
-      title: '3. Inspection Window & Dispute Resolution',
-      content: `A. 24-Hour Buyer Inspection Window:
-Buyers are entitled to thoroughly test and inspect delivered goods within 24 hours of package receipt.
+      title: '3. Buyer Protection & Dispute Resolution',
+      content: `A. Filing a Dispute:
+Before confirming receipt or releasing funds, buyers may inspect the delivered item. If it is counterfeit, damaged in transit, or significantly not as described, the buyer can open a dispute from their order page with a written explanation of the issue. Once a buyer confirms receipt (courier) or releases funds via PIN (in-person meetup), the transaction is final and can no longer be disputed.
 
-B. Filing a Dispute:
-If an item is counterfeit, damaged in transit, or significantly not as described, the buyer must click "Open Dispute" before the inspection window closes and upload clear photographic or video evidence.
-
-C. Mediation & Refund Protocol:
-• Escrow funds remain frozen during active dispute reviews.
-• EgyBay's compliance team assesses courier weight logs, condition evidence, and chat records within 48 business hours.
-• In the event of a justified return, a return courier pickup is scheduled, and 100% of the item price is refunded to the buyer's original payment method upon return confirmation.`,
+B. Mediation & Refund Protocol:
+• Escrow funds remain frozen for the entire duration of an open dispute.
+• EgyBay's team reviews both the buyer's and seller's account of events and resolves the dispute directly.
+• If the dispute is resolved in the buyer's favor, the escrowed amount is refunded to the buyer's EgyBay wallet balance. If resolved in the seller's favor, the escrowed amount is released to the seller as normal.`,
     },
     {
       id: 'prohibited',
@@ -99,31 +96,28 @@ Sellers must dispatch sold items via our integrated courier partner within 48 ho
 عند قيام المشتري بالطلب، يتم تجميد المبلغ في حساب ضمان آمن ومحايد وإخطار البائع لتجهيز وشحن السلعة.
 
 ب. التحقق عند التسليم (شحن أو تسليم يدوي):
-• التوصيل عبر الشحن (بوسطة): يحصل المشتري على مهلة فحص لمدة ٢٤ ساعة للتأكد من مطابقة السلعة للوصف والصور.
-• التسليم اليدوي: يعاين المشتري السلعة بنفسه، وعند الرضا التام يسلّم كود الـ PIN المكون من ٤ أرقام للبائع لتحرير المبلغ فوراً.
+• التوصيل عبر الشحن: يقوم البائع بترتيب الشحن عبر شركة الشحن التي يختارها. عند استلام الطلب، يتحقق المشتري من مطابقة السلعة للوصف والصور ثم يؤكد الاستلام لتحرير المبلغ.
+• التسليم اليدوي: يعاين المشتري السلعة بنفسه، وعند الرضا التام يسلّم كود الـ PIN المكون من ٦ أرقام للبائع لتحرير المبلغ فوراً.
 
 ج. تحويل مستحقات البائع:
-بمجرد إدخال كود PIN أو انتهاء مهلة الفحص دون نزاع، يتم تحويل صافي أرباح البائع مباشرة عبر:
+بمجرد إدخال كود الـ PIN (تسليم يدوي) أو تأكيد المشتري للاستلام (شحن)، يتم تحويل صافي أرباح البائع مباشرة عبر:
 • إنستاباي (InstaPay IPA) — تحويل فوري
 • فودافون كاش والمحافظ الذكية — في نفس اليوم
 • الحساب البنكي (IBAN) — خلال يوم إلى يومي عمل
 
 د. هيكل العمولات:
-تخصم إيجي باي عمولة منصة شفافة (بين ٣٪ إلى ٦٪) تُقتطع تلقائياً من إجمالي مبلغ البيع دون أي رسوم خفية.`,
+تخصم إيجي باي عمولة منصة شفافة (بين ١.٥٪ و٣.٥٪ حسب مستوى البائع) تُقتطع تلقائياً من إجمالي مبلغ البيع، بالإضافة إلى رسوم معالجة الدفع بالبطاقة (٢.٧٥٪ + ٣ جنيه) للطلبات المدفوعة بالبطاقة فقط -- الدفع من رصيد المحفظة بدون أي رسوم معالجة. لا توجد أي رسوم خفية أخرى.`,
     },
     {
       id: 'disputes',
-      title: '٣. مهلة الفحص وسياسة حل النزاعات والاسترجاع',
-      content: `أ. مهلة الفحص (٢٤ ساعة):
-يحق للمشتري فحص وتجربة السلعة المستلمة خلال ٢٤ ساعة من تاريخ الاستلام من مندوب الشحن.
+      title: '٣. حماية المشتري وحل النزاعات',
+      content: `أ. فتح نزاع رسمي:
+قبل تأكيد الاستلام أو تحرير المبلغ، يحق للمشتري فحص السلعة المستلمة. إذا كانت مقلدة، تالفة، أو غير مطابقة للوصف، يمكنه فتح نزاع من صفحة الطلب مع توضيح كتابي للمشكلة. بمجرد تأكيد المشتري للاستلام (شحن) أو تحرير المبلغ بكود الـ PIN (تسليم يدوي)، تصبح العملية نهائية ولا يمكن فتح نزاع بعدها.
 
-ب. فتح نزاع رسمي:
-إذا كانت السلعة مقلدة، تالفة، أو غير مطابقة للوصف، يجب على المشتري الضغط على "فتح نزاع" قبل انتهاء مهلة الفحص وإرفاق صور أو فيديو يوضح العيب.
-
-ج. إجراءات الفصل والاسترداد:
+ب. إجراءات الفصل والاسترداد:
 • تظل أموال الضمان مجمدة طوال فترة مراجعة النزاع.
-• يفحص فريق الامتثال الأدلة وسجلات الشحن خلال ٤٨ ساعة عمل.
-• في حال إقرار حق الإرجاع، يتم استرجاع السلعة من المشتري ورد ١٠٠٪ من ثمن السلعة لحسابه فوراً.`,
+• يراجع فريق إيجي باي رواية كل من المشتري والبائع ويفصل في النزاع مباشرة.
+• في حال الفصل لصالح المشتري، يُرد المبلغ المحجوز إلى رصيد محفظة المشتري في إيجي باي. وفي حال الفصل لصالح البائع، يُحرر المبلغ للبائع كالمعتاد.`,
     },
     {
       id: 'prohibited',

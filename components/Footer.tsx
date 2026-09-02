@@ -41,7 +41,7 @@ export default function Footer() {
                 {isRTL ? 'شحن سريع لباب البيت' : 'Doorstep Courier Delivery'}
               </h4>
               <p className="text-[11px] text-slate-500 mt-0.5">
-                {isRTL ? 'تغطية لجميع المحافظات مع بوسطة وتسليم يدوي' : 'Nationwide coverage with Bosta & QR Meetups'}
+                {isRTL ? 'تغطية لجميع المحافظات مع شحن أو تسليم يدوي' : 'Nationwide coverage with courier delivery or in-person meetups'}
               </p>
             </div>
           </div>

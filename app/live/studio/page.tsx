@@ -82,35 +82,40 @@ function StudioContent() {
   useEffect(() => {
     if (!sessionId || !user) return;
     (async () => {
-      const sess = await getLiveSessionById(sessionId);
-      if (sess) {
-        setSession(sess);
-        setTotalSales(sess.total_sales_egp || 0);
-      }
-
-      const prods = await productService.getProductsBySeller(user.id);
-      const activeListings = (prods ?? []).filter((p: Product) => p.status === 'active');
-      setListings(activeListings);
-
-      // Initialize default custom live prices
-      const initialPrices: Record<string, string> = {};
-      activeListings.forEach(p => {
-        initialPrices[p.id] = String(p.price || 0);
-      });
-      setCustomLivePrices(initialPrices);
-
-      // Load active pin
-      const activePin = await getActivePinnedProduct(sessionId);
-      if (activePin) {
-        const foundProd = activeListings.find(p => p.id === activePin.product_id);
-        if (foundProd) {
-          setPinnedProduct(foundProd);
-          setPinnedDisplayPrice(activePin.display_price || foundProd.price);
+      try {
+        const sess = await getLiveSessionById(sessionId);
+        if (sess) {
+          setSession(sess);
+          setTotalSales(sess.total_sales_egp || 0);
         }
-      }
 
-      const msgs = await getRecentChatMessages(sessionId);
-      setMessages(msgs);
+        const prods = await productService.getProductsBySeller(user.id);
+        const activeListings = (prods ?? []).filter((p: Product) => p.status === 'active');
+        setListings(activeListings);
+
+        // Initialize default custom live prices
+        const initialPrices: Record<string, string> = {};
+        activeListings.forEach(p => {
+          initialPrices[p.id] = String(p.price || 0);
+        });
+        setCustomLivePrices(initialPrices);
+
+        // Load active pin
+        const activePin = await getActivePinnedProduct(sessionId);
+        if (activePin) {
+          const foundProd = activeListings.find(p => p.id === activePin.product_id);
+          if (foundProd) {
+            setPinnedProduct(foundProd);
+            setPinnedDisplayPrice(activePin.display_price || foundProd.price);
+          }
+        }
+
+        const msgs = await getRecentChatMessages(sessionId);
+        setMessages(msgs);
+      } catch (err: any) {
+        console.error('[Studio] Failed to load session:', err);
+        setError(err?.message || 'Failed to load live session');
+      }
     })();
   }, [sessionId, user]);
 

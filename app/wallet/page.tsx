@@ -43,7 +43,6 @@ function WalletContent() {
   // Modals
   const [topUpOpen, setTopUpOpen] = useState(false);
   const [topUpAmount, setTopUpAmount] = useState('');
-  const [topUpMethod, setTopUpMethod] = useState<'card' | 'vodafone_cash' | 'instapay'>('card');
   const [toppingUp, setToppingUp] = useState(false);
   const [topUpSuccess, setTopUpSuccess] = useState(false);
   // Paymob iFrame Modal for Top-up
@@ -67,6 +66,7 @@ function WalletContent() {
   const [withdrawing, setWithdrawing] = useState(false);
   const [withdrawSuccess, setWithdrawSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [loadError, setLoadError] = useState('');
 
   const loadData = useCallback(async () => {
     if (!user) return;
@@ -85,12 +85,17 @@ function WalletContent() {
         return prev;
       });
       setSellerTier(tier);
+      setLoadError('');
     } catch (e) {
       console.error(e);
+      // Surface this instead of silently showing a $0 wallet with no
+      // transactions -- that would be indistinguishable from a real
+      // empty account.
+      setLoadError(isRTL ? 'تعذر تحميل بيانات المحفظة. حاول مرة أخرى.' : 'Failed to load your wallet data. Please try again.');
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, isRTL]);
 
   // Initial load
   useEffect(() => {
@@ -155,43 +160,41 @@ function WalletContent() {
     if (!user || !topUpAmount || Number(topUpAmount) <= 0) return;
     const amount = Number(topUpAmount);
 
-    if (topUpMethod === 'card') {
-      setToppingUp(true);
-      setErrorMsg('');
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        const res = await fetch('/api/wallet/topup/create', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session?.access_token || ''}`
-          },
-          body: JSON.stringify({ amount })
-        });
-        const data = await res.json();
-        
-        if (!data.success) {
-          throw new Error(data.error || 'Failed to initialize top-up');
-        }
-        
-        sessionStorage.setItem('pending_topup_id', data.topupId);
-        
-        setTopUpOpen(false);
-        setPaymobIframeUrl(data.iframeUrl);
-        setShowPaymobModal(true);
-      } catch (err: any) {
-        setErrorMsg(err?.message || (isRTL ? 'فشل بدء جلسة الدفع' : 'Failed to start payment session'));
-      } finally {
-        setToppingUp(false);
+    // Card via Paymob is the only top-up path: it's the only one with a
+    // real, automated, reconciled backend. A "manual" Vodafone Cash/
+    // InstaPay option used to live here -- it just showed an alert()
+    // asking the user to wire money and email a receipt, with no
+    // tracking record created and no automated way for that money to
+    // ever reach their wallet (the server already 403s the action it
+    // would have used). Removed rather than leave a real user able to
+    // send real money into a dead end.
+    setToppingUp(true);
+    setErrorMsg('');
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch('/api/wallet/topup/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token || ''}`
+        },
+        body: JSON.stringify({ amount })
+      });
+      const data = await res.json();
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to initialize top-up');
       }
-    } else {
-      // Manual Deposit Guide
-      alert(
-        topUpMethod === 'vodafone_cash'
-          ? (isRTL ? 'تحويل فودافون كاش:\nحول المبلغ إلى الرقم 01098765432 ثم أرسل الإيصال إلى support@egbay.market' : 'Vodafone Cash:\nTransfer to 01098765432 and send receipt to support@egbay.market')
-          : (isRTL ? 'تحويل انستاباي:\nحول المبلغ إلى egbay@instapay ثم أرسل الإيصال إلى support@egbay.market' : 'InstaPay IPA:\nTransfer to egbay@instapay and send receipt to support@egbay.market')
-      );
+
+      sessionStorage.setItem('pending_topup_id', data.topupId);
+
       setTopUpOpen(false);
+      setPaymobIframeUrl(data.iframeUrl);
+      setShowPaymobModal(true);
+    } catch (err: any) {
+      setErrorMsg(err?.message || (isRTL ? 'فشل بدء جلسة الدفع' : 'Failed to start payment session'));
+    } finally {
+      setToppingUp(false);
     }
   };
 
@@ -241,6 +244,18 @@ function WalletContent() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
+      {loadError && (
+        <div className="mb-6 bg-rose-50 border border-rose-200 text-rose-700 text-sm p-4 rounded-2xl flex items-center justify-between gap-3">
+          <span>{loadError}</span>
+          <button
+            onClick={() => { setLoading(true); loadData(); }}
+            className="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-colors flex-shrink-0"
+          >
+            {isRTL ? 'إعادة المحاولة' : 'Retry'}
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
@@ -442,7 +457,7 @@ function WalletContent() {
           ) : (
             <div className="bg-white rounded-2xl border border-slate-200/80 divide-y divide-slate-100 shadow-sm overflow-hidden">
               {filteredTransactions.map(tx => {
-                let isPositive = ['top_up', 'earning'].includes(tx.type);
+                let isPositive = ['top_up', 'earning', 'refund'].includes(tx.type);
                 if (tx.delta_available !== undefined && tx.delta_available !== null && tx.delta_available !== 0) {
                   isPositive = tx.delta_available > 0;
                 } else if (tx.delta_pending !== undefined && tx.delta_pending !== null && tx.delta_pending !== 0) {
@@ -545,34 +560,9 @@ function WalletContent() {
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                      {isRTL ? 'طريقة الدفع' : 'Payment Method'}
-                    </label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {[
-                        { id: 'card', label: isRTL ? 'بطاقة بنكية' : 'Debit/Credit Card', icon: CreditCard },
-                        { id: 'instapay', label: 'InstaPay IPA', icon: Smartphone },
-                        { id: 'vodafone_cash', label: 'Vodafone Cash', icon: Smartphone },
-                      ].map(m => {
-                        const Icon = m.icon;
-                        return (
-                          <button
-                            type="button"
-                            key={m.id}
-                            onClick={() => setTopUpMethod(m.id as any)}
-                            className={`p-3 rounded-2xl border-2 text-center text-xs font-bold transition-all ${
-                              topUpMethod === m.id
-                                ? 'border-blue-600 bg-blue-50 text-blue-700'
-                                : 'border-slate-100 hover:border-slate-200 text-slate-600'
-                            }`}
-                          >
-                            <Icon className="w-4 h-4 mx-auto mb-1 text-blue-600" />
-                            {m.label}
-                          </button>
-                        );
-                      })}
-                    </div>
+                  <div className="p-3 rounded-2xl border-2 border-blue-600 bg-blue-50 text-blue-700 flex items-center gap-2 text-xs font-bold">
+                    <CreditCard className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                    {isRTL ? 'الدفع ببطاقة بنكية عبر Paymob' : 'Pay by Debit/Credit Card via Paymob'}
                   </div>
 
                   <button

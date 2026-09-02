@@ -51,7 +51,7 @@ D. Optional KYC Verification Data (For High-Tier Sellers):
       title: '3. Purpose & Legal Basis of Processing',
       content: `We process personal data strictly for legitimate business and transactional purposes:
 • Executing Escrow Transactions: Holding buyer funds safely until doorstep inspection or PIN confirmation, then disbursing payouts to sellers.
-• Logistics & Order Delivery: Sharing accurate delivery addresses and recipient phone numbers with our courier partner (Bosta Express).
+• Logistics & Order Delivery: Sharing your delivery address and phone number with the seller of your order, who is responsible for arranging delivery via a courier of their choice.
 • Fraud Prevention: Detecting prohibited items, unauthorized logins, and lookalike marketplace attempts.
 • Direct Communication: Sending transactional SMS/email receipts, order delivery updates, and customer support resolutions.`,
     },
@@ -62,7 +62,7 @@ D. Optional KYC Verification Data (For High-Tier Sellers):
       content: `EgyBay NEVER sells, rents, or monetizes your personal data or contact details to third-party marketing brokers.
 
 Data is shared strictly with authorized infrastructure partners necessary to fulfill platform operations:
-• Courier Logistics (Bosta Egypt): For parcel dispatch and GPS-assisted doorstep delivery.
+• Sellers: Your delivery address and phone number are shared with the seller of your order so they can arrange courier delivery or an in-person meetup. EgyBay does not currently have an exclusive courier logistics partner -- sellers arrange delivery independently.
 • Payment Processing (Paymob / Central Bank of Egypt Integrations): For card checkout and automated payouts.
 • Cloud Infrastructure (Supabase / AWS Ireland/Frankfurt): Encrypted database storage with automated backups and strict access controls.
 • Legal Authorities: Only when mandated by a legally binding court order or official warrant under Egyptian Law.`,
@@ -133,7 +133,7 @@ Data is shared strictly with authorized infrastructure partners necessary to ful
       title: '٣. كيف نستخدم بياناتك ونحميها',
       content: `نستخدم بياناتك للأغراض المشروعة التالية فقط:
 • تنفيذ الضمان المالي: حجز أموال المشتري حتى فحص المنتج واستلامه، ثم تحويل الأرباح للبائع فور تأكيد كود PIN.
-• الشحن والتوصيل: مشاركة بيانات العنوان ورقم الهاتف مع شركة الشحن المعتمدة (بوسطة Bosta) لتوصيل الطلب.
+• الشحن والتوصيل: مشاركة بيانات العنوان ورقم الهاتف مع البائع، وهو المسؤول عن ترتيب الشحن عبر شركة الشحن التي يختارها.
 • مكافحة الغش والاحتيال: فحص الإعلانات المخالفة ومنع الحسابات الوهمية والسلع المقلدة.
 • الإشعارات الفورية: إرسال تحديثات حالة الطلب والرسائل عبر البريد الإلكتروني والرسائل النصية.`,
     },
@@ -144,7 +144,7 @@ Data is shared strictly with authorized infrastructure partners necessary to ful
       content: `منصة إيجي باي لا تقوم نهائياً ببيع أو تأجير أو مشاركة بياناتك الشخصية مع شركات الإعلانات أو الوسطاء.
 
 تتم مشاركة الحد الأدنى من البيانات الضرورية مع الجهات المعتمدة التالية فقط:
-• شركات الشحن والخدمات اللوجستية (بوسطة مصر Bosta): لغرض تسليم الشحنة للعنوان المحدد.
+• البائعون: نشارك عنوانك ورقم هاتفك مع بائع طلبك ليتمكن من ترتيب الشحن أو تنسيق التسليم اليدوي. لا تتعاقد إيجي باي حالياً مع شركة شحن حصرية -- يقوم كل بائع بترتيب الشحن بشكل مستقل.
 • بوابات الدفع الإلكتروني (Paymob): لمعالجة عمليات الدفع المتوافقة مع معايير PCI-DSS والبنك المركزي المصري.
 • البنية التحتية السحابية (خوادم Supabase المعتمدة): لحفظ قواعد البيانات بتشفير AES-256.
 • الجهات القضائية المصرية: فقط في حال وجود طلب رسمي وملزم قانوناً وفق التشريعات المصرية.`,

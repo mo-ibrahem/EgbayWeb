@@ -52,8 +52,8 @@ export default function LiveDiscoveryPage() {
           </h1>
           <p className="text-sm text-gray-400 max-w-lg mb-6">
             {isRTL
-              ? 'اشترِ مباشرة من التجار الموثوقين عبر بث حي مع حماية الضمان المالي الكاملة وشحن بوسطة.'
-              : 'Buy directly from verified Egyptian sellers via live HD video with 100% escrow protection and Bosta delivery.'}
+              ? 'اشترِ مباشرة من التجار الموثوقين عبر بث حي مع حماية الضمان المالي الكاملة وتوصيل لباب البيت.'
+              : 'Buy directly from verified Egyptian sellers via live HD video with 100% escrow protection and doorstep delivery.'}
           </p>
           <div className="flex flex-wrap gap-3">
             {user && (
@@ -67,7 +67,7 @@ export default function LiveDiscoveryPage() {
             )}
             <div className="flex items-center gap-4 text-xs text-gray-400">
               <span className="flex items-center gap-1"><ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /> {isRTL ? 'ضمان مالي ١٠٠٪' : '100% Escrow'}</span>
-              <span className="flex items-center gap-1"><Package className="w-3.5 h-3.5 text-blue-400" /> {isRTL ? 'شحن بوسطة مصر' : 'Bosta Delivery'}</span>
+              <span className="flex items-center gap-1"><Package className="w-3.5 h-3.5 text-blue-400" /> {isRTL ? 'توصيل لباب البيت' : 'Doorstep Delivery'}</span>
             </div>
           </div>
         </div>
@@ -203,7 +203,7 @@ export default function LiveDiscoveryPage() {
               step: '3',
               icon: ShieldCheck,
               title: isRTL ? 'البيع بضمان — الأرباح للمحفظة' : 'Sell with Escrow — Earn to Wallet',
-              desc: isRTL ? 'كل عملية شراء محمية بالضمان المالي. الأرباح تصل لمحفظتك بعد توصيل بوسطة.' : 'Every purchase is escrow-protected. Earnings reach your wallet after Bosta delivery.',
+              desc: isRTL ? 'كل عملية شراء محمية بالضمان المالي. الأرباح تصل لمحفظتك بعد تأكيد التسليم.' : 'Every purchase is escrow-protected. Earnings reach your wallet after delivery is confirmed.',
               color: '#10B981',
             },
           ].map(item => (

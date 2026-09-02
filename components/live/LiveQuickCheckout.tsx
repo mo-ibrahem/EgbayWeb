@@ -2,13 +2,15 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Link from 'next/link';
 import {
-  ShoppingBag, ShieldCheck, Zap, X, Wallet, CreditCard,
-  MapPin, CheckCircle2, AlertCircle, Loader2, Sparkles, Package
+  ShoppingBag, ShieldCheck, Zap, X, Wallet,
+  MapPin, CheckCircle2, AlertCircle, Loader2, Sparkles, Package, CreditCard
 } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { useLanguage } from '@/components/LanguageProvider';
 import { getUserWallet, deductWalletSpendableFunds, type UserWallet } from '@/lib/walletService';
+import { createMarketplaceOrder, COURIER_DELIVERY_FEE_EGP } from '@/lib/orderService';
 import { sendChatMessage, type LiveSession, type LivePinnedProduct } from '@/lib/liveService';
 
 const formatEGP = (amount: number) => `EGP ${(Number(amount) || 0).toLocaleString('en-EG')}`;
@@ -42,10 +44,9 @@ export default function LiveQuickCheckout({
   const [phone, setPhone] = useState(user?.user_metadata?.phone || '01000000000');
   const [city, setCity] = useState('Cairo');
   const [address, setAddress] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'wallet' | 'card'>('wallet');
 
   const price = pinnedItem.display_price || pinnedItem.product?.price || 0;
-  const deliveryFee = 45; // Standard Bosta Live Delivery flat rate in EGP
+  const deliveryFee = COURIER_DELIVERY_FEE_EGP;
   const totalAmount = price + deliveryFee;
 
   useEffect(() => {
@@ -66,27 +67,48 @@ export default function LiveQuickCheckout({
       return;
     }
 
+    if (!canPayWithWallet) {
+      setError(
+        isRTL
+          ? `رصيد المحفظة غير كافٍ (المتاح: ${formatEGP(availableBalance)}). يمكنك الدفع بالبطاقة من صفحة الدفع الكاملة.`
+          : `Insufficient wallet balance (Available: ${formatEGP(availableBalance)}). Pay by card from the full checkout page instead.`
+      );
+      return;
+    }
+
     setSubmitting(true);
     setError('');
 
     try {
-      if (paymentMethod === 'wallet') {
-        if (!canPayWithWallet) {
-          throw new Error(
-            isRTL
-              ? `رصيد المحفظة غير كافٍ (المتاح: ${formatEGP(availableBalance)}). يرجى شحن المحفظة أو الدفع بالبطاقة.`
-              : `Insufficient wallet balance (Available: ${formatEGP(availableBalance)}). Top up or pay with card.`
-          );
-        }
+      // Create a real order -- the server derives the actual charge from
+      // the product's live-pinned display_price (never trusting the
+      // client), reserves stock, and credits this session's sales
+      // counters atomically. `amount` here is a display estimate only.
+      const order = await createMarketplaceOrder({
+        product_id: pinnedItem.product_id,
+        buyer_id: user.id,
+        seller_id: session.seller_id,
+        amount: totalAmount,
+        handover_method: 'courier',
+        shipping_address: {
+          full_name: fullName || 'Buyer',
+          phone,
+          governorate: city,
+          city,
+          street: address,
+        },
+        product_snapshot: pinnedItem.product
+          ? { id: pinnedItem.product.id, title: pinnedItem.product.title, price, images: pinnedItem.product.images, condition: 'Used', category: 'General' }
+          : undefined,
+        live_session_id: session.id,
+      });
 
-        // Deduct from spendable wallet
-        await deductWalletSpendableFunds(
-          user.id,
-          totalAmount,
-          `live_order_${Date.now()}`,
-          `Live Purchase: ${pinnedItem.product?.title || 'Spotlight Item'}`
-        );
-      }
+      await deductWalletSpendableFunds(
+        user.id,
+        order.amount,
+        order.id,
+        `Live Purchase: ${pinnedItem.product?.title || 'Spotlight Item'}`
+      );
 
       // Broadcast celebratory purchase message to live stream room
       const buyerName = user.user_metadata?.full_name || 'Buyer';
@@ -101,8 +123,9 @@ export default function LiveQuickCheckout({
       setSuccess(true);
       if (onPurchaseSuccess) {
         onPurchaseSuccess({
+          orderId: order.id,
           productId: pinnedItem.product_id,
-          amount: totalAmount,
+          amount: order.amount,
           buyerId: user.id,
         });
       }
@@ -142,7 +165,7 @@ export default function LiveQuickCheckout({
                   {isRTL ? 'شراء فوري من البث المباشر' : 'Live Stream Instant Checkout'}
                 </h3>
                 <p className="text-[11px] text-slate-400">
-                  {isRTL ? 'حماية الضمان المالي ١٠٠٪ · شحن سريع مع بوسطة' : '100% Escrow Protection · Express Bosta Delivery'}
+                  {isRTL ? 'حماية الضمان المالي ١٠٠٪ · شحن سريع لباب البيت' : '100% Escrow Protection · Express Doorstep Delivery'}
                 </p>
               </div>
             </div>
@@ -166,7 +189,7 @@ export default function LiveQuickCheckout({
               <p className="text-xs text-slate-400 max-w-sm mx-auto">
                 {isRTL
                   ? 'تم حجز القطعة وتحويل المبلغ للضمان المالي. سيتم شحن الطلب إليك مباشرة!'
-                  : 'Item secured in escrow! The seller has been notified for immediate Bosta dispatch.'}
+                  : 'Item secured in escrow! The seller has been notified to dispatch it right away.'}
               </p>
             </div>
           ) : (
@@ -196,60 +219,36 @@ export default function LiveQuickCheckout({
                 </div>
               </div>
 
-              {/* Payment Method Selector */}
-              <div>
-                <label className="block text-xs font-bold text-slate-300 mb-2">
-                  {isRTL ? 'طريقة الدفع' : 'Payment Method'}
-                </label>
-                <div className="grid grid-cols-2 gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod('wallet')}
-                    className={`p-3 rounded-2xl border flex flex-col items-start gap-1 transition-all ${
-                      paymentMethod === 'wallet'
-                        ? 'border-emerald-500 bg-emerald-500/10 text-white ring-1 ring-emerald-500'
-                        : 'border-slate-800 bg-slate-800/50 text-slate-400 hover:border-slate-700'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between w-full">
-                      <span className="text-xs font-bold flex items-center gap-1.5 text-white">
-                        <Wallet className="w-3.5 h-3.5 text-emerald-400" />
-                        {isRTL ? 'محفظة إيجي باي' : 'EgyBay Wallet'}
-                      </span>
-                      {paymentMethod === 'wallet' && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
-                    </div>
-                    <span className="text-[10px] text-slate-400">
-                      {isRTL ? `المتاح: ${formatEGP(availableBalance)}` : `Bal: ${formatEGP(availableBalance)}`}
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod('card')}
-                    className={`p-3 rounded-2xl border flex flex-col items-start gap-1 transition-all ${
-                      paymentMethod === 'card'
-                        ? 'border-blue-500 bg-blue-500/10 text-white ring-1 ring-blue-500'
-                        : 'border-slate-800 bg-slate-800/50 text-slate-400 hover:border-slate-700'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between w-full">
-                      <span className="text-xs font-bold flex items-center gap-1.5 text-white">
-                        <CreditCard className="w-3.5 h-3.5 text-blue-400" />
-                        {isRTL ? 'بطاقة بنكية / ميزة' : 'Bank Card / Meeza'}
-                      </span>
-                      {paymentMethod === 'card' && <CheckCircle2 className="w-3.5 h-3.5 text-blue-400" />}
-                    </div>
-                    <span className="text-[10px] text-slate-400">
-                      {isRTL ? 'دفع آمن Paymob' : 'Secured via Paymob'}
-                    </span>
-                  </button>
-                </div>
+              {/* Payment Method -- wallet only. Instant in-stream checkout
+                  is a single-tap flow; card payments need Paymob's 3D-Secure
+                  redirect, which doesn't fit that, so card buyers are sent
+                  to the full checkout page below when their balance is short. */}
+              <div className={`p-3 rounded-2xl border flex items-center justify-between ${
+                canPayWithWallet ? 'border-emerald-500/60 bg-emerald-500/10' : 'border-amber-500/60 bg-amber-500/10'
+              }`}>
+                <span className="text-xs font-bold flex items-center gap-1.5 text-white">
+                  <Wallet className="w-3.5 h-3.5 text-emerald-400" />
+                  {isRTL ? 'الدفع من محفظة إيجي باي' : 'Pay from EgyBay Wallet'}
+                </span>
+                <span className="text-[10px] text-slate-300">
+                  {isRTL ? `المتاح: ${formatEGP(availableBalance)}` : `Bal: ${formatEGP(availableBalance)}`}
+                </span>
               </div>
+              {!canPayWithWallet && (
+                <Link
+                  href={`/checkout/${pinnedItem.product_id}`}
+                  onClick={onClose}
+                  className="flex items-center justify-center gap-1.5 text-xs font-bold text-blue-400 hover:text-blue-300 -mt-2"
+                >
+                  <CreditCard className="w-3.5 h-3.5" />
+                  {isRTL ? 'الدفع ببطاقة بنكية من صفحة الدفع الكاملة' : 'Pay by card from full checkout'}
+                </Link>
+              )}
 
               {/* Delivery Details */}
               <div className="space-y-3">
                 <label className="block text-xs font-bold text-slate-300">
-                  {isRTL ? 'بيانات التوصيل (شحن بوسطة)' : 'Delivery Address (Bosta Express)'}
+                  {isRTL ? 'بيانات التوصيل' : 'Delivery Address'}
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   <input
@@ -300,7 +299,7 @@ export default function LiveQuickCheckout({
                   <span className="text-white font-bold">{formatEGP(price)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>{isRTL ? 'شحن بوسطة السريع:' : 'Bosta Courier Shipping:'}</span>
+                  <span>{isRTL ? 'رسوم التوصيل:' : 'Delivery Fee:'}</span>
                   <span className="text-white font-bold">{formatEGP(deliveryFee)}</span>
                 </div>
                 <div className="border-t border-slate-700/60 pt-2 flex justify-between text-sm font-black text-white">
@@ -319,7 +318,7 @@ export default function LiveQuickCheckout({
               {/* Submit Button */}
               <button
                 type="submit"
-                disabled={submitting}
+                disabled={submitting || !canPayWithWallet}
                 className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black py-3.5 rounded-2xl text-xs transition-all shadow-lg shadow-emerald-900/30 flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {submitting ? (

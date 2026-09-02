@@ -51,11 +51,12 @@ function BookLiveContent() {
         setListings(prods?.filter(p => p.status === 'active') ?? []);
       } catch (err) {
         console.error('[LiveBook] Failed to load wallet/listings:', err);
+        setError(isRTL ? 'تعذر تحميل رصيد المحفظة والإعلانات. حاول تحديث الصفحة.' : 'Failed to load your wallet balance and listings. Try refreshing the page.');
       } finally {
         setLoading(false);
       }
     })();
-  }, [user]);
+  }, [user, isRTL]);
 
   const selectedPass = LIVE_PASSES.find(p => p.tier === selectedTier)!;
   const canAfford = balance >= selectedPass.priceEGP;
@@ -67,7 +68,6 @@ function BookLiveContent() {
     setError('');
     try {
       const session = await bookLiveSession({
-        sellerId: user.id,
         title: title.trim(),
         titleAr: titleAr.trim() || undefined,
         description: description.trim() || undefined,
@@ -267,8 +267,8 @@ function BookLiveContent() {
           </div>
           <p className="text-[10px] text-gray-400 pt-1">
             {isRTL
-              ? '* عمولة EgyBay ٤٪ على كل سلعة مباعة خلال البث تُضاف بشكل منفصل.'
-              : '* EgyBay 4% escrow commission on items sold during stream applies separately.'}
+              ? '* عمولة إيجي باي المعتادة (حسب مستوى حسابك) تُطبَّق بشكل منفصل على كل سلعة تُباع خلال البث.'
+              : "* EgyBay's standard marketplace commission (based on your seller tier) applies separately to each item sold during your stream."}
           </p>
         </div>
 

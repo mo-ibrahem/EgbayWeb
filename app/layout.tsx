@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     template: "%s | EgyBay — Egypt's Marketplace",
   },
   description:
-    'Buy and sell electronics, sneakers, fashion, and vehicles safely across Egypt. 100% Escrow Protection, doorstep Bosta courier delivery, and instant InstaPay / Vodafone Cash payouts.',
+    'Buy and sell electronics, sneakers, fashion, and vehicles safely across Egypt. 100% Escrow Protection, doorstep courier delivery, and instant InstaPay / Vodafone Cash payouts.',
   keywords: [
     'EgyBay',
     'Egypt marketplace',
@@ -56,7 +56,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "EgyBay — Egypt's Trusted Escrow Marketplace",
     description:
-      'Buy & sell with complete escrow peace of mind across all Egyptian governorates. Bosta shipping, verified sellers, and instant payouts.',
+      'Buy & sell with complete escrow peace of mind across all Egyptian governorates. Nationwide courier delivery, verified sellers, and instant payouts.',
     url: siteUrl,
     siteName: 'EgyBay',
     locale: 'en_US',
@@ -74,7 +74,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: "EgyBay — Egypt's Trusted Marketplace",
-    description: '100% Escrow Protection, Bosta courier delivery, and instant InstaPay & Vodafone Cash payouts in Egypt.',
+    description: '100% Escrow Protection, doorstep courier delivery, and instant InstaPay & Vodafone Cash payouts in Egypt.',
     images: ['/icon.svg'],
     creator: '@egbay_market',
   },

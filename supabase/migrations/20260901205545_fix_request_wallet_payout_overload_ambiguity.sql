@@ -1,0 +1,26 @@
+-- 20260901205545_fix_request_wallet_payout_overload_ambiguity.sql
+--
+-- APPLIED, but confirmed INEFFECTIVE (see the next migration for the
+-- actual fix) -- kept in history for an accurate record of what was
+-- tried.
+--
+-- Active production bug (confirmed live against the real REST API, not
+-- just via direct SQL): request_wallet_payout(uuid,numeric,text) and
+-- request_wallet_payout(uuid,numeric,uuid) share identical parameter
+-- names and argument count, differing only in the third parameter's
+-- type. Every real call to /rest/v1/rpc/request_wallet_payout (i.e.
+-- every real payout withdrawal via /api/wallet/action) was failing with
+-- PGRST203 "Could not choose the best candidate function".
+--
+-- This attempted the same REVOKE-based mitigation that worked for
+-- purchase_boost's ambiguous/dangerous overload. It did not work here,
+-- even after an explicit `NOTIFY pgrst, 'reload schema'`: PostgREST's
+-- overload resolution matches purely on schema introspection (pg_proc),
+-- not on the calling role's live grants -- the purchase_boost case was
+-- actually resolved by argument COUNT (3 vs 4 args), not by the REVOKE
+-- itself; that fix closed an authorization hole, not an ambiguity. This
+-- function's two overloads have identical arg count and names, which
+-- REVOKE cannot disambiguate. See the following migration for the real
+-- fix (drop one overload).
+
+REVOKE EXECUTE ON FUNCTION public.request_wallet_payout(uuid, numeric, text) FROM service_role, postgres;

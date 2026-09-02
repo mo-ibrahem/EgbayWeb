@@ -447,7 +447,7 @@ function HomeFeedContent() {
         <span className="text-slate-300 font-thin">|</span>
         <div className="flex items-center gap-1.5 text-emerald-700 whitespace-nowrap">
           <Package className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
-          <span>{isRTL ? 'شحن بوسطة' : 'Bosta Doorstep Delivery'}</span>
+          <span>{isRTL ? 'شحن لباب البيت' : 'Doorstep Courier Delivery'}</span>
         </div>
         <span className="text-slate-300 font-thin hidden sm:inline">|</span>
         <div className="hidden sm:flex items-center gap-1.5 text-amber-700 whitespace-nowrap">

@@ -92,7 +92,7 @@ export default function Navbar() {
             </span>
             <span className="hidden sm:inline text-gray-300">|</span>
             <span className="hidden sm:inline text-gray-500">
-              {isRTL ? 'توصيل لباب البيت مع بوسطة أو تسليم يدوي بكود PIN' : 'Courier Delivery across Egypt & In-Person PIN Handover'}
+              {isRTL ? 'توصيل لباب البيت أو تسليم يدوي بكود PIN' : 'Courier Delivery across Egypt & In-Person PIN Handover'}
             </span>
           </div>
 

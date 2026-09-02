@@ -14,6 +14,7 @@ import { useLanguage } from '@/components/LanguageProvider';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { productService, formatEGP } from '@/lib/products';
 import { supabase } from '@/lib/supabase';
+import { getSellerTier, SELLER_TIERS, type SellerTierConfig } from '@/lib/walletService';
 
 const CATEGORIES_SELL = [
   { value: 'Electronics', key: 'electronics', label: 'Electronics', label_ar: 'إلكترونيات', icon: Smartphone, color: '#0284C7', bg: '#E0F2FE' },
@@ -85,6 +86,14 @@ function SellContent() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [sellerTier, setSellerTier] = useState<SellerTierConfig>(SELLER_TIERS[1]);
+
+  React.useEffect(() => {
+    if (!user) return;
+    getSellerTier(user.id)
+      .then(setSellerTier)
+      .catch(err => console.warn('[Sell] Failed to load seller tier (non-fatal, defaulting to Tier 1 rate):', err));
+  }, [user]);
 
   if (authLoading) {
     return (
@@ -512,12 +521,12 @@ function SellContent() {
                     <span className="font-bold text-slate-900">{formatEGP(Number(price))}</span>
                   </div>
                   <div className="flex justify-between text-blue-700">
-                    <span>{isRTL ? 'رسوم الضمان والخدمة (٤٪):' : 'Escrow Platform Fee (4%):'}</span>
-                    <span>-{formatEGP(Math.round(Number(price) * 0.04))}</span>
+                    <span>{isRTL ? `رسوم الضمان والخدمة (${(sellerTier.commissionFeePercent * 100).toFixed(1)}٪):` : `Escrow Platform Fee (${(sellerTier.commissionFeePercent * 100).toFixed(1)}%):`}</span>
+                    <span>-{formatEGP(Math.round(Number(price) * sellerTier.commissionFeePercent))}</span>
                   </div>
                   <div className="pt-2 border-t border-blue-200 flex justify-between text-sm font-black text-blue-900">
                     <span>{isRTL ? 'المبلغ المستحق في محفظتك:' : 'You Receive in Wallet:'}</span>
-                    <span>{formatEGP(Math.round(Number(price) * 0.96))}</span>
+                    <span>{formatEGP(Math.round(Number(price) * (1 - sellerTier.commissionFeePercent)))}</span>
                   </div>
                 </div>
               )}

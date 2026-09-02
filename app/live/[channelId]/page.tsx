@@ -16,7 +16,6 @@ import LiveQuickCheckout from '@/components/live/LiveQuickCheckout';
 import {
   getLiveSessionByChannel, joinLiveSession,
   sendChatMessage, getRecentChatMessages, getActivePinnedProduct,
-  recordLiveSale,
   type LiveSession, type LiveChatMessage, type LivePinnedProduct
 } from '@/lib/liveService';
 import { supabase } from '@/lib/supabase';
@@ -205,9 +204,10 @@ export default function ViewerPage() {
   };
 
   const handlePurchaseSuccess = (order: any) => {
-    if (session) {
-      recordLiveSale(session.id, order.amount);
-    }
+    // The server already recorded the real sale atomically as part of
+    // order creation (create_marketplace_order); this just reflects it
+    // in the currently-rendered session card without a refetch.
+    setSession(prev => prev ? { ...prev, total_sales_egp: (prev.total_sales_egp || 0) + (order.amount || 0) } : prev);
   };
 
   if (loading) {

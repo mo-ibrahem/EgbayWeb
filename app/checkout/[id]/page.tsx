@@ -70,14 +70,20 @@ function CheckoutContent() {
     (async () => {
       try {
         if (!id) return;
-        const [prod, w] = await Promise.all([
-          productService.getProductById(id),
-          getUserWallet(user.id),
-        ]);
+        const prod = await productService.getProductById(id);
         if (!prod) { router.push('/'); return; }
         setProduct(prod);
-        setWallet(w);
         setFullName(user.user_metadata?.full_name || '');
+
+        // Wallet balance is a convenience for the "pay with wallet" toggle,
+        // not required to check out at all (card payment doesn't need it).
+        // A failure here must not block the buyer from seeing the product
+        // or paying by card -- it just leaves canPayFullyWithWallet false.
+        try {
+          setWallet(await getUserWallet(user.id));
+        } catch (walletErr) {
+          console.warn('[Checkout] Failed to load wallet balance (non-fatal):', walletErr);
+        }
 
         // Check if returning from Paymob 3D-Secure. We never mark the order
         // paid client-side here — /orders/success fetches the real order
@@ -273,10 +279,10 @@ function CheckoutContent() {
                   </div>
                   <div>
                     <h4 className="text-xs font-bold text-slate-900">
-                      {isRTL ? 'شحن سريع لباب البيت' : 'Doorstep Courier (Bosta)'}
+                      {isRTL ? 'شحن سريع لباب البيت' : 'Doorstep Courier Delivery'}
                     </h4>
                     <p className="text-[11px] text-slate-500 mt-0.5">
-                      {isRTL ? 'تغطية لكافة محافظات مصر مع مهلة فحص ٢٤ ساعة' : 'All Egyptian Governorates + 24h inspection'}
+                      {isRTL ? 'تغطية لكافة محافظات مصر' : 'All Egyptian Governorates'}
                     </p>
                   </div>
                 </button>

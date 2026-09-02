@@ -239,7 +239,7 @@ function OrdersContent() {
                           {formatEGP(order.amount)}
                         </span>
                         <span className="text-xs text-gray-400">
-                          • {order.handover_method === 'courier' ? (isRTL ? 'شحن بوسطة' : 'Courier') : (isRTL ? 'تسليم يدوي' : 'Meetup')}
+                          • {order.handover_method === 'courier' ? (isRTL ? 'شحن' : 'Courier') : (isRTL ? 'تسليم يدوي' : 'Meetup')}
                         </span>
                       </div>
                     </div>

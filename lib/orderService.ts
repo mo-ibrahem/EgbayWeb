@@ -29,7 +29,6 @@ export interface MarketplaceOrder {
   };
   tracking_number?: string;
   courier_name?: string;
-  bosta_tracking_url?: string;
   delivered_at?: string;
   inspection_expiry_at?: string;
   dispute_reason?: string;
@@ -76,6 +75,11 @@ export async function createMarketplaceOrder(orderData: {
   handover_method: 'courier' | 'qr_meetup';
   shipping_address?: MarketplaceOrder['shipping_address'];
   product_snapshot?: MarketplaceOrder['product'];
+  // Set when this order originates from an in-stream live purchase --
+  // the server derives the real charge from the product's live-pinned
+  // display_price (never trusting the client's `amount` above) and
+  // credits the session's sales counters atomically.
+  live_session_id?: string;
 }): Promise<MarketplaceOrder> {
   const orderId = `ord_${Date.now()}`;
   const estimated = calculateEstimatedDelivery(orderData.shipping_address?.governorate);
@@ -91,7 +95,7 @@ export async function createMarketplaceOrder(orderData: {
     handover_method: orderData.handover_method,
     shipping_address: orderData.shipping_address,
     product: orderData.product_snapshot,
-    courier_name: 'Bosta Express (بوسطة مصر)',
+    courier_name: undefined,
     estimated_delivery: estimated,
     created_at: new Date().toISOString(),
   };
@@ -109,7 +113,7 @@ export async function createMarketplaceOrder(orderData: {
         },
         body: JSON.stringify({
           action: 'create',
-          orderData: newOrder,
+          orderData: { ...newOrder, live_session_id: orderData.live_session_id },
         }),
       });
       const json = await res.json();

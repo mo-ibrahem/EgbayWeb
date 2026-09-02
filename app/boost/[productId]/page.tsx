@@ -36,13 +36,17 @@ function BoostProductContent() {
     (async () => {
       try {
         if (!productId) return;
-        const [p, w] = await Promise.all([
-          productService.getProductById(productId),
-          getUserWallet(user.id),
-        ]);
+        const p = await productService.getProductById(productId);
         if (!p) { router.push('/profile'); return; }
         setProduct(p);
-        setWallet(w);
+
+        // A wallet-load failure shouldn't bounce the seller off this page
+        // -- it just leaves hasEnoughWallet false, disabling the button.
+        try {
+          setWallet(await getUserWallet(user.id));
+        } catch (walletErr) {
+          console.warn('[Boost] Failed to load wallet balance (non-fatal):', walletErr);
+        }
       } catch (e) {
         console.error(e);
         router.push('/profile');

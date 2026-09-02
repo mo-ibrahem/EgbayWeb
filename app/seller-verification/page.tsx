@@ -11,10 +11,11 @@ import {
 import { useAuth } from '@/components/AuthProvider';
 import { useLanguage } from '@/components/LanguageProvider';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import { supabase } from '@/lib/supabase';
 import {
   validateEgyptianNationalId,
-  upgradeSellerTier,
   addPayoutMethod,
+  SELLER_TIERS,
   type NationalIdInfo
 } from '@/lib/walletService';
 
@@ -30,8 +31,10 @@ function SellerVerificationContent() {
   const [instapayIpa, setInstapayIpa] = useState('');
   const [vodafoneCash, setVodafoneCash] = useState('');
   const [bankIban, setBankIban] = useState('');
-  const [frontImage, setFrontImage] = useState<string | null>(null);
-  const [backImage, setBackImage] = useState<string | null>(null);
+  const [frontFile, setFrontFile] = useState<File | null>(null);
+  const [frontPreview, setFrontPreview] = useState<string | null>(null);
+  const [backFile, setBackFile] = useState<File | null>(null);
+  const [backPreview, setBackPreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -54,8 +57,8 @@ function SellerVerificationContent() {
     const file = e.target.files?.[0];
     if (!file) return;
     const url = URL.createObjectURL(file);
-    if (side === 'front') setFrontImage(url);
-    else setBackImage(url);
+    if (side === 'front') { setFrontFile(file); setFrontPreview(url); }
+    else { setBackFile(file); setBackPreview(url); }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -63,6 +66,14 @@ function SellerVerificationContent() {
     if (!user) return;
     if (nationalIdNum.length !== 14 || !idInfo?.isValid) {
       setErrorMsg(isRTL ? 'يرجى إدخال رقم قومي مصري صحيح مكون من ١٤ رقماً' : 'Please enter a valid 14-digit Egyptian National ID');
+      return;
+    }
+    if (!fullName.trim()) {
+      setErrorMsg(isRTL ? 'يرجى إدخال الاسم بالكامل' : 'Please enter your full legal name');
+      return;
+    }
+    if (!frontFile || !backFile) {
+      setErrorMsg(isRTL ? 'يرجى رفع صورتي الوجه الأمامي والخلفي لبطاقة الرقم القومي' : 'Please upload both the front and back photos of your National ID');
       return;
     }
     const hasAtLeastOne = instapayIpa.trim() || vodafoneCash.trim() || bankIban.trim();
@@ -75,7 +86,38 @@ function SellerVerificationContent() {
     setErrorMsg('');
 
     try {
-      await upgradeSellerTier(user.id, selectedTier);
+      // Tier/verification status is never set from the client (see
+      // lib/walletService.ts): submitting this form creates a real,
+      // reviewable seller_verification_requests row and uploads the ID
+      // photos to a private storage bucket (never public -- these are
+      // national ID images). Actually granting the tier happens only
+      // through admin_review_seller_verification, a service-role-only
+      // RPC invoked from the admin review screen.
+      const ext = (f: File) => (f.name.split('.').pop() || 'jpg').toLowerCase();
+      const frontPath = `${user.id}/${Date.now()}-front.${ext(frontFile)}`;
+      const backPath = `${user.id}/${Date.now()}-back.${ext(backFile)}`;
+
+      const { error: frontUploadErr } = await supabase.storage
+        .from('kyc-documents')
+        .upload(frontPath, frontFile, { contentType: frontFile.type });
+      if (frontUploadErr) throw new Error(`Failed to upload front ID photo: ${frontUploadErr.message}`);
+
+      const { error: backUploadErr } = await supabase.storage
+        .from('kyc-documents')
+        .upload(backPath, backFile, { contentType: backFile.type });
+      if (backUploadErr) throw new Error(`Failed to upload back ID photo: ${backUploadErr.message}`);
+
+      const { error: requestErr } = await supabase
+        .from('seller_verification_requests')
+        .insert({
+          user_id: user.id,
+          requested_tier: selectedTier,
+          full_name: fullName.trim(),
+          national_id_number: nationalIdNum,
+          national_id_front_url: frontPath,
+          national_id_back_url: backPath,
+        });
+      if (requestErr) throw new Error(`Failed to submit verification request: ${requestErr.message}`);
 
       let isFirst = true;
 
@@ -138,12 +180,12 @@ function SellerVerificationContent() {
           <ShieldCheck className="w-8 h-8" />
         </div>
         <h2 className="text-2xl font-black text-gray-900 mb-2">
-          {isRTL ? 'تم توثيق حسابك بنجاح! 🛡️✨' : 'Seller Verified! 🛡️✨'}
+          {isRTL ? 'تم استلام طلب التوثيق! 🛡️' : 'Verification Request Received! 🛡️'}
         </h2>
         <p className="text-sm text-gray-500 mb-6 leading-relaxed">
           {isRTL
-            ? `تمت ترقية حسابك إلى ${selectedTier === 3 ? 'تاجر محترف (Pro)' : 'بائع موثق'} مع عمولات أقل وسحب فوري للأرباح!`
-            : `Your account is now upgraded to ${selectedTier === 3 ? 'EgyBay Pro Merchant' : 'Verified Trader'} with lower fees and fast payouts!`}
+            ? `تم حفظ وجهات السحب الخاصة بك. طلبك للترقية إلى ${selectedTier === 3 ? 'تاجر محترف (Pro)' : 'بائع موثق'} قيد المراجعة، وسيتم تفعيله بعد التحقق من هويتك.`
+            : `Your payout destinations have been saved. Your request to become a ${selectedTier === 3 ? 'Pro Merchant' : 'Verified Trader'} is pending manual review and will be activated after your identity is verified.`}
         </p>
         <Link
           href="/wallet"
@@ -195,7 +237,7 @@ function SellerVerificationContent() {
                   {isRTL ? '🛡️ بائع موثق (المستوى ٢)' : '🛡️ Verified Trader (Tier 2)'}
                 </span>
                 <span className="text-xs font-bold text-blue-600">
-                  {isRTL ? 'عمولة ٤٪' : '4% Fee'}
+                  {isRTL ? `عمولة ${(SELLER_TIERS[2].commissionFeePercent * 100).toFixed(1)}٪` : `${(SELLER_TIERS[2].commissionFeePercent * 100).toFixed(1)}% Fee`}
                 </span>
               </div>
               <p className="text-xs text-gray-500">
@@ -219,7 +261,7 @@ function SellerVerificationContent() {
                   {isRTL ? '⭐ تاجر محترف (المستوى ٣)' : '⭐ Pro Merchant (Tier 3)'}
                 </span>
                 <span className="text-xs font-bold text-purple-600">
-                  {isRTL ? 'عمولة ٢.٥٪' : '2.5% Fee'}
+                  {isRTL ? `عمولة ${(SELLER_TIERS[3].commissionFeePercent * 100).toFixed(1)}٪` : `${(SELLER_TIERS[3].commissionFeePercent * 100).toFixed(1)}% Fee`}
                 </span>
               </div>
               <p className="text-xs text-gray-500">
@@ -298,8 +340,8 @@ function SellerVerificationContent() {
                 onClick={() => frontInputRef.current?.click()}
                 className="aspect-[16/10] rounded-2xl border-2 border-dashed border-gray-200 hover:border-blue-400 bg-gray-50 flex flex-col items-center justify-center cursor-pointer relative overflow-hidden transition-all"
               >
-                {frontImage ? (
-                  <Image src={frontImage} alt="Front ID" fill className="object-cover" />
+                {frontPreview ? (
+                  <Image src={frontPreview} alt="Front ID" fill className="object-cover" />
                 ) : (
                   <div className="text-center p-4 text-gray-400">
                     <Camera className="w-8 h-8 mx-auto mb-1 text-gray-300" />
@@ -320,8 +362,8 @@ function SellerVerificationContent() {
                 onClick={() => backInputRef.current?.click()}
                 className="aspect-[16/10] rounded-2xl border-2 border-dashed border-gray-200 hover:border-blue-400 bg-gray-50 flex flex-col items-center justify-center cursor-pointer relative overflow-hidden transition-all"
               >
-                {backImage ? (
-                  <Image src={backImage} alt="Back ID" fill className="object-cover" />
+                {backPreview ? (
+                  <Image src={backPreview} alt="Back ID" fill className="object-cover" />
                 ) : (
                   <div className="text-center p-4 text-gray-400">
                     <Camera className="w-8 h-8 mx-auto mb-1 text-gray-300" />

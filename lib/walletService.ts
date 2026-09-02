@@ -15,8 +15,8 @@ export interface WalletTransaction {
   order_id?: string;
   // Matches the transaction types actually written by the wallet RPCs
   // (checkout_with_wallet, release_escrow, request_wallet_payout,
-  // purchase_boost, process_paymob_topup).
-  type: 'escrow_hold' | 'earning' | 'withdrawal' | 'boost' | 'top_up' | 'purchase';
+  // purchase_boost, process_paymob_topup, admin_resolve_dispute).
+  type: 'escrow_hold' | 'earning' | 'withdrawal' | 'boost' | 'top_up' | 'purchase' | 'refund';
   amount: number;
   fee_amount: number;
   status: 'pending' | 'completed' | 'failed' | 'cancelled';
@@ -200,19 +200,13 @@ export async function getSellerTier(userId: string): Promise<SellerTierConfig> {
   return SELLER_TIERS[t] || SELLER_TIERS[1];
 }
 
-export async function upgradeSellerTier(userId: string, targetTier: 1 | 2 | 3): Promise<SellerTierConfig> {
-  const { error } = await supabase
-    .from('user_profiles')
-    .update({
-      tier: targetTier,
-      tier_verified_at: new Date().toISOString(),
-      is_verified_seller: targetTier >= 2,
-    } as any)
-    .eq('id', userId);
-
-  if (error) throw error;
-  return SELLER_TIERS[targetTier];
-}
+// There is deliberately no client-callable "upgrade my own tier"
+// function. Tier, tier_verified_at and is_verified_seller drive
+// commission rate and the Verified Seller badge, so they must only ever
+// be changed server-side (the database revokes client UPDATE/INSERT on
+// these columns entirely -- see migration
+// 20260902000001_restrict_seller_tier_self_assignment.sql). Use
+// getSellerTier() above to read a user's current tier.
 
 export async function getWalletTransactions(userId: string): Promise<WalletTransaction[]> {
   const wallet = await getUserWallet(userId);
