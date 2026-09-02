@@ -1,17 +1,21 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createSupabaseAdmin } from '@/lib/adminAuth';
 
 const PAYMOB_API_KEY = process.env.PAYMOB_API_KEY || process.env.NEXT_PUBLIC_PAYMOB_API_KEY || process.env.EXPO_PUBLIC_PAYMOB_API_KEY || '';
 const PAYMOB_INTEGRATION_ID = Number(process.env.PAYMOB_INTEGRATION_ID || process.env.NEXT_PUBLIC_PAYMOB_INTEGRATION_ID || process.env.EXPO_PUBLIC_PAYMOB_INTEGRATION_ID || '5267608');
 const PAYMOB_IFRAME_ID = process.env.PAYMOB_IFRAME_ID || process.env.NEXT_PUBLIC_PAYMOB_IFRAME_ID || process.env.EXPO_PUBLIC_PAYMOB_IFRAME_ID || '957263';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://fpqbocohjzwlfcmfropr.supabase.co';
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabaseAdmin = createClient(supabaseUrl, supabaseKey);
-
+// The admin client is constructed lazily, inside the handler below --
+// never at module scope. Next.js's build-time "collect page data" step
+// imports every route module (running top-level code), so a throwing
+// module-scope call would break the build if the service-role key isn't
+// present in the build environment. This also removes a hardcoded
+// fallback-to-anon-key pattern that used to silently downgrade this
+// payment-processing endpoint's permissions instead of failing loudly.
 export async function POST(req: Request) {
   try {
+    const supabaseAdmin = createSupabaseAdmin();
     const authHeader = req.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json({ success: false, error: 'Unauthorized: Missing token' }, { status: 401 });

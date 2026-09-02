@@ -1,14 +1,16 @@
 import { NextResponse } from 'next/server';
 import { encryptPin } from '@/lib/encryption';
-import { createClient } from '@supabase/supabase-js';
+import { createSupabaseAdmin } from '@/lib/adminAuth';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
-async function getAuthenticatedUser(req: Request) {
+// The admin client is constructed lazily, inside the handler below --
+// never at module scope. Next.js's build-time "collect page data" step
+// imports every route module (running top-level code) even though it
+// never invokes the exported handler, so a throwing/misconfigured
+// module-scope client construction here breaks the production build
+// regardless of the dev-only guard inside the handler.
+async function getAuthenticatedUser(req: Request, supabaseAdmin: SupabaseClient) {
   const authHeader = req.headers.get('authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return null;
@@ -23,15 +25,16 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     // 1. Strict Environment Guard
     if (process.env.NODE_ENV === 'production') {
       return NextResponse.json(
-        { success: false, error: 'This utility is exclusively for development environments.' }, 
+        { success: false, error: 'This utility is exclusively for development environments.' },
         { status: 404 }
       );
     }
 
+    const supabaseAdmin = createSupabaseAdmin();
     const { id: orderId } = params;
 
     // 2. Authentication Guard
-    const user = await getAuthenticatedUser(req);
+    const user = await getAuthenticatedUser(req, supabaseAdmin);
     if (!user) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }

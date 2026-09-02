@@ -2,14 +2,17 @@ export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
 import { createSupabaseAdmin } from '@/lib/adminAuth';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
 
-// Financial mutation endpoint -- must run with the real service role or
-// not at all. No anon-key fallback: a silent downgrade here would let
-// RLS quietly gate operations that are supposed to be server-authoritative.
-const supabaseAdmin = createSupabaseAdmin();
-
-async function getAuthenticatedUser(req: Request) {
+// The admin client is constructed lazily, inside the handler below --
+// never at module scope. Next.js's build-time "collect page data" step
+// imports every route module (running top-level code) even though it
+// never invokes the exported handler, so a throwing module-scope call
+// here (createSupabaseAdmin() has no anon-key fallback, by design)
+// breaks the production build if the service-role key isn't present in
+// the build environment, regardless of the runtime guards below.
+async function getAuthenticatedUser(req: Request, supabaseAdmin: SupabaseClient) {
   const authHeader = req.headers.get('authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return null;
@@ -42,7 +45,8 @@ export async function POST(req: Request) {
 
     // Guard 3: authentication — this endpoint can advance order state and
     // release escrow, so it must not be callable anonymously.
-    const user = await getAuthenticatedUser(req);
+    const supabaseAdmin = createSupabaseAdmin();
+    const user = await getAuthenticatedUser(req, supabaseAdmin);
     if (!user) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }

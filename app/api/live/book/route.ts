@@ -3,18 +3,22 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { createSupabaseAdmin } from '@/lib/adminAuth';
 
-// Financial mutation endpoint -- must run with the real service role or
-// not at all. No anon-key fallback: a silent downgrade here would let
-// RLS quietly gate operations that are supposed to be server-authoritative.
-const supabaseAdmin = createSupabaseAdmin();
-
 // Books a live session: charges the seller's wallet for the pass tier and
 // creates the live_sessions row atomically via book_live_session (see
 // migration 20260901234137). p_seller_id is always the verified caller's
 // own id -- never taken from the request body -- so a client can never
 // book (and charge) on someone else's behalf.
+//
+// The admin client is constructed lazily, inside the handler below --
+// never at module scope. Next.js's build-time "collect page data" step
+// imports every route module (running top-level code) even though it
+// never invokes the exported handler, so a throwing module-scope call
+// here (createSupabaseAdmin() has no anon-key fallback, by design)
+// breaks the production build if the service-role key isn't present in
+// the build environment.
 export async function POST(req: Request) {
   try {
+    const supabaseAdmin = createSupabaseAdmin();
     const authHeader = req.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json({ success: false, error: 'Unauthorized: Missing or invalid token' }, { status: 401 });
