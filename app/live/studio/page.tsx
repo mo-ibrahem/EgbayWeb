@@ -164,6 +164,37 @@ function StudioContent() {
     setReactions(prev => prev.filter(r => r.id !== id));
   };
 
+  // Camera/mic permission denials surface as a raw browser DOMException
+  // ("The request is not allowed by the user agent or the platform...")
+  // which tells a seller nothing actionable. The single most common real
+  // cause on mobile is opening the link inside a chat app's in-app
+  // browser (WhatsApp/Instagram/Messenger), which blocks getUserMedia at
+  // the OS level regardless of what this page does -- so point sellers
+  // at that fix first rather than showing the technical string verbatim.
+  const getCameraErrorMessage = useCallback((err: any): string => {
+    const name = err?.name || err?.code || '';
+    const raw = String(err?.message || '');
+    const isPermissionIssue =
+      name === 'NotAllowedError' ||
+      name === 'PermissionDeniedError' ||
+      name === 'PERMISSION_DENIED' ||
+      /not allowed|permission denied/i.test(raw);
+
+    if (isPermissionIssue) {
+      return isRTL
+        ? 'تم رفض الوصول إلى الكاميرا والمايكروفون. إذا فتحت هذا الرابط من داخل واتساب أو إنستجرام أو ماسنجر، اضغط على القائمة (⋯) واختر "فتح في المتصفح" ثم حاول مرة أخرى. أو تأكد من السماح بالكاميرا والمايكروفون لهذا الموقع من إعدادات المتصفح.'
+        : 'Camera and microphone access was blocked. If you opened this link inside an app like WhatsApp, Instagram, or Messenger, tap the menu (⋯) and choose "Open in Browser", then try again. Otherwise, check your browser\'s site settings and allow Camera and Microphone for this page.';
+    }
+
+    if (name === 'NotFoundError' || /not found/i.test(raw)) {
+      return isRTL
+        ? 'لم يتم العثور على كاميرا أو مايكروفون على هذا الجهاز.'
+        : 'No camera or microphone was found on this device.';
+    }
+
+    return raw || (isRTL ? 'تعذر الوصول إلى الكاميرا أو بدء البث' : 'Failed to access camera or start stream');
+  }, [isRTL]);
+
   const handleGoLive = useCallback(async () => {
     if (!sessionId || !user || !session) return;
     setStarting(true);
@@ -235,11 +266,11 @@ function StudioContent() {
         msgType: 'system',
       });
     } catch (err: any) {
-      setError(err?.message || 'Failed to access camera or start stream');
+      setError(getCameraErrorMessage(err));
     } finally {
       setStarting(false);
     }
-  }, [sessionId, user, session]);
+  }, [sessionId, user, session, getCameraErrorMessage]);
 
   const [showEndModal, setShowEndModal] = useState(false);
   const [ending, setEnding] = useState(false);
