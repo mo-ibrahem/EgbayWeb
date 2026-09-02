@@ -15,6 +15,7 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import { productService, formatEGP } from '@/lib/products';
 import { supabase } from '@/lib/supabase';
 import { getSellerTier, SELLER_TIERS, type SellerTierConfig } from '@/lib/walletService';
+import { COURIER_DELIVERY_FEE_EGP } from '@/lib/orderService';
 
 const CATEGORIES_SELL = [
   { value: 'Electronics', key: 'electronics', label: 'Electronics', label_ar: 'إلكترونيات', icon: Smartphone, color: '#0284C7', bg: '#E0F2FE' },
@@ -514,22 +515,81 @@ function SellContent() {
                 </p>
               </div>
 
-              {Number(price) > 0 && (
-                <div className="bg-blue-50/70 border border-blue-100 rounded-2xl p-4 text-xs space-y-2">
-                  <div className="flex justify-between text-slate-600">
-                    <span>{isRTL ? 'سعر الإعلان المعروض:' : 'Listing Amount:'}</span>
-                    <span className="font-bold text-slate-900">{formatEGP(Number(price))}</span>
+              {/* Earnings preview.
+                  This must mirror what the server actually does, because a
+                  seller who sees one number here and a different one in
+                  their wallet stops trusting the payout entirely.
+
+                  Real behaviour (create_marketplace_order +
+                  checkout_with_wallet): the buyer picks the handover method
+                  at checkout, not the seller. For courier orders the
+                  delivery fee is added on top of the listing price, the
+                  commission is charged on that combined total, and the
+                  whole remainder -- delivery fee included -- is credited to
+                  the seller, who then pays their own courier out of it. For
+                  meetup orders there is no delivery fee at all. The old
+                  version of this box showed only `price - price*rate`,
+                  which matched neither case. */}
+              {Number(price) > 0 && (() => {
+                const listing = Number(price);
+                const rate = sellerTier.commissionFeePercent;
+                const meetupFee = Math.round(listing * rate);
+                const courierTotal = listing + COURIER_DELIVERY_FEE_EGP;
+                const courierFee = Math.round(courierTotal * rate);
+                return (
+                  <div className="rounded-md border border-slate-200 divide-y divide-slate-100 text-xs overflow-hidden">
+                    <div className="px-4 py-2.5 bg-slate-50 flex items-center justify-between">
+                      <span className="font-bold text-slate-700">
+                        {isRTL ? 'ما ستستلمه فعلياً' : 'What you actually receive'}
+                      </span>
+                      <span className="text-[11px] text-slate-500">
+                        {isRTL ? `عمولة ${(rate * 100).toFixed(1)}٪` : `${(rate * 100).toFixed(1)}% commission`}
+                      </span>
+                    </div>
+
+                    <div className="px-4 py-3 space-y-1.5">
+                      <p className="font-bold text-slate-900 mb-1.5">
+                        {isRTL ? 'لو اختار المشتري التسليم اليدوي' : 'If the buyer chooses in-person meetup'}
+                      </p>
+                      <div className="flex justify-between text-slate-600">
+                        <span>{isRTL ? 'يدفع المشتري' : 'Buyer pays'}</span>
+                        <span className="font-semibold text-slate-900">{formatEGP(listing)}</span>
+                      </div>
+                      <div className="flex justify-between text-slate-600">
+                        <span>{isRTL ? 'عمولة إيجي باي' : 'Egbay commission'}</span>
+                        <span>−{formatEGP(meetupFee)}</span>
+                      </div>
+                      <div className="flex justify-between font-black text-success pt-1.5 border-t border-slate-100">
+                        <span>{isRTL ? 'يصل لمحفظتك' : 'Lands in your wallet'}</span>
+                        <span>{formatEGP(listing - meetupFee)}</span>
+                      </div>
+                    </div>
+
+                    <div className="px-4 py-3 space-y-1.5">
+                      <p className="font-bold text-slate-900 mb-1.5">
+                        {isRTL ? 'لو اختار المشتري الشحن' : 'If the buyer chooses courier delivery'}
+                      </p>
+                      <div className="flex justify-between text-slate-600">
+                        <span>{isRTL ? `يدفع المشتري (شامل ${COURIER_DELIVERY_FEE_EGP} ج.م شحن)` : `Buyer pays (incl. ${COURIER_DELIVERY_FEE_EGP} EGP delivery)`}</span>
+                        <span className="font-semibold text-slate-900">{formatEGP(courierTotal)}</span>
+                      </div>
+                      <div className="flex justify-between text-slate-600">
+                        <span>{isRTL ? 'عمولة إيجي باي' : 'Egbay commission'}</span>
+                        <span>−{formatEGP(courierFee)}</span>
+                      </div>
+                      <div className="flex justify-between font-black text-success pt-1.5 border-t border-slate-100">
+                        <span>{isRTL ? 'يصل لمحفظتك' : 'Lands in your wallet'}</span>
+                        <span>{formatEGP(courierTotal - courierFee)}</span>
+                      </div>
+                      <p className="text-[11px] text-warning bg-warning-soft rounded-sm px-2 py-1.5 mt-1.5 leading-relaxed">
+                        {isRTL
+                          ? `يشمل هذا المبلغ ${COURIER_DELIVERY_FEE_EGP} ج.م رسوم الشحن المحصّلة من المشتري — أنت من يدفع لشركة الشحن منها.`
+                          : `This includes the ${COURIER_DELIVERY_FEE_EGP} EGP delivery fee collected from the buyer — you pay your courier out of it.`}
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex justify-between text-blue-700">
-                    <span>{isRTL ? `رسوم الضمان والخدمة (${(sellerTier.commissionFeePercent * 100).toFixed(1)}٪):` : `Escrow Platform Fee (${(sellerTier.commissionFeePercent * 100).toFixed(1)}%):`}</span>
-                    <span>-{formatEGP(Math.round(Number(price) * sellerTier.commissionFeePercent))}</span>
-                  </div>
-                  <div className="pt-2 border-t border-blue-200 flex justify-between text-sm font-black text-blue-900">
-                    <span>{isRTL ? 'المبلغ المستحق في محفظتك:' : 'You Receive in Wallet:'}</span>
-                    <span>{formatEGP(Math.round(Number(price) * (1 - sellerTier.commissionFeePercent)))}</span>
-                  </div>
-                </div>
-              )}
+                );
+              })()}
             </div>
           </div>
         )}

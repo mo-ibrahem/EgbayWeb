@@ -13,6 +13,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { useLanguage } from '@/components/LanguageProvider';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { productService, profileService, formatEGP, type Product, type UserProfile } from '@/lib/products';
+import { getUserOrders, type MarketplaceOrder } from '@/lib/orderService';
 import { supabase } from '@/lib/supabase';
 import SmartImage from '@/components/SmartImage';
 
@@ -53,6 +54,7 @@ function ProfileContent() {
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [listings, setListings] = useState<Product[]>([]);
+  const [sellerOrders, setSellerOrders] = useState<MarketplaceOrder[]>([]);
   const [wishlist, setWishlist] = useState<Product[]>([]);
   const [chats, setChats] = useState<ChatRoom[]>([]);
   const [loading, setLoading] = useState(true);
@@ -85,6 +87,16 @@ function ProfileContent() {
         setProfile(prof);
         setListings(prods);
         setWishlist(wl);
+
+        // Seller-side orders power the performance summary. Non-fatal: a
+        // failure here should cost the seller their stats strip, not their
+        // whole profile page.
+        try {
+          const allOrders = await getUserOrders(user.id);
+          setSellerOrders(allOrders.filter(o => o.seller_id === user.id));
+        } catch (ordersErr) {
+          console.warn('[Profile] Failed to load seller orders (non-fatal):', ordersErr);
+        }
         setEditName(prof?.full_name || '');
         setEditPhone(prof?.phone || '');
 
@@ -182,6 +194,13 @@ function ProfileContent() {
   }
 
   const avatarUrl = profile?.avatar_url || user?.user_metadata?.avatar_url;
+
+  // Seller performance, derived entirely from real listing and order data.
+  const sellerTotalViews = listings.reduce((sum, p) => sum + (p.view_count ?? 0), 0);
+  const sellerCompletedSales = sellerOrders.filter(o => o.status === 'completed').length;
+  const awaitingDispatchCount = sellerOrders.filter(
+    o => o.status === 'escrow_secured' && o.handover_method === 'courier'
+  ).length;
 
   return (
     <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 w-full overflow-hidden">
@@ -306,6 +325,42 @@ function ProfileContent() {
       {/* 1. My Listings */}
       {activeTab === 'products' && (
         <div className="space-y-4 sm:space-y-6">
+          {/* Seller performance summary.
+              Every number here is real: listing count and view_count come
+              straight from the seller's products, sold/awaiting come from
+              their actual orders. Nothing is estimated or projected. A
+              seller with no feedback on whether listings are being seen has
+              no reason to come back and list again -- and "awaiting
+              dispatch" doubles as an actionable to-do that pulls them back
+              into an order they're blocking. */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[
+              { label: isRTL ? 'إعلانات نشطة' : 'Active listings', value: String(listings.length), tone: 'text-slate-900' },
+              { label: isRTL ? 'مشاهدات' : 'Views', value: sellerTotalViews.toLocaleString(isRTL ? 'ar-EG' : 'en-EG'), tone: 'text-slate-900' },
+              { label: isRTL ? 'عمليات بيع مكتملة' : 'Completed sales', value: String(sellerCompletedSales), tone: 'text-success' },
+              { label: isRTL ? 'بانتظار الشحن' : 'Awaiting dispatch', value: String(awaitingDispatchCount), tone: awaitingDispatchCount > 0 ? 'text-warning' : 'text-slate-900' },
+            ].map(s => (
+              <div key={s.label} className="bg-white border border-slate-200 rounded-lg px-4 py-3">
+                <p className="text-[11px] font-semibold text-slate-500 truncate">{s.label}</p>
+                <p className={`text-xl font-black tabular-nums mt-0.5 ${s.tone}`}>{s.value}</p>
+              </div>
+            ))}
+          </div>
+
+          {awaitingDispatchCount > 0 && (
+            <Link
+              href="/orders"
+              className="flex items-center justify-between bg-warning-soft border border-warning/20 rounded-lg px-4 py-3 hover:brightness-95 transition-all"
+            >
+              <span className="text-xs font-bold text-warning">
+                {isRTL
+                  ? `لديك ${awaitingDispatchCount} طلب بانتظار الشحن — المشتري دفع بالفعل`
+                  : `${awaitingDispatchCount} order${awaitingDispatchCount > 1 ? 's' : ''} awaiting dispatch — the buyer has already paid`}
+              </span>
+              <ChevronRight className={`w-4 h-4 text-warning flex-shrink-0 ${isRTL ? 'rotate-180' : ''}`} />
+            </Link>
+          )}
+
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-base sm:text-xl font-black text-gray-900">{isRTL ? 'إعلاناتي النشطة' : 'Active Listings'}</h2>

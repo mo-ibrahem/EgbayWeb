@@ -22,6 +22,11 @@ export interface Product {
   isWishlisted?: boolean;
   is_promoted?: boolean;
   promoted_ad_rate?: number;
+  // Real, server-tracked impression counter on the products table. Surfaced
+  // in the seller dashboard -- a seller who can't see whether their listing
+  // is getting looked at has no signal to act on, which is the single most
+  // documented cause of marketplace seller churn.
+  view_count?: number;
 }
 
 export interface UserProfile {

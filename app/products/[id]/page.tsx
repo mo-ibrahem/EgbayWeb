@@ -69,6 +69,20 @@ export default function ProductDetailPage() {
         setWishlisted(p.isWishlisted ?? false);
         const sim = await productService.getSimilarProducts(p.category, id);
         setSimilar(sim);
+
+        // Count the view once per browser session per product, so a
+        // refresh or a re-render doesn't inflate the seller's number.
+        // Best-effort: a failure here must never affect the buyer's view
+        // of the product.
+        try {
+          const seenKey = `egbay_viewed_${id}`;
+          if (!sessionStorage.getItem(seenKey)) {
+            sessionStorage.setItem(seenKey, '1');
+            await supabase.rpc('increment_product_view', { p_product_id: id });
+          }
+        } catch (viewErr) {
+          console.warn('[Product] view count not recorded (non-fatal):', viewErr);
+        }
       } catch {
         router.push('/');
       } finally {
