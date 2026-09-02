@@ -153,7 +153,7 @@ Sellers must dispatch sold items via our integrated courier partner within 48 ho
   const sections = isRTL ? arSections : enSections;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-12">
+    <div className="w-full max-w-4xl mx-auto px-4 py-12">
       {/* Header */}
       <div className="text-center mb-10">
         <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-4 border border-blue-100 shadow-sm">

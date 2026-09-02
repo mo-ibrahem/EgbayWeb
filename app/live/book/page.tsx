@@ -89,7 +89,7 @@ function BookLiveContent() {
   );
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 pb-24">
+    <div className="w-full max-w-7xl mx-auto px-4 py-8 pb-24">
       {/* Header */}
       <div className="mb-8">
         <div className="inline-flex items-center gap-2 bg-red-600 text-white text-xs font-black px-3 py-1 rounded-full mb-3 animate-pulse">

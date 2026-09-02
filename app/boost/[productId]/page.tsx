@@ -108,7 +108,7 @@ function BoostProductContent() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="w-full max-w-7xl mx-auto px-4 py-8">
       <div className="flex items-center gap-2 mb-6">
         <button onClick={() => router.back()} className="text-gray-500 hover:text-gray-900">
           <ArrowLeft className={`w-5 h-5 ${isRTL ? 'rotate-180' : ''}`} />

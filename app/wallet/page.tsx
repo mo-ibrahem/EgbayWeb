@@ -243,7 +243,7 @@ function WalletContent() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
+    <div className="w-full max-w-6xl mx-auto px-4 py-8">
       {loadError && (
         <div className="mb-6 bg-rose-50 border border-rose-200 text-rose-700 text-sm p-4 rounded-md flex items-center justify-between gap-3">
           <span>{loadError}</span>

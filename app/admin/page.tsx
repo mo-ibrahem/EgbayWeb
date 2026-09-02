@@ -156,7 +156,7 @@ function AdminContent() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8">
+    <div className="w-full max-w-5xl mx-auto px-4 py-8">
       <div className="flex items-center gap-2 mb-6">
         <ShieldCheck className="w-6 h-6 text-blue-600" />
         <h1 className="text-xl font-black text-slate-900">Egbay Admin</h1>

@@ -40,7 +40,7 @@ export default function LiveDiscoveryPage() {
   const upcoming = sessions.filter(s => s.status === 'scheduled');
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 pb-24 space-y-10">
+    <div className="w-full max-w-6xl mx-auto px-4 py-8 pb-24 space-y-10">
       {/* Hero Banner */}
       <div className="relative bg-slate-900 rounded-lg overflow-hidden p-8 border border-slate-800 shadow-xl">
         <div className="relative z-10">

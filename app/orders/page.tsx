@@ -91,15 +91,13 @@ function OrdersContent() {
   }
 
   return (
-    // Same single max-w-7xl frame the navbar uses -- no narrower nested
-    // column. A previous attempt nested an inner max-w-3xl "reading
-    // column" inside this, reasoning it would stay symmetric within an
-    // aligned frame; on real screen widths (most laptops sit at or below
-    // 1280px, where max-w-7xl barely constrains anything) the navbar
-    // ends up spanning nearly the full window while that inner div still
-    // forced a narrow column, so the page looked exactly as misaligned
-    // as before. One shared frame, nothing narrower nested inside it.
-    <div className="max-w-7xl mx-auto px-4 py-6 sm:py-8">
+    // `w-full` is load-bearing, not decoration: this div is the page root,
+    // and PageTransition used to wrap it in a flex column, which made it a
+    // flex item -- and a flex item with `mx-auto` sizes to fit-content
+    // instead of stretching, so this list shrink-wrapped to its cards and
+    // ignored max-w-7xl entirely. PageTransition no longer does that, and
+    // `w-full` keeps this page correct regardless.
+    <div className="w-full max-w-7xl mx-auto px-4 py-6 sm:py-8">
       <div className="flex items-center justify-between gap-4 mb-5">
         <div>
           <h1 className="text-xl font-black text-slate-900">{isRTL ? 'سجل الطلبات' : 'My Orders'}</h1>

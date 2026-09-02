@@ -31,7 +31,7 @@ function timeAgo(dateStr?: string | null, isRTL?: boolean): string {
 
 function SkeletonDetail() {
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-5 gap-8">
+    <div className="w-full max-w-6xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-5 gap-8">
       <div className="lg:col-span-3 aspect-square rounded-lg skeleton" />
       <div className="lg:col-span-2 space-y-3">
         <SkeletonBlock className="h-4 w-1/4" />

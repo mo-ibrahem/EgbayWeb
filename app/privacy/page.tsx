@@ -175,7 +175,7 @@ Data is shared strictly with authorized infrastructure partners necessary to ful
   const sections = isRTL ? arSections : enSections;
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-12">
+    <div className="w-full max-w-5xl mx-auto px-4 py-12">
       {/* Header */}
       <div className="text-center mb-10">
         <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto mb-4 border border-emerald-100 shadow-sm">
