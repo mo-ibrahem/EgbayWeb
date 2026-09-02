@@ -199,7 +199,6 @@ function SellerVerificationContent() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-    <div className="max-w-2xl mx-auto">
       <div className="flex items-center gap-2 mb-6">
         <button onClick={() => router.back()} className="text-gray-500 hover:text-gray-900">
           <ArrowLeft className={`w-5 h-5 ${isRTL ? 'rotate-180' : ''}`} />
@@ -458,7 +457,6 @@ function SellerVerificationContent() {
           {submitting ? (isRTL ? 'جاري التحقق وتفعيل التوثيق...' : 'Verifying & Upgrading...') : (isRTL ? 'تأكيد التوثيق وتفعيل شارة البائع' : 'Complete Verification & Activate Payouts')}
         </button>
       </form>
-    </div>
     </div>
   );
 }

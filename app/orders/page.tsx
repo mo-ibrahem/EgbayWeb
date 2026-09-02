@@ -91,15 +91,15 @@ function OrdersContent() {
   }
 
   return (
-    // Outer frame matches the navbar's max-w-7xl so this page's left/right
-    // edges align with the chrome above it -- the order list itself stays
-    // in a narrower, easily-scannable inner column rather than stretching
-    // edge to edge, but that narrowing happens *inside* an already-aligned
-    // frame instead of a second independently-centered container (which
-    // is what caused the list to visibly drift out of alignment with the
-    // navbar on wide screens).
+    // Same single max-w-7xl frame the navbar uses -- no narrower nested
+    // column. A previous attempt nested an inner max-w-3xl "reading
+    // column" inside this, reasoning it would stay symmetric within an
+    // aligned frame; on real screen widths (most laptops sit at or below
+    // 1280px, where max-w-7xl barely constrains anything) the navbar
+    // ends up spanning nearly the full window while that inner div still
+    // forced a narrow column, so the page looked exactly as misaligned
+    // as before. One shared frame, nothing narrower nested inside it.
     <div className="max-w-7xl mx-auto px-4 py-6 sm:py-8">
-    <div className="max-w-3xl mx-auto">
       <div className="flex items-center justify-between gap-4 mb-5">
         <div>
           <h1 className="text-xl font-black text-slate-900">{isRTL ? 'سجل الطلبات' : 'My Orders'}</h1>
@@ -195,7 +195,6 @@ function OrdersContent() {
           })}
         </div>
       )}
-    </div>
     </div>
   );
 }
