@@ -94,7 +94,7 @@ export default function SignupPage() {
               </p>
               <Link
                 href="/login"
-                className="w-full inline-flex items-center justify-center gap-2 bg-[#3665F3] hover:bg-[#2B54D4] text-white font-bold py-3.5 rounded-xl transition-all shadow-md text-xs"
+                className="w-full inline-flex items-center justify-center gap-2 bg-brand hover:bg-brand-dark text-white font-bold py-3.5 rounded-xl transition-all shadow-md text-xs"
               >
                 <span>{isRTL ? 'الانتقال إلى تسجيل الدخول' : 'Go to Sign In'}</span>
                 <ArrowRight className={`w-3.5 h-3.5 ${isRTL ? 'rotate-180' : ''}`} />
@@ -156,7 +156,7 @@ export default function SignupPage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder={isRTL ? 'مثال: أحمد محمد' : 'Ahmed Mohamed'}
-                  className={`w-full bg-white border border-gray-300 rounded-xl ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-3 text-gray-900 placeholder-gray-400 text-xs outline-none focus:border-[#3665F3] focus:ring-2 focus:ring-blue-100 transition-all shadow-sm`}
+                  className={`w-full bg-white border border-gray-300 rounded-xl ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-3 text-gray-900 placeholder-gray-400 text-xs outline-none focus:border-brand focus:ring-2 focus:ring-blue-100 transition-all shadow-sm`}
                   required
                   autoFocus
                 />
@@ -174,7 +174,7 @@ export default function SignupPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="your.email@example.com"
-                  className={`w-full bg-white border border-gray-300 rounded-xl ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-3 text-gray-900 placeholder-gray-400 text-xs outline-none focus:border-[#3665F3] focus:ring-2 focus:ring-blue-100 transition-all shadow-sm`}
+                  className={`w-full bg-white border border-gray-300 rounded-xl ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-3 text-gray-900 placeholder-gray-400 text-xs outline-none focus:border-brand focus:ring-2 focus:ring-blue-100 transition-all shadow-sm`}
                   required
                 />
               </div>
@@ -191,7 +191,7 @@ export default function SignupPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder={isRTL ? '٦ أحرف على الأقل' : 'At least 6 characters'}
-                  className={`w-full bg-white border border-gray-300 rounded-xl ${isRTL ? 'pr-10 pl-12' : 'pl-10 pr-12'} py-3 text-gray-900 placeholder-gray-400 text-xs outline-none focus:border-[#3665F3] focus:ring-2 focus:ring-blue-100 transition-all shadow-sm`}
+                  className={`w-full bg-white border border-gray-300 rounded-xl ${isRTL ? 'pr-10 pl-12' : 'pl-10 pr-12'} py-3 text-gray-900 placeholder-gray-400 text-xs outline-none focus:border-brand focus:ring-2 focus:ring-blue-100 transition-all shadow-sm`}
                   required
                   minLength={6}
                 />
@@ -207,11 +207,11 @@ export default function SignupPage() {
 
             <p className="text-[11px] text-gray-500 leading-relaxed">
               {isRTL ? 'بإنشاء الحساب، أنت توافق على ' : 'By creating an account, you agree to our '}
-              <Link href="/terms" className="text-[#3665F3] hover:underline font-semibold">
+              <Link href="/terms" className="text-brand hover:underline font-semibold">
                 {isRTL ? 'الشروط والأحكام' : 'Terms'}
               </Link>{' '}
               {isRTL ? 'و' : 'and'}{' '}
-              <Link href="/privacy" className="text-[#3665F3] hover:underline font-semibold">
+              <Link href="/privacy" className="text-brand hover:underline font-semibold">
                 {isRTL ? 'سياسة الخصوصية' : 'Privacy Policy'}
               </Link>.
             </p>
@@ -219,7 +219,7 @@ export default function SignupPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#3665F3] hover:bg-[#2B54D4] disabled:opacity-60 text-white font-bold py-3.5 rounded-xl transition-all shadow-md shadow-blue-500/20 text-xs flex items-center justify-center gap-2 mt-2"
+              className="w-full bg-brand hover:bg-brand-dark disabled:opacity-60 text-white font-bold py-3.5 rounded-xl transition-all shadow-md shadow-blue-500/20 text-xs flex items-center justify-center gap-2 mt-2"
             >
               {loading ? (
                 <>
@@ -238,7 +238,7 @@ export default function SignupPage() {
           <div className="mt-6 pt-6 border-t border-gray-100 text-center">
             <p className="text-xs text-gray-500">
               {isRTL ? 'لديك حساب بالفعل؟' : 'Already have an account?'}{' '}
-              <Link href="/login" className="text-[#3665F3] hover:underline font-bold ml-1">
+              <Link href="/login" className="text-brand hover:underline font-bold ml-1">
                 {isRTL ? 'تسجيل الدخول' : 'Sign In'}
               </Link>
             </p>

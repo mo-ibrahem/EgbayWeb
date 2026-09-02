@@ -3,19 +3,17 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import {
-  Package, ShieldCheck, Clock, CheckCircle2, Truck,
-  RefreshCw, MessageSquare, AlertTriangle, ExternalLink
-} from 'lucide-react';
+import { Package, RefreshCw, MessageSquare, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { useLanguage } from '@/components/LanguageProvider';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import {
-  getUserOrders,
-  type MarketplaceOrder
-} from '@/lib/orderService';
+import { getUserOrders, type MarketplaceOrder } from '@/lib/orderService';
 import { formatEGP } from '@/lib/products';
+import { supabase } from '@/lib/supabase';
 import SmartImage from '@/components/SmartImage';
+import StatusPill from '@/components/ui/StatusPill';
+import EmptyState from '@/components/ui/EmptyState';
+import Button from '@/components/ui/Button';
 
 function OrdersContent() {
   const router = useRouter();
@@ -25,6 +23,7 @@ function OrdersContent() {
   const [orders, setOrders] = useState<MarketplaceOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'all' | 'purchases' | 'sales'>('all');
+  const [chattingOrderId, setChattingOrderId] = useState<string | null>(null);
 
   const loadOrders = async () => {
     if (!user) return;
@@ -42,7 +41,40 @@ function OrdersContent() {
     if (authLoading) return;
     if (!user) { router.push('/login?redirect=/orders'); return; }
     loadOrders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, authLoading, router]);
+
+  // Opens (or creates) the real chat room between the order's buyer and
+  // seller -- the previous version linked to /chat/${order.product_id},
+  // which is not a chat room id and never resolved to a real
+  // conversation. Chat rooms are looked up by the participant pair, the
+  // same pattern used on the product detail page.
+  const handleChatAboutOrder = async (order: MarketplaceOrder, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!user) return;
+    const otherPartyId = user.id === order.buyer_id ? order.seller_id : order.buyer_id;
+    if (!otherPartyId) return;
+    setChattingOrderId(order.id);
+    try {
+      const participants = [user.id, otherPartyId].sort();
+      const { data: existing } = await supabase
+        .from('chat_rooms').select('id').contains('participant_ids', participants).single();
+      let roomId: string;
+      if (existing) {
+        roomId = existing.id;
+      } else {
+        const { data: created, error } = await supabase
+          .from('chat_rooms').insert({ participant_ids: participants }).select('id').single();
+        if (error || !created) throw error;
+        roomId = created.id;
+      }
+      router.push(`/chat/${roomId}`);
+    } catch (err) {
+      console.error('[Orders] Failed to open chat:', err);
+    } finally {
+      setChattingOrderId(null);
+    }
+  };
 
   const filteredOrders = orders.filter(order => {
     if (activeTab === 'purchases') return order.buyer_id === user?.id;
@@ -53,217 +85,101 @@ function OrdersContent() {
   if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-[#3665F3] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-10">
-      {/* ─── Header & Refresher ─── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+    <div className="max-w-4xl mx-auto px-4 py-6 sm:py-8">
+      <div className="flex items-center justify-between gap-4 mb-5">
         <div>
-          <h1 className="text-xl sm:text-2xl font-black text-gray-900 flex items-center gap-2">
-            <Package className="w-6 h-6 text-[#3665F3]" />
-            {isRTL ? 'سجل الطلبات' : 'My Orders'}
-          </h1>
-          <p className="text-xs sm:text-sm text-gray-500 mt-1">
-            {isRTL
-              ? 'تتبع طلباتك وإدارة المبيعات بكل سهولة.'
-              : 'Track your purchases and manage your sales.'}
-          </p>
+          <h1 className="text-xl font-black text-slate-900">{isRTL ? 'سجل الطلبات' : 'My Orders'}</h1>
+          <p className="text-xs text-slate-500 mt-0.5">{isRTL ? 'تتبع مشترياتك ومبيعاتك' : 'Track your purchases and sales'}</p>
         </div>
-
-        <button
-          onClick={loadOrders}
-          className="self-start sm:self-auto flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl shadow-sm transition-all"
-        >
-          <RefreshCw className="w-4 h-4 text-[#3665F3]" />
-          <span>{isRTL ? 'تحديث الطلبات' : 'Refresh Orders'}</span>
+        <button onClick={loadOrders} className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-slate-600 bg-white hover:bg-slate-50 border border-slate-200 rounded-md transition-colors flex-shrink-0">
+          <RefreshCw className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">{isRTL ? 'تحديث' : 'Refresh'}</span>
         </button>
       </div>
 
-      {/* ─── Tab Filters ─── */}
-      <div className="flex items-center gap-2 mb-6 p-1 bg-gray-100 rounded-2xl max-w-md">
-        <button
-          onClick={() => setActiveTab('all')}
-          className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all text-center ${
-            activeTab === 'all'
-              ? 'bg-white text-[#3665F3] shadow-sm'
-              : 'text-gray-500 hover:text-gray-900'
-          }`}
-        >
-          {isRTL ? `الكل (${orders.length})` : `All (${orders.length})`}
-        </button>
-        <button
-          onClick={() => setActiveTab('purchases')}
-          className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all text-center ${
-            activeTab === 'purchases'
-              ? 'bg-white text-[#3665F3] shadow-sm'
-              : 'text-gray-500 hover:text-gray-900'
-          }`}
-        >
-          {isRTL ? 'مشترياتي 🛍️' : 'Purchases 🛍️'}
-        </button>
-        <button
-          onClick={() => setActiveTab('sales')}
-          className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all text-center ${
-            activeTab === 'sales'
-              ? 'bg-white text-[#3665F3] shadow-sm'
-              : 'text-gray-500 hover:text-gray-900'
-          }`}
-        >
-          {isRTL ? 'مبيعاتي 🏷️' : 'Sales 🏷️'}
-        </button>
-      </div>
-
-      {/* ─── Orders List ─── */}
-      {filteredOrders.length === 0 ? (
-        <div className="bg-white rounded-3xl border border-gray-100 p-8 sm:p-12 text-center shadow-sm">
-          <div className="w-16 h-16 bg-blue-50 text-[#3665F3] rounded-3xl flex items-center justify-center mx-auto mb-4 border border-blue-100">
-            <Package className="w-8 h-8" />
-          </div>
-          <h3 className="text-base font-bold text-gray-900 mb-1">
-            {isRTL ? 'لا توجد طلبات في هذا القسم' : 'No orders found'}
-          </h3>
-          <p className="text-xs text-gray-500 max-w-sm mx-auto mb-6">
-            {isRTL
-              ? 'تصفح أحدث السلع والإلكترونيات واشترِ بأمان مع حماية الضمان المالي ١٠٠٪.'
-              : 'Explore the marketplace and buy items with 100% escrow protection.'}
-          </p>
-          <Link
-            href="/"
-            className="bg-[#3665F3] hover:bg-[#2B54D4] text-white text-xs font-bold px-6 py-3 rounded-2xl shadow-lg shadow-blue-500/20 transition-all inline-block"
+      <div className="flex items-center gap-1 mb-5 p-1 bg-slate-100 rounded-md max-w-md">
+        {([
+          { key: 'all', label: isRTL ? `الكل (${orders.length})` : `All (${orders.length})` },
+          { key: 'purchases', label: isRTL ? 'مشترياتي' : 'Purchases' },
+          { key: 'sales', label: isRTL ? 'مبيعاتي' : 'Sales' },
+        ] as const).map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={`flex-1 py-1.5 rounded-sm text-xs font-bold transition-colors ${
+              activeTab === tab.key ? 'bg-white text-brand shadow-card' : 'text-slate-500 hover:text-slate-800'
+            }`}
           >
-            {isRTL ? 'تصفح السوق الآن' : 'Start Shopping'}
-          </Link>
-        </div>
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {filteredOrders.length === 0 ? (
+        <EmptyState
+          icon={<Package className="w-6 h-6" />}
+          title={isRTL ? 'لا توجد طلبات في هذا القسم' : 'No orders found'}
+          description={isRTL ? 'تصفح السوق واشترِ بأمان مع حماية الضمان المالي.' : 'Browse the marketplace and buy with escrow protection.'}
+          action={<Button href="/">{isRTL ? 'تصفح السوق' : 'Start Shopping'}</Button>}
+          className="bg-white border border-slate-200 rounded-lg"
+        />
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {filteredOrders.map((order) => {
             const isBuyer = user?.id === order.buyer_id;
-            const isCompleted = order.status === 'completed';
-            const isDisputed = order.status === 'disputed';
-            const isShipped = order.status === 'shipped' || order.status === 'out_for_delivery';
-            const isDelivered = order.status === 'delivered';
-            
             return (
               <div
                 key={order.id}
                 onClick={() => router.push(`/orders/${order.id}`)}
-                className="bg-white rounded-3xl border border-gray-200/80 shadow-sm overflow-hidden transition-all hover:shadow-md hover:border-blue-300 cursor-pointer group"
+                className="card-hover bg-white rounded-lg border border-slate-200 overflow-hidden cursor-pointer group"
               >
-                {/* Order Top Ribbon */}
-                <div className="bg-gray-50/80 border-b border-gray-100 px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-2 text-xs">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono font-bold text-gray-500">#{order.id.slice(-8).toUpperCase()}</span>
-                    <span className="text-gray-300">•</span>
-                    <span className="text-gray-500">
-                      {new Date(order.created_at).toLocaleDateString(isRTL ? 'ar-EG' : 'en-EG', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })}
-                    </span>
-                    <span className="text-gray-300">•</span>
-                    <span className={`font-bold px-2 py-0.5 rounded-full text-[10px] ${
-                      isBuyer
-                        ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                        : 'bg-purple-50 text-purple-700 border border-purple-200'
-                    }`}>
-                      {isBuyer ? (isRTL ? 'أنت المشتري 🛍️' : 'Buyer 🛍️') : (isRTL ? 'أنت البائع 🏷️' : 'Seller 🏷️')}
-                    </span>
+                <div className="bg-slate-50 border-b border-slate-100 px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                  <div className="flex items-center gap-2 text-slate-500">
+                    <span className="font-mono font-bold">#{order.id.slice(-8).toUpperCase()}</span>
+                    <span className="text-slate-300">•</span>
+                    <span>{new Date(order.created_at).toLocaleDateString(isRTL ? 'ar-EG' : 'en-EG', { month: 'short', day: 'numeric' })}</span>
+                    <span className="text-slate-300">•</span>
+                    <span className="font-bold">{isBuyer ? (isRTL ? 'مشتري' : 'Buyer') : (isRTL ? 'بائع' : 'Seller')}</span>
                   </div>
-
-                  {/* Status Badge */}
-                  <div>
-                    {isCompleted && (
-                      <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold px-3 py-1 rounded-full text-xs flex items-center gap-1.5">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        {isRTL ? 'مكتمل ✅' : 'Completed ✅'}
-                      </span>
-                    )}
-                    {isDisputed && (
-                      <span className="bg-rose-50 text-rose-700 border border-rose-200 font-bold px-3 py-1 rounded-full text-xs flex items-center gap-1.5">
-                        <AlertTriangle className="w-3.5 h-3.5" />
-                        {isRTL ? 'نزاع مفتوح ⚠️' : 'Dispute Active ⚠️'}
-                      </span>
-                    )}
-                    {!isCompleted && !isDisputed && isShipped && (
-                      <span className="bg-blue-50 text-blue-700 border border-blue-200 font-bold px-3 py-1 rounded-full text-xs flex items-center gap-1.5">
-                        <Truck className="w-3.5 h-3.5" />
-                        {isRTL ? 'تم الشحن 📦' : 'Shipped 📦'}
-                      </span>
-                    )}
-                    {!isCompleted && !isDisputed && isDelivered && (
-                      <span className="bg-indigo-50 text-indigo-700 border border-indigo-200 font-bold px-3 py-1 rounded-full text-xs flex items-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5" />
-                        {isRTL ? 'تم التسليم' : 'Delivered'}
-                      </span>
-                    )}
-                    {!isCompleted && !isDisputed && !isShipped && !isDelivered && (
-                      <span className="bg-amber-50 text-amber-700 border border-amber-200 font-bold px-3 py-1 rounded-full text-xs flex items-center gap-1.5">
-                        <ShieldCheck className="w-3.5 h-3.5" />
-                        {order.handover_method === 'courier' 
-                          ? (isRTL ? 'بانتظار الشحن 🛡️' : 'Awaiting Dispatch 🛡️')
-                          : (isRTL ? 'بانتظار التسليم اليدوي 🛡️' : 'Awaiting Meetup 🛡️')}
-                      </span>
-                    )}
-                  </div>
+                  <StatusPill status={order.status} size="sm" />
                 </div>
 
-                {/* Order Main Content */}
-                <div className="p-4 sm:p-6 flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-                  <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gray-100 relative overflow-hidden flex-shrink-0 border border-gray-100">
+                <div className="p-4 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-14 h-14 rounded-md bg-slate-100 relative overflow-hidden flex-shrink-0">
                       {order.product?.images?.[0] ? (
-                        <SmartImage
-                          src={order.product.images[0]}
-                          alt={order.product.title || ''}
-                          fill
-                          className="object-cover"
-                        />
+                        <SmartImage src={order.product.images[0]} alt={order.product.title || ''} fill className="object-cover" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-300">
-                          <Package className="w-8 h-8" />
-                        </div>
+                        <div className="w-full h-full flex items-center justify-center text-slate-300"><Package className="w-6 h-6" /></div>
                       )}
                     </div>
-
-                    <div>
-                      <h3 className="font-bold text-gray-900 text-sm sm:text-base group-hover:text-[#3665F3] transition-colors line-clamp-1">
+                    <div className="min-w-0">
+                      <h3 className="font-bold text-slate-900 text-sm group-hover:text-brand transition-colors line-clamp-1">
                         {order.product?.title || (isRTL ? 'سلعة معروضة' : 'Marketplace Item')}
                       </h3>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-base font-black text-[#3665F3]">
-                          {formatEGP(order.amount)}
-                        </span>
-                        <span className="text-xs text-gray-400">
-                          • {order.handover_method === 'courier' ? (isRTL ? 'شحن' : 'Courier') : (isRTL ? 'تسليم يدوي' : 'Meetup')}
-                        </span>
+                      <div className="flex items-center gap-1.5 mt-0.5 text-xs">
+                        <span className="font-black text-slate-900">{formatEGP(order.amount)}</span>
+                        <span className="text-slate-400">• {order.handover_method === 'courier' ? (isRTL ? 'شحن' : 'Courier') : (isRTL ? 'تسليم يدوي' : 'Meetup')}</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Quick Actions (Delegated & Informational) */}
-                  <div className="flex items-center gap-2 self-end sm:self-center">
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        router.push(`/chat/${order.product_id}`);
-                      }}
-                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold transition-colors z-10"
+                      onClick={(e) => handleChatAboutOrder(order, e)}
+                      disabled={chattingOrderId === order.id}
+                      className="p-2 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors disabled:opacity-50"
+                      aria-label={isRTL ? 'محادثة' : 'Chat'}
                     >
-                      <MessageSquare className="w-3.5 h-3.5 text-gray-500" />
-                      <span>{isBuyer ? (isRTL ? 'محادثة البائع' : 'Chat Seller') : (isRTL ? 'محادثة المشتري' : 'Chat Buyer')}</span>
+                      <MessageSquare className="w-3.5 h-3.5" />
                     </button>
-
-                    <button
-                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs font-bold transition-colors z-10"
-                    >
-                      <span>{isRTL ? 'التفاصيل' : 'Details'}</span>
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </button>
+                    <ChevronRight className={`w-4 h-4 text-slate-300 group-hover:text-slate-500 transition-colors ${isRTL ? 'rotate-180' : ''}`} />
                   </div>
                 </div>
               </div>

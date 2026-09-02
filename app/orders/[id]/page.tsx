@@ -8,7 +8,8 @@ import { getOrderById, MarketplaceOrder, COURIER_DELIVERY_FEE_EGP } from '@/lib/
 import { 
   ArrowLeft, Package, ShieldCheck, Truck, Clock, MapPin, 
   Loader2, AlertCircle, CheckCircle2, Lock, AlertTriangle, 
-  User, MessageCircle, BadgeCheck, FileText, ChevronRight, DollarSign 
+  User, MessageCircle, BadgeCheck, FileText,
+  Send, X
 } from 'lucide-react';
 import SmartImage from '@/components/SmartImage';
 import { useAuth } from '@/components/AuthProvider';
@@ -57,6 +58,14 @@ export default function OrderDetailsPage() {
   const [markingDispatched, setMarkingDispatched] = useState(false);
   const [dispatchError, setDispatchError] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
+
+  // Dispute filing
+  const [disputeOpen, setDisputeOpen] = useState(false);
+  const [disputeReason, setDisputeReason] = useState('');
+  const [disputeNotes, setDisputeNotes] = useState('');
+  const [disputeSubmitting, setDisputeSubmitting] = useState(false);
+  const [disputeError, setDisputeError] = useState('');
+  const [disputeFiled, setDisputeFiled] = useState(false);
 
   useEffect(() => {
     async function loadOrder() {
@@ -165,8 +174,32 @@ export default function OrderDetailsPage() {
     }
   };
 
-  const handleOpenDispute = () => {
-    window.location.href = `mailto:info@egbay.shop?subject=Dispute for Order ${orderId}`;
+  // Files a real dispute through the same server endpoint the admin
+  // disputes queue reads from (POST /api/orders, action: 'dispute') --
+  // this used to just open a mailto: link, which never actually froze
+  // the order or reached the admin dispute-resolution flow at all.
+  const handleFileDispute = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!orderId || !user || !disputeReason) return;
+    setDisputeSubmitting(true);
+    setDisputeError('');
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(session ? { Authorization: `Bearer ${session.access_token}` } : {}) },
+        body: JSON.stringify({ action: 'dispute', orderId, reason: disputeReason, notes: disputeNotes }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Failed to file dispute');
+      setDisputeFiled(true);
+      const fetchedOrder = await getOrderById(orderId as string);
+      if (fetchedOrder) setOrder(fetchedOrder);
+    } catch (err: any) {
+      setDisputeError(err.message || 'Failed to file dispute');
+    } finally {
+      setDisputeSubmitting(false);
+    }
   };
 
   const handleChatSeller = async () => {
@@ -423,14 +456,14 @@ export default function OrderDetailsPage() {
                         value={sellerPinInput}
                         onChange={(e) => setSellerPinInput(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
                         placeholder="123456"
-                        className="flex-1 border border-slate-300 rounded-xl px-4 py-3 text-2xl text-center font-mono tracking-widest outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                        className="flex-1 border border-slate-300 rounded-xl px-4 py-3 text-2xl text-center font-mono tracking-widest outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 transition-all"
                         required
                         disabled={releasing}
                       />
                       <button 
                         type="submit" 
                         disabled={releasing || sellerPinInput.length !== 6}
-                        className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold px-6 py-3 rounded-xl transition-colors whitespace-nowrap"
+                        className="bg-brand hover:bg-brand-dark disabled:opacity-50 text-white font-bold px-6 py-3 rounded-xl transition-colors whitespace-nowrap"
                       >
                         {releasing ? <Loader2 className="w-5 h-5 animate-spin" /> : (isRTL ? 'تأكيد وتحرير' : 'Release Funds')}
                       </button>
@@ -498,7 +531,7 @@ export default function OrderDetailsPage() {
                   <button
                     onClick={handleMarkDispatched}
                     disabled={markingDispatched}
-                    className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-xl transition-colors flex justify-center items-center shadow-md"
+                    className="w-full bg-brand hover:bg-brand-dark disabled:opacity-50 text-white font-bold py-3 px-4 rounded-xl transition-colors flex justify-center items-center shadow-md"
                   >
                     {markingDispatched ? <Loader2 className="w-5 h-5 animate-spin" /> : (isRTL ? 'تحديد كـ تم الشحن' : 'Mark as Dispatched')}
                   </button>
@@ -521,7 +554,7 @@ export default function OrderDetailsPage() {
                       <button
                         onClick={() => handleReleaseEscrow(null)}
                         disabled={releasing}
-                        className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-xl transition-colors flex justify-center items-center gap-2 shadow-md"
+                        className="w-full bg-success hover:brightness-95 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-xl transition-colors flex justify-center items-center gap-2 shadow-md"
                       >
                         {releasing ? <Loader2 className="w-5 h-5 animate-spin" /> : (isRTL ? 'تأكيد استلام الطلب' : 'Confirm Delivery Received')}
                       </button>
@@ -532,10 +565,13 @@ export default function OrderDetailsPage() {
                   )
                 )}
 
-                {/* Dispute CTA */}
-                {isBuyer && (
+                {/* Dispute CTA -- only shown (and only actually filable
+                    server-side) once the order has reached escrow_secured
+                    or later; a pending_payment order has nothing to
+                    dispute yet. */}
+                {isBuyer && ['escrow_secured', 'shipped', 'out_for_delivery', 'delivered'].includes(order.status) && (
                   <button
-                    onClick={handleOpenDispute}
+                    onClick={() => setDisputeOpen(true)}
                     className="w-full bg-white border-2 border-slate-200 hover:border-rose-300 hover:text-rose-600 text-slate-700 font-bold py-3 px-4 rounded-xl transition-colors"
                   >
                     {isRTL ? 'فتح نزاع' : 'Open Dispute'}
@@ -617,7 +653,7 @@ export default function OrderDetailsPage() {
                     type="button"
                     onClick={handleChatSeller}
                     disabled={chatLoading}
-                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-colors disabled:opacity-50"
+                    className="p-2 text-brand hover:bg-brand-soft rounded-full transition-colors disabled:opacity-50"
                     title={isRTL ? 'مراسلة البائع' : 'Chat Seller'}
                   >
                     <MessageCircle className="w-5 h-5" />
@@ -644,17 +680,6 @@ export default function OrderDetailsPage() {
               <div className="pt-3 border-t border-slate-100 flex justify-between font-black text-slate-900 text-base">
                 <span>{isRTL ? 'إجمالي المدفوع' : 'Total Paid'}</span>
                 <span>{formatEGP(order.amount, isRTL)}</span>
-              </div>
-              
-              <div className="mt-4 pt-4 border-t border-slate-100">
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-slate-500 font-medium">{isRTL ? 'طريقة الدفع' : 'Payment Method'}</span>
-                  <span className="font-bold text-slate-900 flex items-center gap-1">
-                    {/* Simplified for MVP, assumes Wallet if Escrow is used natively */}
-                    <DollarSign className="w-4 h-4 text-emerald-600" />
-                    {isRTL ? 'محفظة Egbay' : 'Egbay Wallet'}
-                  </span>
-                </div>
               </div>
               
               {/* Financial direction explicit */}
@@ -720,6 +745,89 @@ export default function OrderDetailsPage() {
 
         </div>
       </div>
+
+      {/* Dispute Modal -- files a real dispute via /api/orders (action:
+          'dispute'), which freezes the order (status -> 'disputed') and
+          queues it for an admin to resolve via /api/admin/disputes
+          (admin_resolve_dispute RPC). */}
+      {disputeOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" onClick={() => !disputeSubmitting && setDisputeOpen(false)}>
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl relative" onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => setDisputeOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1" aria-label="Close">
+              <X className="w-5 h-5" />
+            </button>
+
+            {disputeFiled ? (
+              <div className="py-6 text-center space-y-3">
+                <div className="w-12 h-12 rounded-full bg-warning-soft text-warning flex items-center justify-center mx-auto">
+                  <AlertTriangle className="w-6 h-6" />
+                </div>
+                <h3 className="text-base font-black text-slate-900">{isRTL ? 'تم فتح النزاع' : 'Dispute filed'}</h3>
+                <p className="text-xs text-slate-500 leading-relaxed max-w-xs mx-auto">
+                  {isRTL
+                    ? 'أموالك مجمدة في الضمان أثناء المراجعة. سيقوم فريق إيجي باي بمراجعة النزاع يدوياً.'
+                    : 'Your funds stay frozen in escrow while this is reviewed. The Egbay team will review the dispute manually.'}
+                </p>
+                <button onClick={() => setDisputeOpen(false)} className="text-xs font-bold text-brand hover:text-brand-dark">
+                  {isRTL ? 'إغلاق' : 'Close'}
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleFileDispute} className="space-y-4">
+                <div>
+                  <h3 className="text-base font-black text-slate-900">{isRTL ? 'فتح نزاع' : 'Open a Dispute'}</h3>
+                  <p className="text-xs text-slate-500 mt-1">
+                    {isRTL
+                      ? 'أموالك ستبقى مجمدة في الضمان أثناء مراجعة إيجي باي للنزاع يدوياً.'
+                      : 'Your funds stay frozen in escrow while Egbay reviews this manually.'}
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">{isRTL ? 'سبب النزاع' : 'Reason'}</label>
+                  <select
+                    value={disputeReason}
+                    onChange={(e) => setDisputeReason(e.target.value)}
+                    required
+                    className="w-full border border-slate-200 rounded-md px-3 py-2.5 text-xs outline-none focus:border-brand bg-white"
+                  >
+                    <option value="" disabled>{isRTL ? 'اختر السبب' : 'Select a reason'}</option>
+                    <option value="not_as_described">{isRTL ? 'السلعة غير مطابقة للوصف' : 'Item not as described'}</option>
+                    <option value="damaged">{isRTL ? 'السلعة تالفة' : 'Item arrived damaged'}</option>
+                    <option value="not_received">{isRTL ? 'لم يتم استلام السلعة' : 'Never received the item'}</option>
+                    <option value="wrong_item">{isRTL ? 'تم استلام سلعة مختلفة' : 'Received the wrong item'}</option>
+                    <option value="other">{isRTL ? 'سبب آخر' : 'Other'}</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">{isRTL ? 'تفاصيل إضافية' : 'Additional details'}</label>
+                  <textarea
+                    value={disputeNotes}
+                    onChange={(e) => setDisputeNotes(e.target.value)}
+                    rows={3}
+                    placeholder={isRTL ? 'اشرح المشكلة بالتفصيل...' : 'Describe what went wrong...'}
+                    className="w-full border border-slate-200 rounded-md px-3 py-2.5 text-xs outline-none focus:border-brand resize-none"
+                  />
+                </div>
+
+                {disputeError && (
+                  <p className="text-xs font-bold text-danger">{disputeError}</p>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={disputeSubmitting || !disputeReason}
+                  className="w-full bg-danger hover:brightness-95 disabled:opacity-50 text-white font-bold py-2.5 rounded-md text-xs transition-all flex items-center justify-center gap-2"
+                >
+                  {disputeSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                  {isRTL ? 'إرسال النزاع' : 'Submit Dispute'}
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

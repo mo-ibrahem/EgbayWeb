@@ -79,10 +79,10 @@ export default function MobileBottomNav() {
                 href={item.href}
                 className="flex flex-col items-center justify-center -mt-6 group"
               >
-                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#3665F3] to-[#5B3DDB] text-white flex items-center justify-center shadow-xl shadow-blue-500/35 group-active:scale-90 transition-transform border-[3px] border-white">
+                <div className="w-14 h-14 rounded-full bg-brand text-white flex items-center justify-center shadow-card-md group-active:scale-90 transition-transform border-[3px] border-white">
                   <Plus className="w-6 h-6 stroke-[2.5]" />
                 </div>
-                <span className="text-[10px] font-black text-[#3665F3] mt-1">
+                <span className="text-[10px] font-black text-brand mt-1">
                   {item.label}
                 </span>
               </Link>
@@ -100,7 +100,7 @@ export default function MobileBottomNav() {
                   item.isActive
                     ? item.isLive
                       ? 'bg-red-50 text-red-600'
-                      : 'bg-blue-50 text-[#3665F3]'
+                      : 'bg-brand-soft text-brand'
                     : 'text-gray-400 hover:text-gray-600'
                 }`}
               >

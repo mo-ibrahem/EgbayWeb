@@ -176,7 +176,7 @@ function ProfileContent() {
   if (authLoading || loading) {
     return (
       <div className="min-h-[70vh] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-[#3665F3] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -281,7 +281,7 @@ function ProfileContent() {
             onClick={() => setActiveTab(tab.id)}
             className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-6 py-2 sm:py-3 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-bold transition-all flex-shrink-0 ${
               activeTab === tab.id
-                ? 'bg-[#3665F3] text-white shadow-md shadow-blue-500/20'
+                ? 'bg-brand text-white shadow-md shadow-blue-500/20'
                 : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300 hover:bg-gray-50'
             }`}
           >
@@ -313,7 +313,7 @@ function ProfileContent() {
             </div>
             <Link
               href="/sell"
-              className="bg-[#3665F3] hover:bg-[#2B54D4] text-white text-xs font-bold px-3 sm:px-4 py-2 rounded-xl shadow-sm transition-all flex items-center gap-1.5"
+              className="bg-brand hover:bg-brand-dark text-white text-xs font-bold px-3 sm:px-4 py-2 rounded-xl shadow-sm transition-all flex items-center gap-1.5"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>{isRTL ? 'إعلان جديد' : 'New Listing'}</span>
@@ -329,7 +329,7 @@ function ProfileContent() {
               </p>
               <Link
                 href="/sell"
-                className="inline-flex items-center gap-2 bg-[#3665F3] text-white px-5 py-2.5 rounded-xl font-bold text-xs shadow-md shadow-blue-500/20 hover:bg-[#2B54D4] transition-all"
+                className="inline-flex items-center gap-2 bg-brand text-white px-5 py-2.5 rounded-xl font-bold text-xs shadow-md shadow-blue-500/20 hover:bg-brand-dark transition-all"
               >
                 <Plus className="w-4 h-4" />
                 <span>{isRTL ? 'أضف أول إعلان الآن' : 'List an Item Now'}</span>
@@ -364,7 +364,7 @@ function ProfileContent() {
                       <h3 className="font-bold text-gray-900 text-xs sm:text-sm line-clamp-1 group-hover:text-blue-600 transition-colors">
                         {product.title}
                       </h3>
-                      <p className="text-[#3665F3] font-black text-xs sm:text-base mt-0.5 sm:mt-1">
+                      <p className="text-brand font-black text-xs sm:text-base mt-0.5 sm:mt-1">
                         {formatEGP(product.price)}
                       </p>
                       <p className="text-[10px] sm:text-[11px] text-gray-400 mt-0.5 sm:mt-1 flex items-center gap-1">
@@ -418,7 +418,7 @@ function ProfileContent() {
               </p>
               <Link
                 href="/"
-                className="inline-flex items-center gap-2 bg-[#3665F3] text-white px-5 py-2.5 rounded-xl font-bold text-xs shadow-md shadow-blue-500/20 hover:bg-[#2B54D4] transition-all"
+                className="inline-flex items-center gap-2 bg-brand text-white px-5 py-2.5 rounded-xl font-bold text-xs shadow-md shadow-blue-500/20 hover:bg-brand-dark transition-all"
               >
                 <span>{isRTL ? 'تصفح السوق' : 'Browse Marketplace'}</span>
                 <ArrowRight className={`w-4 h-4 ${isRTL ? 'rotate-180' : ''}`} />
@@ -450,7 +450,7 @@ function ProfileContent() {
                       <h3 className="font-bold text-gray-900 text-xs sm:text-sm line-clamp-1 group-hover:text-blue-600 transition-colors">
                         {product.title}
                       </h3>
-                      <p className="text-[#3665F3] font-black text-xs sm:text-base mt-0.5 sm:mt-1">
+                      <p className="text-brand font-black text-xs sm:text-base mt-0.5 sm:mt-1">
                         {formatEGP(product.price)}
                       </p>
                       <p className="text-[10px] sm:text-[11px] text-gray-400 mt-0.5 sm:mt-1 flex items-center gap-1">
@@ -459,7 +459,7 @@ function ProfileContent() {
                       </p>
                     </div>
 
-                    <div className="mt-2.5 sm:mt-4 pt-2 sm:pt-3 border-t border-gray-100 flex items-center justify-between text-xs font-bold text-[#3665F3]">
+                    <div className="mt-2.5 sm:mt-4 pt-2 sm:pt-3 border-t border-gray-100 flex items-center justify-between text-xs font-bold text-brand">
                       <span>{isRTL ? 'عرض التفاصيل' : 'View Details'}</span>
                       <ChevronRight className={`w-3.5 h-3.5 group-hover:translate-x-1 transition-transform ${isRTL ? 'rotate-180' : ''}`} />
                     </div>
@@ -571,7 +571,7 @@ function ProfileContent() {
               <button
                 onClick={handleSaveProfile}
                 disabled={saving}
-                className="w-full bg-[#3665F3] hover:bg-[#2B54D4] disabled:opacity-60 text-white font-bold text-xs py-3 rounded-xl shadow-md transition-all mt-2"
+                className="w-full bg-brand hover:bg-brand-dark disabled:opacity-60 text-white font-bold text-xs py-3 rounded-xl shadow-md transition-all mt-2"
               >
                 {saving ? (isRTL ? 'جاري الحفظ...' : 'Saving Changes...') : (isRTL ? 'حفظ تعديلات الملف الشخصي' : 'Save Profile Changes')}
               </button>

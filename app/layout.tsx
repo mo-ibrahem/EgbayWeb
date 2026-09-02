@@ -109,7 +109,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <LanguageProvider>
           <AuthProvider>
             <Suspense fallback={
-              <div className="h-[110px] bg-white border-b border-gray-200" />
+              <div className="h-[104px] bg-white border-b border-gray-200" />
             }>
               <Navbar />
             </Suspense>

@@ -12,8 +12,8 @@ export default function Footer() {
   return (
     <footer className="mt-16 text-slate-400" style={{ background: '#0F172A' }}>
 
-      {/* ─── Top Accent Gradient ─── */}
-      <div className="h-0.5 w-full" style={{ background: 'linear-gradient(90deg, #3665F3 0%, #7C3AED 50%, #EC4899 100%)' }} />
+      {/* ─── Top accent ─── */}
+      <div className="h-0.5 w-full bg-brand" />
 
       {/* ─── Trust Badges Ribbon ─── */}
       <div className="border-b border-white/5 py-8" style={{ background: 'rgba(255,255,255,0.03)' }}>
@@ -52,10 +52,10 @@ export default function Footer() {
             </div>
             <div>
               <h4 className="text-xs font-bold text-white">
-                {isRTL ? 'بائعون موثقون وسحب فوري' : 'Verified Sellers & Payouts'}
+                {isRTL ? 'توثيق اختياري للبائعين' : 'Optional Seller ID Verification'}
               </h4>
               <p className="text-[11px] text-slate-500 mt-0.5">
-                {isRTL ? 'توثيق بطاقة الرقم القومي + تحويلات إنستاباي وفودافون كاش' : 'Egyptian National ID KYC + InstaPay payouts'}
+                {isRTL ? 'توثيق بطاقة الرقم القومي + سحب فوري لإنستاباي وفودافون كاش' : 'Egyptian National ID KYC + instant InstaPay/Vodafone Cash payouts'}
               </p>
             </div>
           </div>
@@ -88,8 +88,7 @@ export default function Footer() {
             {/* Sell CTA */}
             <Link
               href="/sell"
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-white transition-all hover:brightness-110"
-              style={{ background: 'linear-gradient(135deg, #3665F3 0%, #7C3AED 100%)' }}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md text-xs font-bold text-white bg-brand hover:bg-brand-dark transition-colors"
             >
               {isRTL ? 'بيع منتجك الآن' : 'Start Selling Today'}
               <ArrowRight className={`w-3.5 h-3.5 ${isRTL ? 'rotate-180' : ''}`} />
@@ -116,7 +115,7 @@ export default function Footer() {
               {isRTL ? 'البيع والشراء' : 'Buy & Sell'}
             </h4>
             <ul className="space-y-2.5 text-xs">
-              <li><Link href="/sell" className="text-[#3665F3] hover:text-blue-400 transition-colors font-semibold">{isRTL ? 'إضافة إعلان' : 'List an Item'}</Link></li>
+              <li><Link href="/sell" className="text-brand hover:text-blue-400 transition-colors font-semibold">{isRTL ? 'إضافة إعلان' : 'List an Item'}</Link></li>
               <li><Link href="/orders" className="hover:text-white transition-colors">{isRTL ? 'طلباتي والضمان' : 'My Escrow Orders'}</Link></li>
               <li><Link href="/wallet" className="hover:text-white transition-colors">{isRTL ? 'المحفظة والسحب' : 'Wallet & Payouts'}</Link></li>
               <li><Link href="/seller-verification" className="hover:text-white transition-colors">{isRTL ? 'توثيق البائع' : 'Seller Verification'}</Link></li>

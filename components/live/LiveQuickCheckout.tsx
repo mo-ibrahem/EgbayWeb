@@ -12,6 +12,7 @@ import { useLanguage } from '@/components/LanguageProvider';
 import { getUserWallet, deductWalletSpendableFunds, type UserWallet } from '@/lib/walletService';
 import { createMarketplaceOrder, COURIER_DELIVERY_FEE_EGP } from '@/lib/orderService';
 import { sendChatMessage, type LiveSession, type LivePinnedProduct } from '@/lib/liveService';
+import SmartImage from '@/components/SmartImage';
 
 const formatEGP = (amount: number) => `EGP ${(Number(amount) || 0).toLocaleString('en-EG')}`;
 
@@ -196,9 +197,9 @@ export default function LiveQuickCheckout({
             <form onSubmit={handleCheckout} className="p-5 overflow-y-auto space-y-5 flex-1">
               {/* Pinned Product Spotlight Mini Card */}
               <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-3.5 flex items-center gap-3.5">
-                <div className="w-16 h-16 rounded-xl bg-slate-950 overflow-hidden flex-shrink-0 border border-slate-700">
+                <div className="w-16 h-16 rounded-xl bg-slate-950 overflow-hidden flex-shrink-0 border border-slate-700 relative">
                   {pinnedItem.product?.images?.[0] ? (
-                    <img src={pinnedItem.product.images[0]} alt="" className="w-full h-full object-cover" />
+                    <SmartImage src={pinnedItem.product.images[0]} alt="" fill className="object-cover" sizes="64px" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-slate-600">
                       <ShoppingBag className="w-6 h-6" />

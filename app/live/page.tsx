@@ -7,6 +7,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { useLanguage } from '@/components/LanguageProvider';
 import { getActiveLiveSessions, LIVE_PASSES, type LiveSession } from '@/lib/liveService';
 import { supabase } from '@/lib/supabase';
+import SmartImage from '@/components/SmartImage';
 
 export default function LiveDiscoveryPage() {
   const { user } = useAuth();
@@ -41,7 +42,7 @@ export default function LiveDiscoveryPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 pb-24 space-y-10">
       {/* Hero Banner */}
-      <div className="relative bg-slate-900 rounded-3xl overflow-hidden p-8 border border-slate-800 shadow-xl">
+      <div className="relative bg-slate-900 rounded-lg overflow-hidden p-8 border border-slate-800 shadow-xl">
         <div className="relative z-10">
           <div className="inline-flex items-center gap-2 bg-red-600/10 border border-red-600/30 text-red-400 text-xs font-black px-3 py-1 rounded-full mb-4">
             <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
@@ -59,7 +60,7 @@ export default function LiveDiscoveryPage() {
             {user && (
               <Link
                 href="/live/book"
-                className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-black px-5 py-3 rounded-2xl text-sm shadow-lg shadow-red-900/30 transition-all"
+                className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-black px-5 py-3 rounded-md text-sm shadow-lg shadow-red-900/30 transition-all"
               >
                 <Video className="w-4 h-4" />
                 {isRTL ? 'ابدأ بثك المباشر' : 'Go Live & Sell'}
@@ -85,11 +86,11 @@ export default function LiveDiscoveryPage() {
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {[1, 2, 3].map(i => (
-              <div key={i} className="bg-gray-100 rounded-3xl aspect-video animate-pulse" />
+              <div key={i} className="bg-gray-100 rounded-lg aspect-video animate-pulse" />
             ))}
           </div>
         ) : liveNow.length === 0 ? (
-          <div className="bg-gray-50 border border-gray-200/80 rounded-3xl p-10 text-center">
+          <div className="bg-gray-50 border border-gray-200/80 rounded-lg p-10 text-center">
             <Video className="w-10 h-10 text-gray-300 mx-auto mb-3" />
             <p className="text-sm text-gray-500 font-semibold">
               {isRTL ? 'لا توجد بثوث حية الآن — تحقق لاحقاً أو ابدأ بثك الخاص!' : 'No streams live right now — check back soon or start your own!'}
@@ -105,9 +106,9 @@ export default function LiveDiscoveryPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {liveNow.map(session => (
               <Link key={session.id} href={`/live/${session.agora_channel}`} className="group block">
-                <div className="relative bg-gray-900 rounded-3xl overflow-hidden aspect-video border border-gray-800 group-hover:border-red-600/50 transition-all shadow-sm">
+                <div className="relative bg-gray-900 rounded-lg overflow-hidden aspect-video border border-gray-800 group-hover:border-red-600/50 transition-colors">
                   {session.thumbnail_url ? (
-                    <img src={session.thumbnail_url} alt={session.title} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                    <SmartImage src={session.thumbnail_url} alt={session.title} fill className="object-cover opacity-80 group-hover:opacity-100 transition-opacity" sizes="(max-width: 640px) 100vw, 33vw" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
                       <div className="w-16 h-16 rounded-full bg-red-600/20 flex items-center justify-center">
@@ -153,8 +154,8 @@ export default function LiveDiscoveryPage() {
           </h2>
           <div className="space-y-3">
             {upcoming.map(session => (
-              <div key={session.id} className="bg-white border border-gray-200/80 rounded-2xl p-4 flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow">
-                <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center flex-shrink-0">
+              <div key={session.id} className="bg-white border border-gray-200/80 rounded-md p-4 flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow">
+                <div className="w-12 h-12 rounded-md bg-blue-50 border border-blue-100 flex items-center justify-center flex-shrink-0">
                   <Clock className="w-5 h-5 text-blue-600" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -162,7 +163,7 @@ export default function LiveDiscoveryPage() {
                   <div className="flex items-center gap-3 mt-0.5">
                     <span className="text-xs text-gray-500">by {session.seller?.full_name}</span>
                     {session.scheduled_at && (
-                      <span className="text-[10px] bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-full font-bold">
+                      <span className="text-[10px] bg-brand-soft text-brand-dark border border-brand/20 px-2 py-0.5 rounded-full font-bold">
                         {new Date(session.scheduled_at).toLocaleString(isRTL ? 'ar-EG' : 'en-EG', { weekday: 'short', hour: '2-digit', minute: '2-digit' })}
                       </span>
                     )}
@@ -179,7 +180,7 @@ export default function LiveDiscoveryPage() {
       )}
 
       {/* How it Works */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100/80 rounded-3xl p-6 sm:p-8">
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100/80 rounded-lg p-6 sm:p-8">
         <h2 className="text-base font-black text-gray-900 mb-6 text-center">
           {isRTL ? 'كيف يعمل EgyBay Live للبائعين؟' : 'How Does EgyBay Live Work for Sellers?'}
         </h2>
@@ -208,7 +209,7 @@ export default function LiveDiscoveryPage() {
             },
           ].map(item => (
             <div key={item.step} className="flex flex-col items-center text-center">
-              <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-3 shadow-sm" style={{ backgroundColor: `${item.color}20`, border: `1px solid ${item.color}30` }}>
+              <div className="w-12 h-12 rounded-md flex items-center justify-center mb-3 shadow-sm" style={{ backgroundColor: `${item.color}20`, border: `1px solid ${item.color}30` }}>
                 <item.icon className="w-6 h-6" style={{ color: item.color }} />
               </div>
               <div className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1">Step {item.step}</div>
@@ -232,13 +233,13 @@ export default function LiveDiscoveryPage() {
 
         <div className="mt-6 text-center">
           {user ? (
-            <Link href="/live/book" className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-black px-6 py-3 rounded-2xl text-sm shadow-md transition-all">
+            <Link href="/live/book" className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-black px-6 py-3 rounded-md text-sm shadow-md transition-all">
               <Video className="w-4 h-4" />
               {isRTL ? 'احجز بثك المباشر الآن' : 'Book Your Live Show Now'}
               <ChevronRight className="w-4 h-4" />
             </Link>
           ) : (
-            <Link href="/signup" className="inline-flex items-center gap-2 bg-[#3665F3] hover:bg-[#2B54D4] text-white font-black px-6 py-3 rounded-2xl text-sm shadow-md transition-all">
+            <Link href="/signup" className="inline-flex items-center gap-2 bg-brand hover:bg-brand-dark text-white font-black px-6 py-3 rounded-md text-sm shadow-md transition-all">
               {isRTL ? 'سجل كبائع وابدأ البيع المباشر' : 'Sign Up & Start Live Selling'}
               <ChevronRight className="w-4 h-4" />
             </Link>

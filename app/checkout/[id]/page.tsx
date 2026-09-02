@@ -2,12 +2,10 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import Image from 'next/image';
 import Link from 'next/link';
 import {
   ArrowLeft, ShieldCheck, Truck, QrCode, CreditCard,
-  Wallet, CheckCircle2, AlertCircle, MapPin,
-  Lock, ChevronRight, Package, User, Sparkles
+  Wallet, CheckCircle2, MapPin, Lock, Package,
 } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { useLanguage } from '@/components/LanguageProvider';
@@ -18,23 +16,15 @@ import { createMarketplaceOrder, COURIER_DELIVERY_FEE_EGP } from '@/lib/orderSer
 import { startPaymobCheckoutSession } from '@/lib/paymobService';
 import SmartImage from '@/components/SmartImage';
 import { supabase } from '@/lib/supabase';
+import Alert from '@/components/ui/Alert';
+import Button from '@/components/ui/Button';
 
 const GOVERNORATES = [
-  { en: 'Cairo', ar: 'القاهرة' },
-  { en: 'Giza', ar: 'الجيزة' },
-  { en: 'Alexandria', ar: 'الإسكندرية' },
-  { en: 'Dakahlia', ar: 'الدقهلية' },
-  { en: 'Sharqia', ar: 'الشرقية' },
-  { en: 'Qalyubia', ar: 'القليوبية' },
-  { en: 'Gharbia', ar: 'الغربية' },
-  { en: 'Red Sea', ar: 'البحر الأحمر' },
-  { en: 'Suez', ar: 'السويس' },
-  { en: 'Port Said', ar: 'بورسعيد' },
-  { en: 'Luxor', ar: 'الأقصر' },
-  { en: 'Aswan', ar: 'أسوان' },
-  { en: 'Asyut', ar: 'أسيوط' },
-  { en: 'Beheira', ar: 'البحيرة' },
-  { en: 'Beni Suef', ar: 'بني سويف' },
+  { en: 'Cairo', ar: 'القاهرة' }, { en: 'Giza', ar: 'الجيزة' }, { en: 'Alexandria', ar: 'الإسكندرية' },
+  { en: 'Dakahlia', ar: 'الدقهلية' }, { en: 'Sharqia', ar: 'الشرقية' }, { en: 'Qalyubia', ar: 'القليوبية' },
+  { en: 'Gharbia', ar: 'الغربية' }, { en: 'Red Sea', ar: 'البحر الأحمر' }, { en: 'Suez', ar: 'السويس' },
+  { en: 'Port Said', ar: 'بورسعيد' }, { en: 'Luxor', ar: 'الأقصر' }, { en: 'Aswan', ar: 'أسوان' },
+  { en: 'Asyut', ar: 'أسيوط' }, { en: 'Beheira', ar: 'البحيرة' }, { en: 'Beni Suef', ar: 'بني سويف' },
 ];
 
 function CheckoutContent() {
@@ -51,11 +41,9 @@ function CheckoutContent() {
   const [submitting, setSubmitting] = useState(false);
   const [createdOrderId, setCreatedOrderId] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
-  // Paymob iFrame modal
   const [paymobIframeUrl, setPaymobIframeUrl] = useState('');
   const [showPaymobModal, setShowPaymobModal] = useState(false);
 
-  // Form
   const [deliveryMethod, setDeliveryMethod] = useState<'courier' | 'qr_meetup'>('courier');
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -75,20 +63,12 @@ function CheckoutContent() {
         setProduct(prod);
         setFullName(user.user_metadata?.full_name || '');
 
-        // Wallet balance is a convenience for the "pay with wallet" toggle,
-        // not required to check out at all (card payment doesn't need it).
-        // A failure here must not block the buyer from seeing the product
-        // or paying by card -- it just leaves canPayFullyWithWallet false.
         try {
           setWallet(await getUserWallet(user.id));
         } catch (walletErr) {
           console.warn('[Checkout] Failed to load wallet balance (non-fatal):', walletErr);
         }
 
-        // Check if returning from Paymob 3D-Secure. We never mark the order
-        // paid client-side here — /orders/success fetches the real order
-        // status from the server (the payment webhook is the only thing
-        // authorized to move an order out of pending_payment).
         const isSuccess = searchParams.get('success') === 'true' || searchParams.get('txn_response_code') === 'APPROVED';
         const txOrderId = searchParams.get('order') || searchParams.get('merchant_order_id') || searchParams.get('id');
         if (isSuccess && txOrderId) {
@@ -107,16 +87,11 @@ function CheckoutContent() {
   const itemPrice = Number(product?.price || 0);
   const totalPrice = itemPrice + deliveryFee;
   const walletAvailable = Number(wallet?.available_balance || 0);
-  // Wallet payment only covers checkout when it can pay the FULL total —
-  // the backend has no split-payment support (a partial wallet deduction
-  // plus a card charge for the remainder), so we never offer or imply one.
   const canPayFullyWithWallet = walletAvailable >= totalPrice && totalPrice > 0;
   const payingWithWallet = useWalletBalance && canPayFullyWithWallet;
   const walletDeduction = payingWithWallet ? totalPrice : 0;
   const remainingDue = payingWithWallet ? 0 : totalPrice;
 
-  // Clear existing order ID if the user changes any shipping or checkout parameters
-  // so we don't accidentally check out an old row with outdated address info.
   useEffect(() => {
     setCreatedOrderId('');
   }, [deliveryMethod, fullName, phoneNumber, governorate, city, streetAddress, useWalletBalance]);
@@ -142,21 +117,8 @@ function CheckoutContent() {
           seller_id: product.seller_id,
           amount: totalPrice,
           handover_method: deliveryMethod,
-          shipping_address: {
-            full_name: fullName || 'Buyer',
-            phone: phoneNumber,
-            governorate,
-            city,
-            street: streetAddress,
-          },
-          product_snapshot: {
-            id: product.id,
-            title: product.title,
-            price: product.price,
-            images: product.images,
-            condition: product.condition,
-            category: product.category,
-          },
+          shipping_address: { full_name: fullName || 'Buyer', phone: phoneNumber, governorate, city, street: streetAddress },
+          product_snapshot: { id: product.id, title: product.title, price: product.price, images: product.images, condition: product.condition, category: product.category },
         });
 
         if (!order) throw new Error(isRTL ? 'تعذر إنشاء الطلب، يرجى المحاولة ثانية' : 'Failed to create order');
@@ -168,25 +130,16 @@ function CheckoutContent() {
         }
       }
 
-      // Wallet deduction is handled purely by the final /api/wallet/action endpoint
-      // for 100% wallet checkout. Split payments are not supported by the backend,
-      // so payingWithWallet is only true when the wallet covers the full total.
-
       if (payingWithWallet) {
-        // 100% wallet — process order confirmation & escrow credit via secure server API
         try {
           const { data: { session } } = await supabase.auth.getSession();
           const res = await fetch('/api/wallet/action', {
             method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json',
-              ...(session ? { Authorization: `Bearer ${session.access_token}` } : {})
-            },
+            headers: { 'Content-Type': 'application/json', ...(session ? { Authorization: `Bearer ${session.access_token}` } : {}) },
             body: JSON.stringify({ action: 'deduct_spendable', orderId: currentOrderId }),
           });
           const walletResult = await res.json();
           if (!walletResult.success) throw new Error(walletResult.error || 'Wallet payment failed');
-          
           router.push(`/orders/success?orderId=${currentOrderId}`);
         } catch (err: any) {
           setErrorMsg(err.message || 'Failed to confirm wallet payment');
@@ -194,19 +147,14 @@ function CheckoutContent() {
         }
         return;
       } else {
-        // Remaining due > 0 (Full payment) — open Paymob iFrame modal
         const nameParts = (fullName || 'Buyer EgyBay').split(' ');
         const session = await startPaymobCheckoutSession({
           purpose: 'order',
           referenceId: currentOrderId,
           billingData: {
-            first_name: nameParts[0] || 'Buyer',
-            last_name: nameParts[1] || 'EgyBay',
-            email: user.email || 'buyer@egbay.market',
-            phone_number: phoneNumber || '+201000000000',
-            city,
-            state: governorate,
-            street: streetAddress,
+            first_name: nameParts[0] || 'Buyer', last_name: nameParts[1] || 'EgyBay',
+            email: user.email || 'buyer@egbay.market', phone_number: phoneNumber || '+201000000000',
+            city, state: governorate, street: streetAddress,
           },
         });
         setPaymobIframeUrl(session.iframeUrl);
@@ -223,7 +171,7 @@ function CheckoutContent() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -231,33 +179,23 @@ function CheckoutContent() {
   if (!product) return null;
 
   return (
-    <div className="min-h-screen bg-slate-50 py-8">
+    <div className="min-h-screen bg-slate-50 py-6 sm:py-8">
       <div className="max-w-4xl mx-auto px-4">
-        {/* Navigation Breadcrumb */}
-        <div className="mb-6">
-          <Link
-            href={`/products/${product.id}`}
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 transition-colors"
-          >
+        <div className="mb-5">
+          <Link href={`/products/${product.id}`} className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 transition-colors">
             <ArrowLeft className={`w-4 h-4 ${isRTL ? 'rotate-180' : ''}`} />
-            {isRTL ? 'الرجوع للإعلان' : 'Back to Product'}
+            {isRTL ? 'الرجوع للإعلان' : 'Back to product'}
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Checkout Form (2 cols) */}
-          <form onSubmit={handlePlaceOrder} className="lg:col-span-2 space-y-6">
-            {errorMsg && (
-              <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 text-rose-700 text-xs font-medium flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                {errorMsg}
-              </div>
-            )}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
+          <form onSubmit={handlePlaceOrder} className="lg:col-span-2 space-y-5">
+            {errorMsg && <Alert tone="danger">{errorMsg}</Alert>}
 
-            {/* 1. Delivery / Handover Method */}
-            <div className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-sm space-y-4">
-              <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
-                <Truck className="w-4 h-4 text-blue-600" />
+            {/* 1. Delivery method */}
+            <div className="bg-white rounded-lg border border-slate-200 p-5 space-y-3.5">
+              <h2 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                <Truck className="w-4 h-4 text-brand" />
                 {isRTL ? '١. طريقة الاستلام والتوصيل' : '1. Delivery & Handover Method'}
               </h2>
 
@@ -265,230 +203,134 @@ function CheckoutContent() {
                 <button
                   type="button"
                   onClick={() => setDeliveryMethod('courier')}
-                  className={`p-4 rounded-2xl border-2 text-left rtl:text-right transition-all flex flex-col justify-between ${
-                    deliveryMethod === 'courier'
-                      ? 'border-blue-600 bg-blue-50/40 ring-2 ring-blue-500/20'
-                      : 'border-slate-200 hover:border-slate-300'
+                  className={`p-3.5 rounded-md border text-left rtl:text-right transition-colors flex flex-col justify-between ${
+                    deliveryMethod === 'courier' ? 'border-brand bg-brand-soft' : 'border-slate-200 hover:border-slate-300'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center">
-                      <Truck className="w-4 h-4" />
-                    </div>
-                    <span className="text-xs font-black text-blue-700">{COURIER_DELIVERY_FEE_EGP} EGP</span>
+                    <Truck className="w-4 h-4 text-brand" />
+                    <span className="text-xs font-black text-brand">{COURIER_DELIVERY_FEE_EGP} EGP</span>
                   </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-900">
-                      {isRTL ? 'شحن سريع لباب البيت' : 'Doorstep Courier Delivery'}
-                    </h4>
-                    <p className="text-[11px] text-slate-500 mt-0.5">
-                      {isRTL ? 'تغطية لكافة محافظات مصر' : 'All Egyptian Governorates'}
-                    </p>
-                  </div>
+                  <h4 className="text-xs font-bold text-slate-900">{isRTL ? 'شحن سريع لباب البيت' : 'Doorstep Courier Delivery'}</h4>
+                  <p className="text-[11px] text-slate-500 mt-0.5">{isRTL ? 'تغطية لكافة محافظات مصر' : 'All Egyptian governorates'}</p>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setDeliveryMethod('qr_meetup')}
-                  className={`p-4 rounded-2xl border-2 text-left rtl:text-right transition-all flex flex-col justify-between ${
-                    deliveryMethod === 'qr_meetup'
-                      ? 'border-blue-600 bg-blue-50/40 ring-2 ring-blue-500/20'
-                      : 'border-slate-200 hover:border-slate-300'
+                  className={`p-3.5 rounded-md border text-left rtl:text-right transition-colors flex flex-col justify-between ${
+                    deliveryMethod === 'qr_meetup' ? 'border-brand bg-brand-soft' : 'border-slate-200 hover:border-slate-300'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
-                      <QrCode className="w-4 h-4" />
-                    </div>
-                    <span className="text-xs font-black text-emerald-700">{isRTL ? 'مجاناً' : 'FREE'}</span>
+                    <QrCode className="w-4 h-4 text-success" />
+                    <span className="text-xs font-black text-success">{isRTL ? 'مجاناً' : 'FREE'}</span>
                   </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-900">
-                      {isRTL ? 'تسليم يدوي بكود PIN' : 'In-Person Meetup (PIN)'}
-                    </h4>
-                    <p className="text-[11px] text-slate-500 mt-0.5">
-                      {isRTL ? 'معاينة السلعة وتسليم كود PIN للبائع عند الرضا' : 'Inspect item physically, share PIN to release funds'}
-                    </p>
-                  </div>
+                  <h4 className="text-xs font-bold text-slate-900">{isRTL ? 'تسليم يدوي بكود PIN' : 'In-Person Meetup (PIN)'}</h4>
+                  <p className="text-[11px] text-slate-500 mt-0.5">{isRTL ? 'عاين السلعة وسلّم الكود عند الرضا' : 'Inspect the item, share the PIN when satisfied'}</p>
                 </button>
               </div>
             </div>
 
-            {/* 2. Shipping Address (Courier Only) */}
+            {/* 2. Address */}
             {deliveryMethod === 'courier' && (
-              <div className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-sm space-y-4">
-                <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-blue-600" />
+              <div className="bg-white rounded-lg border border-slate-200 p-5 space-y-3.5">
+                <h2 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-brand" />
                   {isRTL ? '٢. عنوان التوصيل وبيانات الاتصال' : '2. Shipping Address & Contact'}
                 </h2>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      {isRTL ? 'الاسم بالكامل' : 'Full Name'}
-                    </label>
-                    <input
-                      type="text"
-                      value={fullName}
-                      onChange={e => setFullName(e.target.value)}
-                      placeholder={isRTL ? 'الاسم المستلم' : 'Recipient full name'}
-                      className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs outline-none focus:border-blue-500"
-                      required
-                    />
+                    <label className="block text-xs font-bold text-slate-700 mb-1">{isRTL ? 'الاسم بالكامل' : 'Full Name'}</label>
+                    <input type="text" value={fullName} onChange={e => setFullName(e.target.value)} placeholder={isRTL ? 'الاسم المستلم' : 'Recipient full name'}
+                      className="w-full border border-slate-200 rounded-md px-3 py-2.5 text-xs outline-none focus:border-brand" required />
                   </div>
-
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      {isRTL ? 'رقم الهاتف (للتواصل مع المندوب)' : 'Mobile Phone Number'}
-                    </label>
-                    <input
-                      type="tel"
-                      value={phoneNumber}
-                      onChange={e => setPhoneNumber(e.target.value)}
-                      placeholder="01012345678"
-                      className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs outline-none focus:border-blue-500 font-mono"
-                      required
-                    />
+                    <label className="block text-xs font-bold text-slate-700 mb-1">{isRTL ? 'رقم الهاتف' : 'Mobile Phone Number'}</label>
+                    <input type="tel" value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} placeholder="01012345678"
+                      className="w-full border border-slate-200 rounded-md px-3 py-2.5 text-xs outline-none focus:border-brand font-mono" required />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      {isRTL ? 'المحافظة' : 'Governorate'}
-                    </label>
-                    <select
-                      value={governorate}
-                      onChange={e => setGovernorate(e.target.value)}
-                      className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs outline-none focus:border-blue-500 bg-white"
-                    >
-                      {GOVERNORATES.map(g => (
-                        <option key={g.en} value={g.en}>
-                          {isRTL ? g.ar : g.en}
-                        </option>
-                      ))}
+                    <label className="block text-xs font-bold text-slate-700 mb-1">{isRTL ? 'المحافظة' : 'Governorate'}</label>
+                    <select value={governorate} onChange={e => setGovernorate(e.target.value)}
+                      className="w-full border border-slate-200 rounded-md px-3 py-2.5 text-xs outline-none focus:border-brand bg-white">
+                      {GOVERNORATES.map(g => <option key={g.en} value={g.en}>{isRTL ? g.ar : g.en}</option>)}
                     </select>
                   </div>
-
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      {isRTL ? 'المدينة / الحي' : 'City / District'}
-                    </label>
-                    <input
-                      type="text"
-                      value={city}
-                      onChange={e => setCity(e.target.value)}
-                      placeholder={isRTL ? 'مثال: التجمع الخامس، المعادي، الشيخ زايد' : 'e.g. New Cairo, Maadi, Dokki'}
-                      className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs outline-none focus:border-blue-500"
-                      required
-                    />
+                    <label className="block text-xs font-bold text-slate-700 mb-1">{isRTL ? 'المدينة / الحي' : 'City / District'}</label>
+                    <input type="text" value={city} onChange={e => setCity(e.target.value)} placeholder={isRTL ? 'مثال: التجمع الخامس' : 'e.g. New Cairo, Maadi'}
+                      className="w-full border border-slate-200 rounded-md px-3 py-2.5 text-xs outline-none focus:border-brand" required />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    {isRTL ? 'اسم الشارع، رقم العمارة والشقة' : 'Detailed Street Address'}
-                  </label>
-                  <input
-                    type="text"
-                    value={streetAddress}
-                    onChange={e => setStreetAddress(e.target.value)}
-                    placeholder={isRTL ? 'مثال: شارع التسعين، عمارة ١٢، شقة ٤' : 'Street name, building number, floor/apartment'}
-                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs outline-none focus:border-blue-500"
-                    required
-                  />
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{isRTL ? 'اسم الشارع ورقم العمارة والشقة' : 'Detailed Street Address'}</label>
+                  <input type="text" value={streetAddress} onChange={e => setStreetAddress(e.target.value)} placeholder={isRTL ? 'شارع، عمارة، شقة' : 'Street, building, apartment'}
+                    className="w-full border border-slate-200 rounded-md px-3 py-2.5 text-xs outline-none focus:border-brand" required />
                 </div>
               </div>
             )}
 
-            {/* 3. Escrow Payment Method */}
-            <div className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-sm space-y-4">
-              <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
-                <CreditCard className="w-4 h-4 text-blue-600" />
-                {isRTL ? '٣. طريقة الدفع لحساب الضمان' : '3. Escrow Payment Method'}
+            {/* 3. Payment */}
+            <div className="bg-white rounded-lg border border-slate-200 p-5 space-y-3.5">
+              <h2 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                <CreditCard className="w-4 h-4 text-brand" />
+                {isRTL ? '٣. طريقة الدفع' : '3. Payment Method'}
               </h2>
 
-              {/* Wallet balance toggle — only usable when it covers the full
-                  total. The backend has no split-payment support, so we
-                  never offer a partial wallet deduction plus a card charge
-                  for the remainder. */}
               {walletAvailable > 0 && (
-                <div className={`p-4 rounded-2xl border flex items-center justify-between ${
-                  canPayFullyWithWallet
-                    ? 'bg-emerald-50/70 border-emerald-200/80'
-                    : 'bg-slate-50 border-slate-200 opacity-70'
-                }`}>
+                <div className={`p-3.5 rounded-md border flex items-center justify-between ${canPayFullyWithWallet ? 'bg-success-soft border-success/20' : 'bg-slate-50 border-slate-200 opacity-70'}`}>
                   <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-xl text-white flex items-center justify-center ${canPayFullyWithWallet ? 'bg-emerald-600' : 'bg-slate-400'}`}>
-                      <Wallet className="w-4 h-4" />
-                    </div>
+                    <Wallet className={`w-4 h-4 flex-shrink-0 ${canPayFullyWithWallet ? 'text-success' : 'text-slate-400'}`} />
                     <div>
-                      <h4 className={`text-xs font-bold ${canPayFullyWithWallet ? 'text-emerald-950' : 'text-slate-600'}`}>
-                        {isRTL ? 'استخدام رصيد محفظة إيجي باي' : 'Use EgyBay Wallet Balance'}
-                      </h4>
-                      <p className={`text-[11px] ${canPayFullyWithWallet ? 'text-emerald-700' : 'text-slate-500'}`}>
+                      <h4 className={`text-xs font-bold ${canPayFullyWithWallet ? 'text-success' : 'text-slate-600'}`}>{isRTL ? 'استخدام رصيد المحفظة' : 'Use Egbay Wallet Balance'}</h4>
+                      <p className="text-[11px] text-slate-500">
                         {isRTL ? `المتاح: ${formatEGP(walletAvailable)}` : `Available: ${formatEGP(walletAvailable)}`}
-                        {!canPayFullyWithWallet && (isRTL ? ' — غير كافٍ لتغطية كامل المبلغ، سيتم الدفع بالبطاقة' : ' — not enough to cover the full total, so this order will be paid by card')}
+                        {!canPayFullyWithWallet && (isRTL ? ' — غير كافٍ، سيتم الدفع بالبطاقة' : ' — not enough to cover the total, so this order will be paid by card')}
                       </p>
                     </div>
                   </div>
-                  <input
-                    type="checkbox"
-                    checked={payingWithWallet}
-                    disabled={!canPayFullyWithWallet}
-                    onChange={e => setUseWalletBalance(e.target.checked)}
-                    className="w-4 h-4 accent-emerald-600 rounded disabled:opacity-40"
-                  />
+                  <input type="checkbox" checked={payingWithWallet} disabled={!canPayFullyWithWallet} onChange={e => setUseWalletBalance(e.target.checked)}
+                    className="w-4 h-4 accent-brand rounded disabled:opacity-40" />
                 </div>
               )}
 
               {remainingDue > 0 && (
-                <div className="p-3.5 rounded-2xl border-2 border-blue-600 bg-blue-50/50 flex items-center gap-3">
-                  <CreditCard className="w-5 h-5 text-blue-600 flex-shrink-0" />
-                  <div className="text-left rtl:text-right">
-                    <p className="text-xs font-bold text-slate-900">
-                      {isRTL ? 'بطاقة بنكية عبر Paymob' : 'Bank Card via Paymob'}
-                    </p>
-                    <p className="text-[10px] text-slate-400">Visa / Mastercard · {formatEGP(remainingDue)}</p>
+                <div className="p-3 rounded-md border border-brand bg-brand-soft flex items-center gap-3">
+                  <CreditCard className="w-4 h-4 text-brand flex-shrink-0" />
+                  <div>
+                    <p className="text-xs font-bold text-slate-900">{isRTL ? 'بطاقة بنكية عبر Paymob' : 'Bank Card via Paymob'}</p>
+                    <p className="text-[10px] text-slate-500">Visa / Mastercard · {formatEGP(remainingDue)}</p>
                   </div>
                 </div>
               )}
             </div>
 
-            <button
-              type="submit"
-              disabled={submitting}
-              className={`w-full text-white font-black py-4 rounded-2xl transition-all shadow-lg flex items-center justify-center gap-2 text-sm ${
-                payingWithWallet
-                  ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/25'
-                  : 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/25'
-              }`}
-            >
-              <ShieldCheck className="w-5 h-5" />
+            <Button type="submit" fullWidth size="lg" loading={submitting} icon={<ShieldCheck className="w-4 h-4" />}>
               {submitting
-                ? (isRTL ? 'جاري تأكيد وحجز المبلغ في الضمان...' : 'Securing Funds in Escrow...')
+                ? (isRTL ? 'جاري تأكيد الطلب...' : 'Securing your order...')
                 : payingWithWallet
-                ? (isRTL ? `⚡ شراء فوري برصيد المحفظة (${formatEGP(totalPrice)})` : `⚡ 1-Click Buy with Wallet Balance (${formatEGP(totalPrice)})`)
-                : (isRTL ? `الدفع ببطاقة بنكية ${formatEGP(totalPrice)} (باي موب)` : `Pay ${formatEGP(totalPrice)} via Paymob Card 💳`)}
-            </button>
+                ? (isRTL ? `شراء فوري برصيد المحفظة — ${formatEGP(totalPrice)}` : `Buy Now with Wallet — ${formatEGP(totalPrice)}`)
+                : (isRTL ? `الدفع ببطاقة بنكية — ${formatEGP(totalPrice)}` : `Pay by Card — ${formatEGP(totalPrice)}`)}
+            </Button>
           </form>
 
-          {/* Summary Sidebar (1 col) */}
+          {/* Summary */}
           <div className="space-y-4">
-            <div className="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-sm space-y-4">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                {isRTL ? 'ملخص الطلب' : 'Order Summary'}
-              </h3>
+            <div className="bg-white rounded-lg border border-slate-200 p-5 space-y-4">
+              <h3 className="text-[11px] font-bold uppercase tracking-wide text-slate-400">{isRTL ? 'ملخص الطلب' : 'Order Summary'}</h3>
 
-              {/* Product Preview */}
-              <div className="flex gap-3 pb-4 border-b border-slate-100">
-                <div className="w-16 h-16 rounded-2xl bg-slate-100 relative overflow-hidden flex-shrink-0">
+              <div className="flex gap-3 pb-3.5 border-b border-slate-100">
+                <div className="w-14 h-14 rounded-md bg-slate-100 relative overflow-hidden flex-shrink-0">
                   {product.images?.[0] ? (
-                    <SmartImage src={product.images[0]} alt={product.title} fill className="object-cover" sizes="64px" />
+                    <SmartImage src={product.images[0]} alt={product.title} fill className="object-cover" sizes="56px" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-slate-300">
-                      <Package className="w-6 h-6" />
-                    </div>
+                    <div className="w-full h-full flex items-center justify-center text-slate-300"><Package className="w-5 h-5" /></div>
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -497,103 +339,69 @@ function CheckoutContent() {
                 </div>
               </div>
 
-              {/* Financial Calculation */}
               <div className="space-y-2 text-xs">
                 <div className="flex justify-between text-slate-600">
-                  <span>{isRTL ? 'سعر السلعة:' : 'Item Subtotal:'}</span>
+                  <span>{isRTL ? 'سعر السلعة' : 'Item Subtotal'}</span>
                   <span className="font-bold text-slate-900">{formatEGP(itemPrice)}</span>
                 </div>
                 <div className="flex justify-between text-slate-600">
-                  <span>{isRTL ? 'مصاريف التوصيل:' : 'Delivery Fee:'}</span>
-                  <span className="font-bold text-slate-900">
-                    {deliveryFee > 0 ? formatEGP(deliveryFee) : (isRTL ? 'مجاناً' : 'FREE')}
-                  </span>
+                  <span>{isRTL ? 'مصاريف التوصيل' : 'Delivery Fee'}</span>
+                  <span className="font-bold text-slate-900">{deliveryFee > 0 ? formatEGP(deliveryFee) : (isRTL ? 'مجاناً' : 'FREE')}</span>
                 </div>
-
                 {walletDeduction > 0 && (
-                  <div className="flex justify-between text-emerald-600">
-                    <span>{isRTL ? 'خصم المحفظة:' : 'Wallet Deduction:'}</span>
+                  <div className="flex justify-between text-success">
+                    <span>{isRTL ? 'خصم المحفظة' : 'Wallet Deduction'}</span>
                     <span className="font-bold">-{formatEGP(walletDeduction)}</span>
                   </div>
                 )}
-
                 <div className="pt-2 border-t border-slate-100 flex justify-between text-sm font-black text-slate-900">
-                  <span>{isRTL ? 'إجمالي المطلوب:' : 'Total Due:'}</span>
-                  <span className="text-blue-600">{formatEGP(totalPrice)}</span>
+                  <span>{isRTL ? 'إجمالي المطلوب' : 'Total Due'}</span>
+                  <span className="text-brand">{formatEGP(totalPrice)}</span>
                 </div>
               </div>
             </div>
 
-            {/* Escrow Guarantee Box */}
-            <div className="bg-emerald-50/80 border border-emerald-200/80 rounded-3xl p-5 shadow-sm text-emerald-950">
-              <div className="flex items-start gap-3">
-                <ShieldCheck className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
-                <div className="text-xs leading-relaxed">
-                  <h4 className="font-bold text-emerald-900 mb-1">
-                    {isRTL ? 'حماية الضمان المالي ١٠٠٪' : '100% Escrow Protection'}
-                  </h4>
-                  <p className="text-emerald-800 text-[11px]">
-                    {isRTL
-                      ? 'أموالك لا تُحول للبائع إلا بعد فحص واستلام السلعة بنفسك.'
-                      : 'Funds are never released directly to the seller until you inspect your item upon delivery.'}
-                  </p>
-                </div>
-              </div>
+            <div className="bg-success-soft border border-success/20 rounded-lg p-4 flex items-start gap-2.5">
+              <ShieldCheck className="w-4 h-4 text-success flex-shrink-0 mt-0.5" />
+              <p className="text-[11px] text-success leading-relaxed">
+                {isRTL
+                  ? 'أموالك لا تُحول للبائع إلا بعد فحص واستلام السلعة بنفسك.'
+                  : 'Funds are only released to the seller once you confirm receipt or hand over the PIN.'}
+              </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ── Paymob Card Payment Modal ────────────────────────────── */}
       {showPaymobModal && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-white w-full sm:max-w-lg sm:rounded-3xl rounded-t-3xl flex flex-col overflow-hidden shadow-2xl"
-               style={{ height: '85vh', maxHeight: 680 }}>
-            {/* Modal Header */}
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60">
+          <div className="bg-white w-full sm:max-w-lg sm:rounded-lg rounded-t-lg flex flex-col overflow-hidden shadow-card-lg" style={{ height: '85vh', maxHeight: 680 }}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 flex-shrink-0">
               <div>
                 <h3 className="font-black text-slate-900 text-sm flex items-center gap-2">
-                  <Lock className="w-4 h-4 text-emerald-600" />
+                  <Lock className="w-4 h-4 text-success" />
                   {isRTL ? 'الدفع الآمن عبر Paymob' : 'Secure Card Checkout'}
                 </h3>
-                <p className="text-[11px] text-slate-400 mt-0.5">
-                  {isRTL ? 'معتمد PCI-DSS · 256-Bit SSL' : 'PCI-DSS Certified · 256-Bit SSL Encryption'}
-                </p>
+                <p className="text-[11px] text-slate-400 mt-0.5">{isRTL ? 'بوابة دفع معتمدة PCI-DSS' : 'PCI-DSS certified payment gateway'}</p>
               </div>
-              <button
-                onClick={() => { setShowPaymobModal(false); setPaymobIframeUrl(''); }}
-                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-800 transition-colors text-lg font-light"
-                aria-label="Close payment modal"
-              >
-                ×
-              </button>
+              <button onClick={() => { setShowPaymobModal(false); setPaymobIframeUrl(''); }}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-800 transition-colors text-lg"
+                aria-label="Close payment modal">×</button>
             </div>
-            {/* Paymob iFrame */}
-            <iframe
-              src={paymobIframeUrl}
-              className="flex-1 w-full border-0"
-              title="Paymob Secure Payment"
-            />
+            <iframe src={paymobIframeUrl} className="flex-1 w-full border-0" title="Paymob Secure Payment" />
             <div className="p-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-3 flex-shrink-0">
               <div className="flex items-center gap-2 text-xs text-slate-600">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                <span className="text-[11px]">
-                  {isRTL ? 'بعد ظهور علامة Approved، اضغط لمتابعة الطلب' : 'After "Approved", click to complete your order'}
-                </span>
+                <CheckCircle2 className="w-4 h-4 text-success flex-shrink-0" />
+                <span className="text-[11px]">{isRTL ? 'بعد ظهور Approved، اضغط للمتابعة' : 'After "Approved", click to continue'}</span>
               </div>
-              <button
+              <Button
                 type="button"
-                onClick={() => {
-                  setShowPaymobModal(false);
-                  // Navigate to the order status page, which fetches the
-                  // real order from the server. We never mark the order
-                  // paid client-side — only the payment webhook does that.
-                  router.push(`/orders/success?orderId=${createdOrderId}`);
-                }}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1.5 flex-shrink-0"
+                variant="primary"
+                size="sm"
+                onClick={() => { setShowPaymobModal(false); router.push(`/orders/success?orderId=${createdOrderId}`); }}
               >
-                <span>{isRTL ? 'تم الدفع بنجاح ✅' : 'I Paid — Done ✅'}</span>
-              </button>
+                {isRTL ? 'تم الدفع' : "I've Paid"}
+              </Button>
             </div>
           </div>
         </div>

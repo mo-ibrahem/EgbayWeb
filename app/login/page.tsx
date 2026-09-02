@@ -85,7 +85,7 @@ function LoginForm() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="your.email@example.com"
-                className={`w-full bg-white border border-gray-300 rounded-xl ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-3 text-gray-900 placeholder-gray-400 text-xs outline-none focus:border-[#3665F3] focus:ring-2 focus:ring-blue-100 transition-all shadow-sm`}
+                className={`w-full bg-white border border-gray-300 rounded-xl ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-3 text-gray-900 placeholder-gray-400 text-xs outline-none focus:border-brand focus:ring-2 focus:ring-blue-100 transition-all shadow-sm`}
                 required
                 autoFocus
               />
@@ -99,7 +99,7 @@ function LoginForm() {
               </label>
               <Link
                 href="/forgot-password"
-                className="text-[11px] text-[#3665F3] hover:underline font-semibold"
+                className="text-[11px] text-brand hover:underline font-semibold"
               >
                 {isRTL ? 'نسيت كلمة المرور؟' : 'Forgot Password?'}
               </Link>
@@ -111,7 +111,7 @@ function LoginForm() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className={`w-full bg-white border border-gray-300 rounded-xl ${isRTL ? 'pr-10 pl-12' : 'pl-10 pr-12'} py-3 text-gray-900 placeholder-gray-400 text-xs outline-none focus:border-[#3665F3] focus:ring-2 focus:ring-blue-100 transition-all shadow-sm`}
+                className={`w-full bg-white border border-gray-300 rounded-xl ${isRTL ? 'pr-10 pl-12' : 'pl-10 pr-12'} py-3 text-gray-900 placeholder-gray-400 text-xs outline-none focus:border-brand focus:ring-2 focus:ring-blue-100 transition-all shadow-sm`}
                 required
               />
               <button
@@ -127,7 +127,7 @@ function LoginForm() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#3665F3] hover:bg-[#2B54D4] disabled:opacity-60 text-white font-bold py-3.5 rounded-xl transition-all shadow-md shadow-blue-500/20 text-xs flex items-center justify-center gap-2 mt-2"
+            className="w-full bg-brand hover:bg-brand-dark disabled:opacity-60 text-white font-bold py-3.5 rounded-xl transition-all shadow-md shadow-blue-500/20 text-xs flex items-center justify-center gap-2 mt-2"
           >
             {loading ? (
               <>
@@ -148,7 +148,7 @@ function LoginForm() {
             {isRTL ? 'ليس لديك حساب بعد؟' : "Don't have an account yet?"}{' '}
             <Link
               href={`/signup?redirect=${encodeURIComponent(redirectUrl)}`}
-              className="text-[#3665F3] hover:underline font-bold ml-1"
+              className="text-brand hover:underline font-bold ml-1"
             >
               {isRTL ? 'إنشاء حساب جديد' : 'Create Account'}
             </Link>
@@ -172,7 +172,7 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <div className="min-h-[85vh] flex items-center justify-center px-4 py-12 bg-[#F8FAFC]">
-      <Suspense fallback={<div className="w-8 h-8 border-2 border-[#3665F3] border-t-transparent rounded-full animate-spin" />}>
+      <Suspense fallback={<div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />}>
         <LoginForm />
       </Suspense>
     </div>

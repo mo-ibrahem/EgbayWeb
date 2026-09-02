@@ -84,7 +84,7 @@ function BookLiveContent() {
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center">
-      <div className="w-8 h-8 border-2 border-[#3665F3] border-t-transparent rounded-full animate-spin" />
+      <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />
     </div>
   );
 
@@ -138,12 +138,12 @@ function BookLiveContent() {
                 onClick={() => setSelectedTier(pass.tier)}
                 className={`relative text-left rounded-3xl p-5 border-2 transition-all ${
                   isSelected
-                    ? 'border-[#3665F3] shadow-lg shadow-blue-500/10 bg-blue-50/50'
+                    ? 'border-brand shadow-lg shadow-blue-500/10 bg-blue-50/50'
                     : 'border-gray-200 bg-white hover:border-gray-300'
                 } ${!affordable ? 'opacity-60' : ''}`}
               >
                 {pass.recommended && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#3665F3] text-white text-[10px] font-black px-3 py-0.5 rounded-full">
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-brand text-white text-[10px] font-black px-3 py-0.5 rounded-full">
                     {isRTL ? 'الأكثر طلباً' : 'POPULAR'}
                   </div>
                 )}
@@ -162,7 +162,7 @@ function BookLiveContent() {
                 </ul>
 
                 {isSelected && (
-                  <div className="mt-3 flex items-center gap-1 text-[#3665F3] text-xs font-bold">
+                  <div className="mt-3 flex items-center gap-1 text-brand text-xs font-bold">
                     <CheckCircle2 className="w-3.5 h-3.5" />
                     {isRTL ? 'مختار' : 'Selected'}
                   </div>
@@ -196,7 +196,7 @@ function BookLiveContent() {
               value={title}
               onChange={e => setTitle(e.target.value)}
               placeholder="iPhone 15 Pro Flash Sale + Unboxing!"
-              className="w-full border-2 border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#3665F3] transition-colors"
+              className="w-full border-2 border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand transition-colors"
               required
             />
           </div>
@@ -210,7 +210,7 @@ function BookLiveContent() {
               onChange={e => setTitleAr(e.target.value)}
               placeholder="عرض آيفون ١٥ برو وفتح علبة مباشر"
               dir="rtl"
-              className="w-full border-2 border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#3665F3] transition-colors"
+              className="w-full border-2 border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand transition-colors"
             />
           </div>
         </div>
@@ -222,7 +222,7 @@ function BookLiveContent() {
           <select
             value={category}
             onChange={e => setCategory(e.target.value)}
-            className="w-full border-2 border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#3665F3] bg-white"
+            className="w-full border-2 border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand bg-white"
           >
             {CATEGORIES.map(c => (
               <option key={c.value} value={c.value}>
@@ -241,7 +241,7 @@ function BookLiveContent() {
             value={description}
             onChange={e => setDescription(e.target.value)}
             placeholder={isRTL ? 'أخبر المشاهدين بما ستبيعه...' : 'Tell viewers what you will be selling...'}
-            className="w-full border-2 border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#3665F3] resize-none"
+            className="w-full border-2 border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand resize-none"
           />
         </div>
 

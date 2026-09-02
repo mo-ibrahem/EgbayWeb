@@ -53,7 +53,7 @@ function ForgotPasswordForm() {
   if (submitted) {
     return (
       <div className="w-full max-w-md bg-white border border-gray-200/80 rounded-3xl p-8 sm:p-10 text-center shadow-xl shadow-slate-900/5">
-        <div className="w-16 h-16 bg-blue-50 text-[#3665F3] rounded-2xl flex items-center justify-center mx-auto mb-5">
+        <div className="w-16 h-16 bg-blue-50 text-brand rounded-2xl flex items-center justify-center mx-auto mb-5">
           <Mail className="w-8 h-8" />
         </div>
         <h2 className="text-2xl font-black text-gray-900 mb-2">
@@ -76,7 +76,7 @@ function ForgotPasswordForm() {
 
           <Link
             href="/login"
-            className="w-full bg-[#3665F3] hover:bg-[#2B54D4] text-white font-bold py-3 rounded-xl transition-all shadow-md shadow-blue-500/20 text-xs flex items-center justify-center gap-2"
+            className="w-full bg-brand hover:bg-brand-dark text-white font-bold py-3 rounded-xl transition-all shadow-md shadow-blue-500/20 text-xs flex items-center justify-center gap-2"
           >
             {isRTL ? <ArrowRight className="w-4 h-4" /> : <ArrowLeft className="w-4 h-4" />}
             <span>{isRTL ? 'العودة لتسجيل الدخول' : 'Back to Sign In'}</span>
@@ -133,7 +133,7 @@ function ForgotPasswordForm() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="your.email@example.com"
-                className={`w-full bg-white border border-gray-300 rounded-xl ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-3 text-gray-900 placeholder-gray-400 text-xs outline-none focus:border-[#3665F3] focus:ring-2 focus:ring-blue-100 transition-all shadow-sm`}
+                className={`w-full bg-white border border-gray-300 rounded-xl ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-3 text-gray-900 placeholder-gray-400 text-xs outline-none focus:border-brand focus:ring-2 focus:ring-blue-100 transition-all shadow-sm`}
                 required
                 autoFocus
               />
@@ -143,7 +143,7 @@ function ForgotPasswordForm() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#3665F3] hover:bg-[#2B54D4] disabled:opacity-60 text-white font-bold py-3.5 rounded-xl transition-all shadow-md shadow-blue-500/20 text-xs flex items-center justify-center gap-2 mt-2"
+            className="w-full bg-brand hover:bg-brand-dark disabled:opacity-60 text-white font-bold py-3.5 rounded-xl transition-all shadow-md shadow-blue-500/20 text-xs flex items-center justify-center gap-2 mt-2"
           >
             {loading ? (
               <>
@@ -176,7 +176,7 @@ function ForgotPasswordForm() {
 export default function ForgotPasswordPage() {
   return (
     <div className="min-h-[85vh] flex items-center justify-center px-4 py-12 bg-[#F8FAFC]">
-      <Suspense fallback={<div className="w-8 h-8 border-2 border-[#3665F3] border-t-transparent rounded-full animate-spin" />}>
+      <Suspense fallback={<div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />}>
         <ForgotPasswordForm />
       </Suspense>
     </div>

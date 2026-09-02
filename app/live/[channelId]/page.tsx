@@ -19,6 +19,7 @@ import {
   type LiveSession, type LiveChatMessage, type LivePinnedProduct
 } from '@/lib/liveService';
 import { supabase } from '@/lib/supabase';
+import SmartImage from '@/components/SmartImage';
 
 const QUICK_EMOJIS = ['❤️', '🔥', '👏', '🚀', '💎', '💯', '😂', '🎉', '👍', '👀', '✨', '⚡'];
 
@@ -282,7 +283,7 @@ export default function ViewerPage() {
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-14 h-14 rounded-xl bg-slate-950 overflow-hidden flex-shrink-0 border border-slate-700 relative">
                   {pinnedProduct.product?.images?.[0] ? (
-                    <img src={pinnedProduct.product.images[0]} alt="" className="w-full h-full object-cover" />
+                    <SmartImage src={pinnedProduct.product.images[0]} alt="" fill className="object-cover" sizes="56px" />
                   ) : (
                     <ShoppingBag className="w-6 h-6 text-slate-600 m-auto" />
                   )}
@@ -339,7 +340,7 @@ export default function ViewerPage() {
           {/* Mobile Chat Toggle Button */}
           <button
             onClick={() => setChatOpen(!chatOpen)}
-            className="lg:hidden bg-[#3665F3] hover:bg-[#2B54D4] text-white p-2.5 rounded-2xl shadow-lg flex items-center gap-1.5 text-xs font-bold"
+            className="lg:hidden bg-brand hover:bg-brand-dark text-white p-2.5 rounded-2xl shadow-lg flex items-center gap-1.5 text-xs font-bold"
           >
             <MessageSquare className="w-4 h-4" />
             <span>{chatOpen ? (isRTL ? 'إخفاء' : 'Hide') : (isRTL ? 'الدردشة' : 'Chat')}</span>
@@ -525,7 +526,7 @@ export default function ViewerPage() {
               type="button"
               onClick={() => handleSendChat()}
               disabled={!chatInput.trim()}
-              className="bg-[#3665F3] hover:bg-[#2B54D4] disabled:opacity-40 text-white p-2.5 rounded-xl transition-all shadow-md flex items-center justify-center"
+              className="bg-brand hover:bg-brand-dark disabled:opacity-40 text-white p-2.5 rounded-xl transition-all shadow-md flex items-center justify-center"
             >
               <Send className="w-4 h-4" />
             </button>

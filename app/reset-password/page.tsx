@@ -106,7 +106,7 @@ function ResetPasswordForm() {
         </p>
         <Link
           href="/login"
-          className="inline-flex items-center justify-center gap-2 w-full bg-[#3665F3] hover:bg-[#2B54D4] text-white font-bold py-3 rounded-xl transition-all text-xs shadow-md shadow-blue-500/20"
+          className="inline-flex items-center justify-center gap-2 w-full bg-brand hover:bg-brand-dark text-white font-bold py-3 rounded-xl transition-all text-xs shadow-md shadow-blue-500/20"
         >
           <span>{isRTL ? 'تسجيل الدخول الآن' : 'Sign In Now'}</span>
           <ArrowRight className={`w-3.5 h-3.5 ${isRTL ? 'rotate-180' : ''}`} />
@@ -162,7 +162,7 @@ function ResetPasswordForm() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder={isRTL ? '٦ أحرف على الأقل' : 'At least 6 characters'}
-                className={`w-full bg-white border border-gray-300 rounded-xl ${isRTL ? 'pr-10 pl-12' : 'pl-10 pr-12'} py-3 text-gray-900 placeholder-gray-400 text-xs outline-none focus:border-[#3665F3] focus:ring-2 focus:ring-blue-100 transition-all shadow-sm`}
+                className={`w-full bg-white border border-gray-300 rounded-xl ${isRTL ? 'pr-10 pl-12' : 'pl-10 pr-12'} py-3 text-gray-900 placeholder-gray-400 text-xs outline-none focus:border-brand focus:ring-2 focus:ring-blue-100 transition-all shadow-sm`}
                 required
                 minLength={6}
                 autoFocus
@@ -188,7 +188,7 @@ function ResetPasswordForm() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder={isRTL ? 'أعد إدخال كلمة المرور' : 'Re-enter your password'}
-                className={`w-full bg-white border border-gray-300 rounded-xl ${isRTL ? 'pr-10 pl-12' : 'pl-10 pr-12'} py-3 text-gray-900 placeholder-gray-400 text-xs outline-none focus:border-[#3665F3] focus:ring-2 focus:ring-blue-100 transition-all shadow-sm`}
+                className={`w-full bg-white border border-gray-300 rounded-xl ${isRTL ? 'pr-10 pl-12' : 'pl-10 pr-12'} py-3 text-gray-900 placeholder-gray-400 text-xs outline-none focus:border-brand focus:ring-2 focus:ring-blue-100 transition-all shadow-sm`}
                 required
                 minLength={6}
               />
@@ -205,7 +205,7 @@ function ResetPasswordForm() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#3665F3] hover:bg-[#2B54D4] disabled:opacity-60 text-white font-bold py-3.5 rounded-xl transition-all shadow-md shadow-blue-500/20 text-xs flex items-center justify-center gap-2 mt-2"
+            className="w-full bg-brand hover:bg-brand-dark disabled:opacity-60 text-white font-bold py-3.5 rounded-xl transition-all shadow-md shadow-blue-500/20 text-xs flex items-center justify-center gap-2 mt-2"
           >
             {loading ? (
               <>
@@ -237,7 +237,7 @@ function ResetPasswordForm() {
 export default function ResetPasswordPage() {
   return (
     <div className="min-h-[85vh] flex items-center justify-center px-4 py-12 bg-[#F8FAFC]">
-      <Suspense fallback={<div className="w-8 h-8 border-2 border-[#3665F3] border-t-transparent rounded-full animate-spin" />}>
+      <Suspense fallback={<div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />}>
         <ResetPasswordForm />
       </Suspense>
     </div>

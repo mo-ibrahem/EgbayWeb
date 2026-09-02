@@ -14,7 +14,11 @@ export interface Product {
   stock?: number;
   created_at: string;
   updated_at: string;
-  seller?: { full_name: string; avatar_url?: string };
+  // tier/is_verified_seller come straight from the public_profiles view
+  // (no fallback default) -- a product with no resolvable seller profile
+  // carries no seller object at all rather than a fabricated one, so the
+  // UI never has to guess at (or invent) a trust signal.
+  seller?: { full_name: string; avatar_url?: string; tier?: number; is_verified_seller?: boolean };
   isWishlisted?: boolean;
   is_promoted?: boolean;
   promoted_ad_rate?: number;
@@ -112,19 +116,19 @@ export const productService = {
 
         // Safely fetch seller profiles in background
         const sellerIds = [...new Set(products.map((p) => p.seller_id).filter(Boolean))];
-        let sellerMap: Record<string, { id: string; full_name: string; avatar_url?: string }> = {};
+        let sellerMap: Record<string, { id: string; full_name: string; avatar_url?: string; tier?: number; is_verified_seller?: boolean }> = {};
 
         if (sellerIds.length > 0) {
           try {
             const { data: profiles } = await supabase
               .from('public_profiles')
-              .select('id, full_name, avatar_url')
+              .select('id, full_name, avatar_url, tier, is_verified_seller')
               .in('id', sellerIds);
 
             if (profiles) {
               sellerMap = profiles.reduce(
                 (acc, p) => ({ ...acc, [p.id]: p }),
-                {} as Record<string, { id: string; full_name: string; avatar_url?: string }>
+                {} as Record<string, { id: string; full_name: string; avatar_url?: string; tier?: number; is_verified_seller?: boolean }>
               );
             }
           } catch (e) {
@@ -149,7 +153,7 @@ export const productService = {
 
         const formatted: Product[] = products.map((p) => ({
           ...p,
-          seller: sellerMap[p.seller_id] || { full_name: 'Verified Seller' },
+          seller: sellerMap[p.seller_id] || { full_name: 'Egbay Seller' },
           isWishlisted: wishlistedIds.includes(p.id),
         }));
 
@@ -185,11 +189,11 @@ export const productService = {
         .single();
       if (error || !product) return null;
 
-      let seller: { id: string; full_name: string; avatar_url?: string } | null = null;
+      let seller: { id: string; full_name: string; avatar_url?: string; tier?: number; is_verified_seller?: boolean } | null = null;
       try {
         const { data: s } = await supabase
           .from('public_profiles')
-          .select('id, full_name, avatar_url')
+          .select('id, full_name, avatar_url, tier, is_verified_seller')
           .eq('id', product.seller_id)
           .single();
         seller = s;
@@ -211,7 +215,7 @@ export const productService = {
 
       const fullProduct: Product = {
         ...product,
-        seller: seller || { id: product.seller_id, full_name: 'Verified Seller' },
+        seller: seller || { id: product.seller_id, full_name: 'Egbay Seller' },
         isWishlisted,
       };
 

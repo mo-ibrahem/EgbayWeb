@@ -21,6 +21,7 @@ import {
 } from '@/lib/liveService';
 import { productService, type Product } from '@/lib/products';
 import { supabase } from '@/lib/supabase';
+import SmartImage from '@/components/SmartImage';
 
 const QUICK_EMOJIS = ['❤️', '🔥', '👏', '🚀', '💎', '💯', '😂', '🎉', '👍', '👀', '✨', '⚡'];
 
@@ -450,7 +451,7 @@ function StudioContent() {
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-14 h-14 rounded-xl bg-slate-950 overflow-hidden flex-shrink-0 border border-slate-700 relative">
                   {pinnedProduct.images?.[0] ? (
-                    <img src={pinnedProduct.images[0]} alt="" className="w-full h-full object-cover" />
+                    <SmartImage src={pinnedProduct.images[0]} alt="" fill className="object-cover" sizes="56px" />
                   ) : (
                     <ShoppingBag className="w-6 h-6 text-slate-600 m-auto" />
                   )}
@@ -727,7 +728,7 @@ function StudioContent() {
               type="button"
               onClick={() => handleSendChat()}
               disabled={!chatInput.trim()}
-              className="bg-[#3665F3] hover:bg-[#2B54D4] disabled:opacity-40 text-white p-2.5 rounded-xl transition-all shadow-md flex items-center justify-center"
+              className="bg-brand hover:bg-brand-dark disabled:opacity-40 text-white p-2.5 rounded-xl transition-all shadow-md flex items-center justify-center"
             >
               <Send className="w-4 h-4" />
             </button>
@@ -800,9 +801,9 @@ function StudioContent() {
                       >
                         {/* Product Info */}
                         <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-14 h-14 rounded-xl bg-slate-950 overflow-hidden flex-shrink-0 border border-slate-700">
+                          <div className="w-14 h-14 rounded-xl bg-slate-950 overflow-hidden flex-shrink-0 border border-slate-700 relative">
                             {item.images?.[0] ? (
-                              <img src={item.images[0]} alt="" className="w-full h-full object-cover" />
+                              <SmartImage src={item.images[0]} alt="" fill className="object-cover" sizes="56px" />
                             ) : (
                               <ShoppingBag className="w-6 h-6 text-slate-600 m-auto" />
                             )}

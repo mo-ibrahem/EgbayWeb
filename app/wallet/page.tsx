@@ -245,7 +245,7 @@ function WalletContent() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       {loadError && (
-        <div className="mb-6 bg-rose-50 border border-rose-200 text-rose-700 text-sm p-4 rounded-2xl flex items-center justify-between gap-3">
+        <div className="mb-6 bg-rose-50 border border-rose-200 text-rose-700 text-sm p-4 rounded-md flex items-center justify-between gap-3">
           <span>{loadError}</span>
           <button
             onClick={() => { setLoading(true); loadData(); }}
@@ -280,7 +280,7 @@ function WalletContent() {
       {/* Main Balances Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
         {/* Available Spendable Balance */}
-        <div className="bg-slate-900 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden border border-slate-800">
+        <div className="bg-slate-900 rounded-lg p-6 text-white shadow-xl relative overflow-hidden border border-slate-800">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <span className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm">
@@ -307,7 +307,7 @@ function WalletContent() {
           <div className="flex gap-3">
             <button
               onClick={() => { setTopUpOpen(true); setErrorMsg(''); }}
-              className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition-all shadow-lg shadow-blue-500/30 flex items-center justify-center gap-2"
+              className="flex-1 bg-brand hover:brightness-110 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition-all shadow-lg shadow-blue-500/30 flex items-center justify-center gap-2"
             >
               <Plus className="w-4 h-4" /> {isRTL ? 'شحن الرصيد' : 'Top-Up'}
             </button>
@@ -322,7 +322,7 @@ function WalletContent() {
         </div>
 
         {/* Pending Escrow Balance */}
-        <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm relative overflow-hidden">
+        <div className="bg-white rounded-lg p-6 border border-slate-200/80 shadow-sm relative overflow-hidden">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <span className="w-8 h-8 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center font-bold text-sm">
@@ -346,20 +346,20 @@ function WalletContent() {
             </p>
           </div>
 
-          <div className="bg-blue-50/70 border border-blue-100 rounded-2xl p-3.5 flex items-start gap-2.5">
+          <div className="bg-blue-50/70 border border-blue-100 rounded-md p-3.5 flex items-start gap-2.5">
             <ShieldCheck className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
             <p className="text-xs text-blue-900 leading-relaxed">
               <strong>{isRTL ? 'حماية الضمان المالي:' : 'Escrow Protection:'}</strong>{' '}
               {isRTL
-                ? 'تتحول الأموال فوراً إلى رصيدك المتاح بمجرد مسح كود QR أو تأكيد مندوب الشحن لتسليم السلعة.'
-                : 'Funds auto-clear into your available balance immediately once the buyer scans your pickup QR or delivery courier finishes drop-off.'}
+                ? 'تتحول الأموال إلى رصيدك المتاح بمجرد تسليم كود الـ PIN في حالة التسليم اليدوي، أو تأكيد المشتري لاستلام الطلب في حالة الشحن.'
+                : 'Funds move to your available balance once the PIN is handed over (in-person meetup), or the buyer explicitly confirms receipt (courier delivery).'}
             </p>
           </div>
         </div>
       </div>
 
       {/* Seller Tier Details Banner */}
-      <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 rounded-3xl p-5 text-white mb-8 shadow-md">
+      <div className="bg-brand rounded-lg p-5 text-white mb-8 shadow-md">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
@@ -391,7 +391,7 @@ function WalletContent() {
             <h3 className="font-bold text-slate-900 text-xs uppercase tracking-wider">
               {isRTL ? 'وجهات استلام الأرباح' : 'Payout Channels'}
             </h3>
-            <Link href="/seller-verification" className="text-xs text-blue-600 hover:underline font-semibold">
+            <Link href="/seller-verification" className="text-xs text-brand hover:underline font-semibold">
               {isRTL ? '+ إضافة' : '+ Add'}
             </Link>
           </div>
@@ -400,7 +400,7 @@ function WalletContent() {
             {payoutMethods.map(pm => (
               <div
                 key={pm.id}
-                className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-sm flex items-center gap-3"
+                className="bg-white rounded-md border border-slate-200/80 p-4 shadow-sm flex items-center gap-3"
               >
                 <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 font-bold">
                   {pm.type === 'instapay_ipa' ? <Smartphone className="w-5 h-5" /> : pm.type === 'vodafone_cash' ? <CreditCard className="w-5 h-5" /> : <Building className="w-5 h-5" />}
@@ -450,12 +450,12 @@ function WalletContent() {
           </div>
 
           {filteredTransactions.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-slate-200/80 p-8 text-center text-slate-400">
+            <div className="bg-white rounded-md border border-slate-200/80 p-8 text-center text-slate-400">
               <Clock className="w-8 h-8 mx-auto mb-2 text-slate-300" />
               <p className="text-xs">{isRTL ? 'لا توجد معاملات مسجلة في هذا القسم.' : 'No transactions found in this category.'}</p>
             </div>
           ) : (
-            <div className="bg-white rounded-2xl border border-slate-200/80 divide-y divide-slate-100 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-md border border-slate-200/80 divide-y divide-slate-100 shadow-sm overflow-hidden">
               {filteredTransactions.map(tx => {
                 let isPositive = ['top_up', 'earning', 'refund'].includes(tx.type);
                 if (tx.delta_available !== undefined && tx.delta_available !== null && tx.delta_available !== 0) {
@@ -518,7 +518,7 @@ function WalletContent() {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.92, opacity: 0, y: 15 }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl"
+              className="bg-white rounded-lg p-6 w-full max-w-md shadow-2xl"
               onClick={e => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-4">
@@ -554,13 +554,13 @@ function WalletContent() {
                       onChange={e => setTopUpAmount(e.target.value)}
                       placeholder="500"
                       min="10"
-                      className="w-full border border-slate-200 rounded-xl px-4 py-3 text-lg font-bold outline-none focus:border-blue-500 text-center"
+                      className="w-full border border-slate-200 rounded-xl px-4 py-3 text-lg font-bold outline-none focus:border-brand text-center"
                       autoFocus
                       required
                     />
                   </div>
 
-                  <div className="p-3 rounded-2xl border-2 border-blue-600 bg-blue-50 text-blue-700 flex items-center gap-2 text-xs font-bold">
+                  <div className="p-3 rounded-md border border-brand bg-brand-soft text-blue-700 flex items-center gap-2 text-xs font-bold">
                     <CreditCard className="w-4 h-4 text-blue-600 flex-shrink-0" />
                     {isRTL ? 'الدفع ببطاقة بنكية عبر Paymob' : 'Pay by Debit/Credit Card via Paymob'}
                   </div>
@@ -568,7 +568,7 @@ function WalletContent() {
                   <button
                     type="submit"
                     disabled={toppingUp || !topUpAmount}
-                    className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-3.5 rounded-xl transition-colors text-xs shadow-md"
+                    className="w-full bg-brand hover:bg-brand-dark disabled:opacity-50 text-white font-bold py-3.5 rounded-xl transition-colors text-xs shadow-md"
                   >
                     {toppingUp ? (isRTL ? 'جاري معالجة الإيداع...' : 'Processing Deposit...') : (isRTL ? `إيداع ${Number(topUpAmount || 0).toLocaleString('ar-EG')} ج.م الآن` : `Add EGP ${Number(topUpAmount || 0).toLocaleString('en-EG')} Now`)}
                   </button>
@@ -594,7 +594,7 @@ function WalletContent() {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.92, opacity: 0, y: 15 }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl"
+              className="bg-white rounded-lg p-6 w-full max-w-md shadow-2xl"
               onClick={e => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-4">
@@ -636,7 +636,7 @@ function WalletContent() {
                       placeholder="1000"
                       max={available}
                       min="50"
-                      className="w-full border border-slate-200 rounded-xl px-4 py-3 text-lg font-bold outline-none focus:border-blue-500 text-center"
+                      className="w-full border border-slate-200 rounded-xl px-4 py-3 text-lg font-bold outline-none focus:border-brand text-center"
                       autoFocus
                       required
                     />
@@ -649,7 +649,7 @@ function WalletContent() {
                     <select
                       value={selectedPayoutMethod}
                       onChange={e => setSelectedPayoutMethod(e.target.value)}
-                      className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-xs outline-none focus:border-blue-500 bg-white"
+                      className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-xs outline-none focus:border-brand bg-white"
                     >
                       {payoutMethods.map(pm => (
                         <option key={pm.id} value={pm.id}>
@@ -662,7 +662,7 @@ function WalletContent() {
                   <button
                     type="submit"
                     disabled={withdrawing || !withdrawAmount || Number(withdrawAmount) > available}
-                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 disabled:opacity-50 text-white font-bold py-3.5 rounded-xl transition-colors text-xs shadow-md"
+                    className="w-full bg-gradient-to-r bg-brand hover:bg-brand-dark disabled:opacity-50 text-white font-bold py-3.5 rounded-xl transition-colors text-xs shadow-md"
                   >
                     {withdrawing ? (isRTL ? 'جاري إرسال الطلب...' : 'Submitting Request...') : (isRTL ? `سحب ${Number(withdrawAmount || 0).toLocaleString('ar-EG')} ج.م` : `Withdraw EGP ${Number(withdrawAmount || 0).toLocaleString('en-EG')}`)}
                   </button>
@@ -675,7 +675,7 @@ function WalletContent() {
       {/* ── Paymob Card Deposit Modal ──────────────────────────── */}
       {showPaymobModal && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-white w-full sm:max-w-lg sm:rounded-3xl rounded-t-3xl flex flex-col overflow-hidden shadow-2xl"
+          <div className="bg-white w-full sm:max-w-lg sm:rounded-lg rounded-t-3xl flex flex-col overflow-hidden shadow-2xl"
                style={{ height: '85vh', maxHeight: 720 }}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 flex-shrink-0 bg-white">
               <div>
@@ -741,7 +741,7 @@ function WalletContent() {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
               transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-              className="bg-white border border-slate-100 rounded-3xl p-7 sm:p-9 max-w-md w-full text-center shadow-2xl relative overflow-hidden"
+              className="bg-white border border-slate-100 rounded-lg p-7 sm:p-9 max-w-md w-full text-center shadow-2xl relative overflow-hidden"
               onClick={e => e.stopPropagation()}
             >
               {/* Glow Accents */}
@@ -750,7 +750,7 @@ function WalletContent() {
 
               {/* Party Popper Icon */}
               <div className="relative mb-5 flex items-center justify-center">
-                <div className="w-20 h-20 bg-gradient-to-tr from-emerald-500 to-teal-400 rounded-3xl flex items-center justify-center text-white shadow-lg shadow-emerald-500/30 transform -rotate-3 hover:rotate-0 transition-transform">
+                <div className="w-20 h-20 bg-gradient-to-tr from-emerald-500 to-teal-400 rounded-lg flex items-center justify-center text-white shadow-lg shadow-emerald-500/30 transform -rotate-3 hover:rotate-0 transition-transform">
                   <PartyPopper className="w-10 h-10" />
                 </div>
                 <div className="absolute -top-1 -right-1 bg-amber-400 text-amber-950 p-1.5 rounded-full shadow-md">
@@ -769,7 +769,7 @@ function WalletContent() {
               </p>
 
               {/* Amount Badge Card */}
-              <div className="bg-gradient-to-br from-emerald-50 via-teal-50 to-blue-50 border border-emerald-200/80 rounded-2xl p-4 mb-6 shadow-sm">
+              <div className="bg-gradient-to-br from-emerald-50 via-teal-50 to-blue-50 border border-emerald-200/80 rounded-md p-4 mb-6 shadow-sm">
                 <p className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider mb-1">
                   {isRTL ? 'المبلغ المودع' : 'Amount Credited'}
                 </p>
@@ -790,7 +790,7 @@ function WalletContent() {
                 <Link
                   href="/"
                   onClick={() => setCelebrateModal(prev => ({ ...prev, open: false }))}
-                  className="w-full bg-[#3665F3] hover:bg-[#2B54D4] text-white font-bold py-3.5 rounded-xl transition-all shadow-md shadow-blue-500/20 text-xs flex items-center justify-center gap-2"
+                  className="w-full bg-brand hover:bg-brand-dark text-white font-bold py-3.5 rounded-xl transition-all shadow-md shadow-blue-500/20 text-xs flex items-center justify-center gap-2"
                 >
                   <ShoppingBag className="w-4 h-4" />
                   <span>{isRTL ? 'ابدأ التسوق في السوق 🛍️' : 'Start Shopping Deals 🛍️'}</span>
