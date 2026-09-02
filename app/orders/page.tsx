@@ -8,13 +8,13 @@ import { useAuth } from '@/components/AuthProvider';
 import { useLanguage } from '@/components/LanguageProvider';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { getUserOrders, type MarketplaceOrder } from '@/lib/orderService';
-import { formatEGP } from '@/lib/products';
 import { supabase } from '@/lib/supabase';
 import { getOrCreateChatRoom } from '@/lib/chatService';
 import SmartImage from '@/components/SmartImage';
 import StatusPill from '@/components/ui/StatusPill';
 import EmptyState from '@/components/ui/EmptyState';
 import Button from '@/components/ui/Button';
+import PriceTag from '@/components/ui/PriceTag';
 
 function OrdersContent() {
   const router = useRouter();
@@ -85,9 +85,19 @@ function OrdersContent() {
     // and PageTransition used to wrap it in a flex column, which made it a
     // flex item -- and a flex item with `mx-auto` sizes to fit-content
     // instead of stretching, so this list shrink-wrapped to its cards and
-    // ignored max-w-7xl entirely. PageTransition no longer does that, and
+    // ignored max-w-* entirely. PageTransition no longer does that, and
     // `w-full` keeps this page correct regardless.
-    <div className="w-full max-w-7xl mx-auto px-4 py-6 sm:py-8">
+    //
+    // max-w-4xl, not max-w-7xl: this is a single column of list rows, not
+    // a grid. At product-grid width on a large monitor, each row's actual
+    // content (a 56px thumbnail and two lines of small text) sat crammed
+    // against the left edge with a few hundred pixels of dead space
+    // before the chat/chevron icons on the right -- "the items and values
+    // are so small" was really the row being far wider than its content,
+    // not the content itself being undersized in isolation. Narrowing the
+    // container and enlarging the content together is what actually reads
+    // as a properly proportioned list at any screen size.
+    <div className="w-full max-w-4xl mx-auto px-4 py-6 sm:py-8">
       <div className="flex items-center justify-between gap-4 mb-5">
         <div>
           <h1 className="text-xl font-black text-slate-900">{isRTL ? 'سجل الطلبات' : 'My Orders'}</h1>
@@ -146,36 +156,40 @@ function OrdersContent() {
                   <StatusPill status={order.status} size="sm" />
                 </div>
 
-                <div className="p-4 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-14 h-14 rounded-md bg-slate-100 relative overflow-hidden flex-shrink-0">
-                      {order.product?.images?.[0] ? (
-                        <SmartImage src={order.product.images[0]} alt={order.product.title || ''} fill className="object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-slate-300"><Package className="w-6 h-6" /></div>
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <h3 className="font-bold text-slate-900 text-sm group-hover:text-brand transition-colors line-clamp-1">
-                        {order.product?.title || (isRTL ? 'سلعة معروضة' : 'Marketplace Item')}
-                      </h3>
-                      <div className="flex items-center gap-1.5 mt-0.5 text-xs">
-                        <span className="font-black text-slate-900">{formatEGP(order.amount)}</span>
-                        <span className="text-slate-400">• {order.handover_method === 'courier' ? (isRTL ? 'شحن' : 'Courier') : (isRTL ? 'تسليم يدوي' : 'Meetup')}</span>
-                      </div>
-                    </div>
+                <div className="p-4 sm:p-5 flex items-center gap-4 sm:gap-5">
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg bg-slate-100 relative overflow-hidden flex-shrink-0">
+                    {order.product?.images?.[0] ? (
+                      <SmartImage src={order.product.images[0]} alt={order.product.title || ''} fill className="object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-slate-300"><Package className="w-8 h-8" /></div>
+                    )}
                   </div>
 
-                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                  {/* flex-1 is what makes the row actually use the
+                      container's width -- without it, this block only
+                      takes up as much space as its text needs, leaving
+                      the gap to the price/actions on the right empty. */}
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-bold text-slate-900 text-base sm:text-lg group-hover:text-brand transition-colors line-clamp-1">
+                      {order.product?.title || (isRTL ? 'سلعة معروضة' : 'Marketplace Item')}
+                    </h3>
+                    <p className="text-xs sm:text-sm text-slate-400 mt-1">
+                      {order.handover_method === 'courier' ? (isRTL ? 'شحن' : 'Courier delivery') : (isRTL ? 'تسليم يدوي' : 'In-person meetup')}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-3 sm:gap-5 flex-shrink-0">
+                    <PriceTag amount={order.amount} size="lg" className="hidden sm:inline" />
+                    <PriceTag amount={order.amount} size="md" className="sm:hidden" />
                     <button
                       onClick={(e) => handleChatAboutOrder(order, e)}
                       disabled={chattingOrderId === order.id}
-                      className="p-2 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors disabled:opacity-50"
+                      className="p-2.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors disabled:opacity-50"
                       aria-label={isRTL ? 'محادثة' : 'Chat'}
                     >
-                      <MessageSquare className="w-3.5 h-3.5" />
+                      <MessageSquare className="w-4 h-4" />
                     </button>
-                    <ChevronRight className={`w-4 h-4 text-slate-300 group-hover:text-slate-500 transition-colors ${isRTL ? 'rotate-180' : ''}`} />
+                    <ChevronRight className={`w-5 h-5 text-slate-300 group-hover:text-slate-500 transition-colors ${isRTL ? 'rotate-180' : ''}`} />
                   </div>
                 </div>
               </div>
