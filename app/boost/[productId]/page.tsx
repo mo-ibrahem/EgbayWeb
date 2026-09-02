@@ -11,9 +11,9 @@ import {
 import { useAuth } from '@/components/AuthProvider';
 import { useLanguage } from '@/components/LanguageProvider';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import { productService, formatEGP, type Product } from '@/lib/products';
+import { productService, formatEGP, isPromotionActive, type Product } from '@/lib/products';
 import { getUserWallet, type UserWallet } from '@/lib/walletService';
-import { BOOST_PACKAGES, boostProduct, type BoostPackage } from '@/lib/boostService';
+import { BOOST_PACKAGES, BOOST_BADGE_STYLES, boostProduct, type BoostPackage } from '@/lib/boostService';
 
 function BoostProductContent() {
   const { productId } = useParams<{ productId: string }>();
@@ -141,6 +141,28 @@ function BoostProductContent() {
           </div>
         </div>
       )}
+
+      {/* Currently-active boost -- shown so a seller re-visiting this
+          page can see their listing is already boosted (and when it
+          runs out) instead of blindly re-buying. Re-purchasing here
+          resets the countdown from now rather than stacking. */}
+      {product && isPromotionActive(product) && (() => {
+        const tier = (product.promotion_tier as 'urgent' | 'featured' | 'turbo') || 'featured';
+        const style = BOOST_BADGE_STYLES[tier] || BOOST_BADGE_STYLES.featured;
+        const daysLeft = Math.max(1, Math.ceil((new Date(product.promoted_until!).getTime() - Date.now()) / 86400000));
+        return (
+          <div className="bg-emerald-50 border border-emerald-200 rounded-3xl p-4 mb-6 flex items-center gap-3">
+            <span className={`${style.className} text-white text-[10px] font-bold px-2 py-1 rounded-md flex-shrink-0`}>
+              {isRTL ? style.label_ar : style.label}
+            </span>
+            <p className="text-xs text-emerald-800 font-semibold">
+              {isRTL
+                ? `هذا الإعلان مروّج حالياً — ينتهي خلال ${daysLeft} ${daysLeft === 1 ? 'يوم' : 'أيام'}. اختيار باقة جديدة سيعيد ضبط المدة من الآن.`
+                : `This listing is currently boosted -- expires in ${daysLeft} day${daysLeft === 1 ? '' : 's'}. Buying a new package resets the countdown from now.`}
+            </p>
+          </div>
+        );
+      })()}
 
       {/* Tier Selection Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">

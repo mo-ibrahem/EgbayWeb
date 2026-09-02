@@ -24,7 +24,7 @@ export const BOOST_PACKAGES: Record<'urgent' | 'featured' | 'turbo', BoostPackag
     durationDays: 3,
     multiplierText: '2x More Views',
     description: 'Highlights your listing with an amber urgent badge for quick buyer response.',
-    perks: ['🔥 Eye-catching Urgent Sale badge', '⚡ Placed above standard items', '⏳ Active for 3 days'],
+    perks: ['🔥 Eye-catching Urgent Sale badge', '⚡ Ranks above standard listings in Home & Search', '⏳ Active for 3 days'],
     gradient: ['#F59E0B', '#D97706'],
   },
   featured: {
@@ -35,11 +35,10 @@ export const BOOST_PACKAGES: Record<'urgent' | 'featured' | 'turbo', BoostPackag
     priceEGP: 150,
     durationDays: 7,
     multiplierText: '5x More Views',
-    description: 'Pins your listing to top search spots & home screen featured rails for a full week.',
+    description: 'Pins your listing to the top of Home & Search results for a full week.',
     perks: [
-      '⚡ Gold glowing border & verified badge',
-      '🥇 Pinned to top of category search',
-      '🏠 Featured on Home screen carousel',
+      '⚡ Featured Spotlight badge on your listing',
+      '🥇 Ranks above Urgent & standard listings in Home & Search',
       '📅 Active for 7 full days',
     ],
     gradient: ['#2563EB', '#1D4ED8'],
@@ -52,15 +51,27 @@ export const BOOST_PACKAGES: Record<'urgent' | 'featured' | 'turbo', BoostPackag
     priceEGP: 300,
     durationDays: 14,
     multiplierText: '10x Max Exposure',
-    description: 'Maximum marketplace power — top hero placements, 14 days duration & instant buyer alerts.',
+    description: 'Maximum marketplace power — top ranking in Home & Search for a full 14 days.',
     perks: [
-      '👑 Crown VIP placement on Home & Search',
-      '🚀 Top banner placement across all categories',
-      '🔔 Notification ping to wishlist & search watchers',
+      '👑 Turbo Boost badge -- your listing\'s top identifier',
+      '🚀 Ranks above every other listing in Home & Search',
       '📅 Active for 14 days',
     ],
     gradient: ['#7C3AED', '#4C1D95'],
   },
+};
+
+/**
+ * Compact badge styling per tier for product cards / the product page
+ * gallery, where BOOST_PACKAGES' full title and gradient pair are too
+ * much for a small corner label. Every card and detail page badge reads
+ * from here rather than hardcoding a single generic "Boosted" label, so
+ * the tier a seller paid for is actually visible on the listing.
+ */
+export const BOOST_BADGE_STYLES: Record<'urgent' | 'featured' | 'turbo', { label: string; label_ar: string; className: string }> = {
+  urgent: { label: 'Urgent Sale', label_ar: 'بيع عاجل', className: 'bg-amber-500' },
+  featured: { label: 'Featured', label_ar: 'مميز', className: 'bg-brand' },
+  turbo: { label: 'Turbo Boost', label_ar: 'ترويج شامل', className: 'bg-violet-600' },
 };
 
 const inMemoryPromotions: Record<string, { tier: string; until: string }> = {};

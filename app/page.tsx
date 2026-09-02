@@ -8,7 +8,7 @@ import {
   LayoutGrid, Smartphone, Shirt, Home, Baby, Dumbbell, BookOpen,
   Car, Video, Package, Tag, Sparkles, ArrowRight, Wallet,
 } from 'lucide-react';
-import { productService, type Product } from '@/lib/products';
+import { productService, promotionRank, type Product } from '@/lib/products';
 import { getActiveLiveSessions, type LiveSession } from '@/lib/liveService';
 import { useAuth } from '@/components/AuthProvider';
 import { useLanguage } from '@/components/LanguageProvider';
@@ -96,7 +96,14 @@ function HomeFeedContent() {
     const list = [...products];
     if (sortKey === 'price_asc') list.sort((a, b) => a.price - b.price);
     else if (sortKey === 'price_desc') list.sort((a, b) => b.price - a.price);
-    // 'newest' is already the query order (created_at desc)
+    else {
+      // 'newest': boosted listings rank first (Turbo > Featured > Urgent,
+      // this is the entire product effect sellers are paying for), tied
+      // within a tier by the existing created_at desc query order. An
+      // explicit price sort is left alone -- someone sorting by price
+      // wants price order, not a boosted item jumping the queue.
+      list.sort((a, b) => promotionRank(b) - promotionRank(a));
+    }
     return list;
   }, [products, sortKey]);
 

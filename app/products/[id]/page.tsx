@@ -9,7 +9,8 @@ import {
   MessageCircle, ShoppingBag, ChevronLeft, ChevronRight,
   Zap, Package, CheckCircle2, X,
 } from 'lucide-react';
-import { productService, formatEGP, type Product } from '@/lib/products';
+import { productService, formatEGP, isPromotionActive, type Product } from '@/lib/products';
+import { BOOST_BADGE_STYLES } from '@/lib/boostService';
 import { supabase } from '@/lib/supabase';
 import { getOrCreateChatRoom } from '@/lib/chatService';
 import { useAuth } from '@/components/AuthProvider';
@@ -194,11 +195,14 @@ export default function ProductDetailPage() {
                 )}
 
                 <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
-                  {product.is_promoted && (
-                    <span className="bg-brand text-white text-[11px] font-bold px-2.5 py-1 rounded-md flex items-center gap-1 w-fit">
-                      <Zap className="w-3 h-3 fill-current" /> {isRTL ? 'إعلان مميز' : 'Boosted'}
-                    </span>
-                  )}
+                  {isPromotionActive(product) && (() => {
+                    const style = BOOST_BADGE_STYLES[product.promotion_tier as 'urgent' | 'featured' | 'turbo'] || BOOST_BADGE_STYLES.featured;
+                    return (
+                      <span className={`${style.className} text-white text-[11px] font-bold px-2.5 py-1 rounded-md flex items-center gap-1 w-fit`}>
+                        <Zap className="w-3 h-3 fill-current" /> {isRTL ? style.label_ar : style.label}
+                      </span>
+                    );
+                  })()}
                 </div>
 
                 <div className="absolute top-3 right-3 flex flex-col gap-2 z-10">

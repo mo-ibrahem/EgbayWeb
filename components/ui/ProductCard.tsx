@@ -4,7 +4,8 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { Heart, Package, Zap, MapPin } from 'lucide-react';
 import { useLanguage } from '@/components/LanguageProvider';
-import { type Product } from '@/lib/products';
+import { type Product, isPromotionActive } from '@/lib/products';
+import { BOOST_BADGE_STYLES } from '@/lib/boostService';
 import SmartImage from '@/components/SmartImage';
 import PriceTag from './PriceTag';
 
@@ -69,11 +70,14 @@ export default function ProductCard({
 
           <div className="absolute top-2 inset-x-2 flex items-start justify-between z-10">
             <div className="flex flex-col gap-1">
-              {product.is_promoted && (
-                <span className="bg-brand text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm flex items-center gap-0.5 w-fit">
-                  <Zap className="w-2.5 h-2.5 fill-current" /> {isRTL ? 'مميز' : 'Boosted'}
-                </span>
-              )}
+              {isPromotionActive(product) && (() => {
+                const style = BOOST_BADGE_STYLES[product.promotion_tier as 'urgent' | 'featured' | 'turbo'] || BOOST_BADGE_STYLES.featured;
+                return (
+                  <span className={`${style.className} text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm flex items-center gap-0.5 w-fit`}>
+                    <Zap className="w-2.5 h-2.5 fill-current" /> {isRTL ? style.label_ar : style.label}
+                  </span>
+                );
+              })()}
             </div>
 
             {onWishlistToggle && (

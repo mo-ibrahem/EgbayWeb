@@ -21,6 +21,8 @@ export interface Product {
   seller?: { full_name: string; avatar_url?: string; tier?: number; is_verified_seller?: boolean };
   isWishlisted?: boolean;
   is_promoted?: boolean;
+  promotion_tier?: 'urgent' | 'featured' | 'turbo' | string;
+  promoted_until?: string;
   promoted_ad_rate?: number;
   // Real, server-tracked impression counter on the products table. Surfaced
   // in the seller dashboard -- a seller who can't see whether their listing
@@ -42,6 +44,33 @@ export interface UserProfile {
 export function formatEGP(price: number | string): string {
   const n = Math.round(Number(price));
   return `EGP ${n.toLocaleString('en-EG')}`;
+}
+
+/**
+ * Whether a product's paid boost is currently in effect. `is_promoted`
+ * alone isn't enough to trust -- a boost that ran out is cleared
+ * server-side by a cron sweep on a 10-minute cycle, so between sweeps a
+ * stale `is_promoted: true` can still be sitting on the row. Every badge
+ * and every ranking decision goes through this so an expired boost
+ * never displays or ranks as active.
+ */
+export function isPromotionActive(product: Pick<Product, 'is_promoted' | 'promoted_until'>): boolean {
+  if (!product.is_promoted || !product.promoted_until) return false;
+  return new Date(product.promoted_until).getTime() > Date.now();
+}
+
+/**
+ * Ranking weight for the three boost tiers (Turbo > Featured > Urgent),
+ * matching what sellers actually paid for. Used to pin active boosts to
+ * the top of the default listing order -- see promotionRank usage in
+ * app/page.tsx. Zero for anything not currently boosted.
+ */
+export function promotionRank(product: Pick<Product, 'is_promoted' | 'promoted_until' | 'promotion_tier'>): number {
+  if (!isPromotionActive(product)) return 0;
+  if (product.promotion_tier === 'turbo') return 3;
+  if (product.promotion_tier === 'featured') return 2;
+  if (product.promotion_tier === 'urgent') return 1;
+  return 0;
 }
 
 // ─── Fast In-Memory Cache with Stale-While-Revalidate ─────────────────────────
