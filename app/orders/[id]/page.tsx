@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
+import { getOrCreateChatRoom } from '@/lib/chatService';
 import { getOrderById, MarketplaceOrder, COURIER_DELIVERY_FEE_EGP } from '@/lib/orderService';
 import { 
   ArrowLeft, Package, ShieldCheck, Truck, Clock, MapPin, 
@@ -45,6 +46,7 @@ export default function OrderDetailsPage() {
 
   const [order, setOrder] = useState<MarketplaceOrder | null>(null);
   const [sellerProfile, setSellerProfile] = useState<any>(null);
+  const [buyerProfile, setBuyerProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
   
@@ -93,6 +95,20 @@ export default function OrderDetailsPage() {
           .maybeSingle();
         if (profile) {
           setSellerProfile(profile);
+        }
+
+        // The seller viewing their own sale needs the buyer's contact
+        // card, not their own -- fetched only in that direction so a
+        // buyer viewing their own purchase doesn't pull an unused row.
+        if (fetchedOrder.seller_id === user.id) {
+          const { data: buyerProf } = await supabase
+            .from('public_profiles')
+            .select('id, full_name, avatar_url')
+            .eq('id', fetchedOrder.buyer_id)
+            .maybeSingle();
+          if (buyerProf) {
+            setBuyerProfile(buyerProf);
+          }
         }
 
         // Load PIN from order or sessionStorage if buyer
@@ -202,29 +218,13 @@ export default function OrderDetailsPage() {
     }
   };
 
-  const handleChatSeller = async () => {
+  const handleChatOtherParty = async () => {
     if (!user || !order || chatLoading) return;
+    const otherPartyId = user.id === order.buyer_id ? order.seller_id : order.buyer_id;
+    if (!otherPartyId || otherPartyId === user.id) return;
     setChatLoading(true);
     try {
-      const participants = [user.id, order.seller_id].sort();
-      const { data: existing } = await supabase
-        .from('chat_rooms')
-        .select('id')
-        .contains('participant_ids', participants)
-        .maybeSingle();
-
-      let roomId: string;
-      if (existing) {
-        roomId = existing.id;
-      } else {
-        const { data: created, error } = await supabase
-          .from('chat_rooms')
-          .insert({ participant_ids: participants })
-          .select('id')
-          .single();
-        if (error || !created) throw error;
-        roomId = created.id;
-      }
+      const roomId = await getOrCreateChatRoom(user.id, otherPartyId, order.product_id);
       router.push(`/chat/${roomId}`);
     } catch (err) {
       console.error('[OrderDetails] Failed to open chat:', err);
@@ -632,8 +632,13 @@ export default function OrderDetailsPage() {
               </div>
             </div>
 
-            {/* 8. SELLER SECTION */}
-            {sellerProfile && (
+            {/* 8. OTHER PARTY SECTION -- the seller's card for a buyer
+                viewing their purchase, or the buyer's card for a seller
+                viewing their sale. Previously this rendered the seller
+                card unconditionally, so a seller viewing their own sale
+                saw their own name here with a "Chat Seller" button that
+                opened a chat with themselves. */}
+            {isBuyer && sellerProfile && (
               <div className="border-t border-slate-100 pt-4">
                 <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-3">
                   {isRTL ? 'البائع' : 'Seller'}
@@ -656,10 +661,43 @@ export default function OrderDetailsPage() {
                   </div>
                   <button
                     type="button"
-                    onClick={handleChatSeller}
+                    onClick={handleChatOtherParty}
                     disabled={chatLoading}
                     className="p-2 text-brand hover:bg-brand-soft rounded-full transition-colors disabled:opacity-50"
                     title={isRTL ? 'مراسلة البائع' : 'Chat Seller'}
+                  >
+                    <MessageCircle className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {isSeller && buyerProfile && (
+              <div className="border-t border-slate-100 pt-4">
+                <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-3">
+                  {isRTL ? 'المشتري' : 'Buyer'}
+                </h3>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center flex-shrink-0 relative overflow-hidden">
+                      {buyerProfile.avatar_url ? (
+                        <SmartImage src={buyerProfile.avatar_url} alt="Avatar" fill className="object-cover" sizes="40px" />
+                      ) : (
+                        <User className="w-5 h-5" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-900">
+                        {buyerProfile.full_name || (isRTL ? 'مشتري إيجي باي' : 'EgyBay Buyer')}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleChatOtherParty}
+                    disabled={chatLoading}
+                    className="p-2 text-brand hover:bg-brand-soft rounded-full transition-colors disabled:opacity-50"
+                    title={isRTL ? 'مراسلة المشتري' : 'Chat Buyer'}
                   >
                     <MessageCircle className="w-5 h-5" />
                   </button>

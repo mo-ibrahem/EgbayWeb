@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { productService, formatEGP, type Product } from '@/lib/products';
 import { supabase } from '@/lib/supabase';
+import { getOrCreateChatRoom } from '@/lib/chatService';
 import { useAuth } from '@/components/AuthProvider';
 import { useLanguage } from '@/components/LanguageProvider';
 import { ProductJsonLd } from '@/components/JsonLd';
@@ -108,21 +109,7 @@ export default function ProductDetailPage() {
     if (!product || product.seller_id === user.id) return;
     setChatLoading(true);
     try {
-      const participants = [user.id, product.seller_id].sort();
-      const { data: existing } = await supabase
-        .from('chat_rooms').select('id').contains('participant_ids', participants).single();
-      let roomId: string;
-      if (existing) {
-        roomId = existing.id;
-      } else {
-        const { data: created, error } = await supabase
-          .from('chat_rooms')
-          .insert({ participant_ids: participants })
-          .select('id')
-          .single();
-        if (error || !created) throw error;
-        roomId = created.id;
-      }
+      const roomId = await getOrCreateChatRoom(user.id, product.seller_id, product.id);
       router.push(`/chat/${roomId}`);
     } catch (err) {
       console.error('Chat error:', err);

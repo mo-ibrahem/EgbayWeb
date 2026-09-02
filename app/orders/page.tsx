@@ -10,6 +10,7 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import { getUserOrders, type MarketplaceOrder } from '@/lib/orderService';
 import { formatEGP } from '@/lib/products';
 import { supabase } from '@/lib/supabase';
+import { getOrCreateChatRoom } from '@/lib/chatService';
 import SmartImage from '@/components/SmartImage';
 import StatusPill from '@/components/ui/StatusPill';
 import EmptyState from '@/components/ui/EmptyState';
@@ -56,18 +57,7 @@ function OrdersContent() {
     if (!otherPartyId) return;
     setChattingOrderId(order.id);
     try {
-      const participants = [user.id, otherPartyId].sort();
-      const { data: existing } = await supabase
-        .from('chat_rooms').select('id').contains('participant_ids', participants).single();
-      let roomId: string;
-      if (existing) {
-        roomId = existing.id;
-      } else {
-        const { data: created, error } = await supabase
-          .from('chat_rooms').insert({ participant_ids: participants }).select('id').single();
-        if (error || !created) throw error;
-        roomId = created.id;
-      }
+      const roomId = await getOrCreateChatRoom(user.id, otherPartyId, order.product_id);
       router.push(`/chat/${roomId}`);
     } catch (err) {
       console.error('[Orders] Failed to open chat:', err);

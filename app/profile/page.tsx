@@ -30,6 +30,7 @@ interface ChatRoom {
   room_id: string;
   other_user_name: string;
   other_user_avatar_url?: string;
+  product_title?: string;
   last_message?: string;
   last_message_time?: string;
 }
@@ -102,19 +103,25 @@ function ProfileContent() {
 
         // Fetch chat rooms
         const { data: rooms } = await supabase
-          .from('chat_rooms').select('id, participant_ids').contains('participant_ids', [user.id]);
+          .from('chat_rooms').select('id, participant_ids, product_id').contains('participant_ids', [user.id]);
         if (rooms?.length) {
           const otherIds = rooms.map(r => r.participant_ids.find((p: string) => p !== user.id)).filter(Boolean);
           const { data: profiles } = await supabase.from('public_profiles').select('id, full_name, avatar_url').in('id', otherIds);
+          const productIds = rooms.map(r => r.product_id).filter(Boolean);
+          const { data: products } = productIds.length
+            ? await supabase.from('products').select('id, title').in('id', productIds)
+            : { data: [] as { id: string; title: string }[] };
           const chatList: ChatRoom[] = await Promise.all(rooms.map(async (room) => {
             const otherId = room.participant_ids.find((p: string) => p !== user.id);
             const otherProfile = profiles?.find((p: {id: string}) => p.id === otherId);
+            const product = products?.find((p: {id: string}) => p.id === room.product_id);
             const { data: msgs } = await supabase.from('messages').select('content, created_at')
               .eq('room_id', room.id).order('created_at', { ascending: false }).limit(1);
             return {
               room_id: room.id,
               other_user_name: otherProfile?.full_name || (isRTL ? 'مستخدم إيجي باي' : 'EgyBay User'),
               other_user_avatar_url: otherProfile?.avatar_url,
+              product_title: product?.title,
               last_message: msgs?.[0]?.content,
               last_message_time: msgs?.[0]?.created_at,
             };
@@ -568,6 +575,9 @@ function ProfileContent() {
                         <span className="text-[11px] text-gray-400">{timeAgo(chat.last_message_time, isRTL)}</span>
                       )}
                     </div>
+                    {chat.product_title && (
+                      <p className="text-[11px] font-semibold text-blue-600 truncate mb-0.5">{chat.product_title}</p>
+                    )}
                     <p className="text-xs text-gray-500 truncate">{chat.last_message || (isRTL ? 'ابدأ المحادثة...' : 'Start conversation...')}</p>
                   </div>
                   <ChevronRight className={`w-4 h-4 text-gray-400 group-hover:text-blue-600 transition-all ${isRTL ? 'rotate-180' : ''}`} />

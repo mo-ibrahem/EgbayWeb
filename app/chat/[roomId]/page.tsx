@@ -2,11 +2,14 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { ArrowLeft, Send, Loader2 } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { useLanguage } from '@/components/LanguageProvider';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { supabase } from '@/lib/supabase';
+import { formatEGP } from '@/lib/products';
+import SmartImage from '@/components/SmartImage';
 
 interface Message {
   id: string;
@@ -19,6 +22,12 @@ interface Message {
 interface ChatDetails {
   other_user_name: string;
   other_user_avatar?: string;
+  product?: {
+    id: string;
+    title: string;
+    price: number;
+    image?: string;
+  };
 }
 
 function timeStr(dateStr: string, isRTL?: boolean) {
@@ -51,16 +60,24 @@ function ChatContent() {
 
     (async () => {
       try {
-        // Get room participants
-        const { data: room } = await supabase.from('chat_rooms').select('participant_ids').eq('id', roomId).single();
+        // Get room participants and which item this conversation is about
+        const { data: room } = await supabase.from('chat_rooms').select('participant_ids, product_id').eq('id', roomId).single();
         if (!room) { router.push('/profile?tab=chats'); return; }
 
         const otherId = room.participant_ids.find((p: string) => p !== user.id);
+        let product: ChatDetails['product'];
+        if (room.product_id) {
+          const { data: prod } = await supabase.from('products').select('id, title, price, images').eq('id', room.product_id).maybeSingle();
+          if (prod) {
+            product = { id: prod.id, title: prod.title, price: Number(prod.price), image: prod.images?.[0] };
+          }
+        }
         if (otherId) {
           const { data: profile } = await supabase.from('public_profiles').select('full_name, avatar_url').eq('id', otherId).single();
           setChatDetails({
             other_user_name: profile?.full_name || (isRTL ? 'مستخدم إيجي باي' : 'EgyBay User'),
             other_user_avatar: profile?.avatar_url,
+            product,
           });
         }
 
@@ -72,7 +89,13 @@ function ChatContent() {
     })();
   }, [user, authLoading, roomId, router, isRTL]);
 
-  // Subscribe to real-time messages
+  // Subscribe to real-time messages. Only the OTHER participant's
+  // messages are added here -- our own sends are already shown
+  // optimistically in handleSend and reconciled with the real row once
+  // the insert resolves. Adding our own messages again on realtime
+  // caused every sent message to render twice: the temp bubble (id
+  // `temp-...`) never matched the real row's id, so the dedup check
+  // below always failed and both ended up in state.
   useEffect(() => {
     if (!roomId) return;
     const channel = supabase
@@ -81,15 +104,17 @@ function ChatContent() {
         event: 'INSERT', schema: 'public', table: 'messages',
         filter: `room_id=eq.${roomId}`,
       }, (payload) => {
+        const incoming = payload.new as Message;
+        if (incoming.sender_id === user?.id) return;
         setMessages(prev => {
-          if (prev.some(m => m.id === payload.new.id)) return prev;
-          return [...prev, payload.new as Message];
+          if (prev.some(m => m.id === incoming.id)) return prev;
+          return [...prev, incoming];
         });
       })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [roomId]);
+  }, [roomId, user?.id]);
 
   // Scroll on new messages
   useEffect(() => { scrollToBottom(); }, [messages]);
@@ -103,8 +128,9 @@ function ChatContent() {
     setNewMessage('');
 
     // Optimistic update
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const tempMsg: Message = {
-      id: `temp-${Date.now()}`,
+      id: tempId,
       room_id: roomId,
       sender_id: user.id,
       content,
@@ -113,8 +139,20 @@ function ChatContent() {
     setMessages(prev => [...prev, tempMsg]);
 
     try {
-      await supabase.from('messages').insert({ room_id: roomId, sender_id: user.id, content });
-    } catch { /* ignore — real-time will sync */ }
+      const { data, error } = await supabase
+        .from('messages')
+        .insert({ room_id: roomId, sender_id: user.id, content })
+        .select()
+        .single();
+      if (error || !data) throw error || new Error('No row returned');
+      // Replace the temp bubble with the confirmed row (real id, real timestamp).
+      setMessages(prev => prev.map(m => (m.id === tempId ? (data as Message) : m)));
+    } catch {
+      // Leave the optimistic bubble in place rather than silently
+      // dropping what the user typed -- there's no send-failed/retry
+      // affordance yet, but showing nothing would be worse than showing
+      // an unconfirmed message.
+    }
     finally { setSending(false); inputRef.current?.focus(); }
   };
 
@@ -137,6 +175,27 @@ function ChatContent() {
           <p className="text-xs text-emerald-500 font-medium">{isRTL ? 'متصل الآن' : 'Active now'}</p>
         </div>
       </div>
+
+      {/* Item this conversation is about -- every chat room here is
+          scoped to one product, so keep it visible for context instead
+          of leaving the buyer/seller to remember which listing they're
+          discussing. */}
+      {chatDetails?.product && (
+        <Link
+          href={`/products/${chatDetails.product.id}`}
+          className="flex items-center gap-3 px-4 py-2.5 bg-white border-b border-gray-100 hover:bg-gray-50 transition-colors"
+        >
+          <div className="w-10 h-10 rounded-lg bg-gray-100 relative overflow-hidden flex-shrink-0">
+            {chatDetails.product.image && (
+              <SmartImage src={chatDetails.product.image} alt={chatDetails.product.title} fill className="object-cover" sizes="40px" />
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-bold text-gray-900 truncate">{chatDetails.product.title}</p>
+            <p className="text-xs text-gray-500">{formatEGP(chatDetails.product.price)}</p>
+          </div>
+        </Link>
+      )}
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-5 space-y-3">

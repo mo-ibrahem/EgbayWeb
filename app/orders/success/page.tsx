@@ -4,7 +4,8 @@ import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
-import { CheckCircle2, ShieldCheck, ArrowRight, Package, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { getOrCreateChatRoom } from '@/lib/chatService';
+import { CheckCircle2, ShieldCheck, ArrowRight, Package, Loader2, AlertCircle, RefreshCw, MessageCircle } from 'lucide-react';
 import SmartImage from '@/components/SmartImage';
 import { useLanguage } from '@/components/LanguageProvider';
 
@@ -19,6 +20,8 @@ function formatEGP(amount: number, isRTL: boolean) {
 interface OrderStatusSummary {
   id: string;
   buyer_id: string;
+  seller_id: string;
+  product_id: string;
   status: string;
   created_at: string;
   amount: number;
@@ -35,6 +38,8 @@ function OrderSuccessContent() {
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
   const [plaintextPin, setPlaintextPin] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [chatLoading, setChatLoading] = useState(false);
 
   useEffect(() => {
     async function loadOrder() {
@@ -51,6 +56,7 @@ function OrderSuccessContent() {
           setLoading(false);
           return;
         }
+        setUserId(user.id);
 
         // Explicit column list -- never select('*') on orders from the
         // client. handover_pin_hash/handover_pin_encrypted must not be
@@ -60,7 +66,7 @@ function OrderSuccessContent() {
         // /api/orders, not via a direct table select.
         const { data: fetchedOrder, error: fetchErr } = await supabase
           .from('orders')
-          .select('id, buyer_id, status, created_at, amount, handover_method')
+          .select('id, buyer_id, seller_id, product_id, status, created_at, amount, handover_method')
           .eq('id', orderId)
           .single();
         
@@ -120,6 +126,19 @@ function OrderSuccessContent() {
 
   const shortOrderId = `#${order.id.split('-')[0].toUpperCase()}`;
   const isPending = order.status === 'pending_payment';
+
+  const handleMessageSeller = async () => {
+    if (!userId || !order || chatLoading) return;
+    setChatLoading(true);
+    try {
+      const roomId = await getOrCreateChatRoom(userId, order.seller_id, order.product_id);
+      router.push(`/chat/${roomId}`);
+    } catch (err) {
+      console.error('[OrderSuccess] Failed to open chat:', err);
+    } finally {
+      setChatLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 py-12 px-4 flex justify-center">
@@ -211,6 +230,17 @@ function OrderSuccessContent() {
 
         {/* Action Buttons */}
         <div className="space-y-3 pt-2">
+          <button
+            type="button"
+            onClick={handleMessageSeller}
+            disabled={chatLoading}
+            className="w-full flex items-center justify-center gap-2 bg-brand-soft hover:opacity-80 text-brand font-bold py-4 rounded-2xl text-sm transition-all disabled:opacity-50"
+          >
+            {chatLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <MessageCircle className="w-4 h-4" />}
+            {order.handover_method === 'qr_meetup'
+              ? (isRTL ? 'راسل البائع لتحديد موعد التسليم' : 'Message Seller to Arrange Handover')
+              : (isRTL ? 'راسل البائع' : 'Message Seller')}
+          </button>
           <Link
             href="/orders"
             className="block w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 rounded-2xl text-sm transition-all text-center shadow-md shadow-slate-900/10"
