@@ -399,38 +399,43 @@ export default function OrderDetailsPage() {
             </div>
           </div>
 
-          {/* 6. HANDOVER PIN */}
+          {/* 6. HANDOVER PIN -- deliberately given a dark, distinct surface
+              (matching the wallet balance card and the home live-teaser
+              banner elsewhere in this redesign) since it's the single
+              most security-sensitive thing on this page and should read
+              as visually set apart from the rest of the order info, not
+              because it needs a unique color of its own. */}
           {(isMeetup || (isCourier && isBuyer)) && order.status !== 'completed' && order.status !== 'cancelled' && (
-            <div className={`rounded-2xl p-6 sm:p-8 shadow-sm border ${isBuyer ? 'bg-indigo-900 border-indigo-800 text-white' : 'bg-white border-blue-200'}`}>
-              <h2 className={`text-lg font-black mb-2 uppercase tracking-wide flex items-center gap-2 ${isBuyer ? 'text-indigo-300' : 'text-slate-900'}`}>
+            <div className={`rounded-lg p-6 sm:p-8 border ${isBuyer ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200'}`}>
+              <h2 className={`text-lg font-black mb-2 uppercase tracking-wide flex items-center gap-2 ${isBuyer ? 'text-slate-300' : 'text-slate-900'}`}>
                 <Lock className="w-5 h-5" />
                 {isRTL ? 'رمز التسليم الخاص بك' : (isCourier ? 'Your Delivery PIN' : 'Your Handover PIN')}
               </h2>
-              
+
               {isBuyer ? (
                 <div>
                   {buyerPin ? (
                     <div>
-                      <div className="bg-indigo-950/50 border border-indigo-500/30 rounded-xl p-6 text-center my-6">
+                      <div className="bg-black/30 border border-white/10 rounded-md p-6 text-center my-6">
                         <div className="text-5xl sm:text-6xl font-mono font-black tracking-[0.25em] text-white">
                           {buyerPin}
                         </div>
                       </div>
-                      <div className="bg-indigo-800/50 p-4 rounded-xl flex gap-3">
-                        <AlertTriangle className="w-5 h-5 text-indigo-300 flex-shrink-0 mt-0.5" />
-                        <p className="text-indigo-100 text-sm font-medium leading-relaxed">
-                          {isCourier 
-                            ? (isRTL ? 'أعط هذا الرمز لمندوب الشحن فقط بعد استلامك وفحصك للطلب.' : 'Give this PIN to the courier only after you receive and inspect the item.') 
+                      <div className="bg-white/5 p-4 rounded-md flex gap-3">
+                        <AlertTriangle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
+                        <p className="text-slate-300 text-sm font-medium leading-relaxed">
+                          {isCourier
+                            ? (isRTL ? 'أعط هذا الرمز لمندوب الشحن فقط بعد استلامك وفحصك للطلب.' : 'Give this PIN to the courier only after you receive and inspect the item.')
                             : (isRTL ? 'أعط هذا الرمز للبائع فقط بعد استلامك وفحصك للمنتج.' : 'Give this PIN to the seller only after you receive and inspect the item.')}
                         </p>
                       </div>
                     </div>
                   ) : (
-                    <div className="bg-rose-500/10 border border-rose-500/20 rounded-xl p-4 mt-4">
-                      <p className="text-rose-200 text-sm font-medium flex items-start gap-3">
+                    <div className="bg-danger/10 border border-danger/20 rounded-md p-4 mt-4">
+                      <p className="text-rose-300 text-sm font-medium flex items-start gap-3">
                         <AlertTriangle className="w-5 h-5 flex-shrink-0" />
-                        {isRTL 
-                          ? 'الرمز السري غير متاح لهذا الطلب (قد يكون الطلب قديماً أو مكتملاً).' 
+                        {isRTL
+                          ? 'الرمز السري غير متاح لهذا الطلب (قد يكون الطلب قديماً أو مكتملاً).'
                           : 'PIN is no longer available for this order (it may be a legacy order or already completed).'}
                       </p>
                     </div>

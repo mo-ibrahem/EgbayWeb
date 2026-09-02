@@ -22,12 +22,25 @@ export type OrderStatus =
 // only place order status gets a color, so the same status can never
 // look different on the orders list vs. the order detail page vs. an
 // admin surface.
+//
+// Tone is grouped by what the color should tell you at a glance, not by
+// giving every status its own hue (five semantic tones can't distinguish
+// nine statuses without collisions, and diluting them further would make
+// "danger"/"success" mean less everywhere else they're used):
+//   warning = something is waiting on YOU right now
+//   info    = actively moving (in transit)
+//   neutral = paid and calm, nothing to do but wait
+//   success / danger = terminal good / bad
+// escrow_secured used to share "info" with shipped/out_for_delivery,
+// which meant a list of mostly-still-in-escrow orders all rendered the
+// identical blue pill as the one order that was actually moving --
+// exactly the scannability problem StatusPill exists to prevent.
 const STATUS_CONFIG: Record<
   OrderStatus,
   { icon: React.ElementType; tone: string; label: string; label_ar: string }
 > = {
   pending_payment:  { icon: Clock,          tone: 'warning', label: 'Payment Pending',  label_ar: 'بانتظار الدفع' },
-  escrow_secured:   { icon: ShieldCheck,    tone: 'info',    label: 'In Escrow',        label_ar: 'محمي بالضمان' },
+  escrow_secured:   { icon: ShieldCheck,    tone: 'neutral', label: 'In Escrow',        label_ar: 'محمي بالضمان' },
   shipped:          { icon: Truck,          tone: 'info',    label: 'Shipped',          label_ar: 'تم الشحن' },
   out_for_delivery: { icon: Navigation,     tone: 'info',    label: 'Out for Delivery', label_ar: 'في الطريق للتسليم' },
   delivered:        { icon: PackageCheck,   tone: 'warning', label: 'Delivered — Confirm Receipt', label_ar: 'تم التسليم — أكّد الاستلام' },
