@@ -20,12 +20,29 @@ import { usePathname } from 'next/navigation';
  *
  * Pages needing full height set it explicitly (min-h-screen / h-screen),
  * so none of them depend on this being a flex column.
+ *
+ * `mode="wait"` keeps the outgoing page mounted and animating for the
+ * full 240ms exit, which desyncs Next's own scroll-to-top-on-navigation
+ * from the actual DOM swap -- it fires against the old page, which is
+ * still what's on screen, so it has no visible effect and the previous
+ * scroll offset just carries over onto the new page. Landing scrolled
+ * down (or, on a shorter destination page, clamped near/at its bottom)
+ * after every navigation is that carry-over, not a deliberate scroll --
+ * it looks page-dependent and random because it depends on how far down
+ * the previous page you were and how tall the new one is. Resetting in
+ * onExitComplete fires in the gap between the old page finishing its
+ * exit and the new one mounting, which is the only point on this timeline
+ * where the reset can't be visible as a jump.
  */
 export default function PageTransition({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   return (
-    <AnimatePresence mode="wait" initial={false}>
+    <AnimatePresence
+      mode="wait"
+      initial={false}
+      onExitComplete={() => window.scrollTo({ top: 0, left: 0, behavior: 'instant' })}
+    >
       <motion.div
         key={pathname}
         initial={{ opacity: 0, y: 10, scale: 0.996 }}
