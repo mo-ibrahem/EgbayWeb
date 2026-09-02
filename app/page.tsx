@@ -173,8 +173,17 @@ function HomeFeedContent() {
               exactly the decorative filler this redesign has been
               stripping out. Type hierarchy carries it instead. It also
               disappears entirely once someone starts browsing -- a
-              shopper who has already committed shouldn't be re-pitched. */}
-          <section className="bg-white border border-slate-200 rounded-lg p-6 sm:p-8">
+              shopper who has already committed shouldn't be re-pitched.
+
+              Tinted rather than another white bordered box. Every surface
+              on this page was previously white-on-near-white with the same
+              hairline border and radius -- hero, category tiles, filter
+              bar, cards, all at identical visual weight, which is what
+              made the page read as flat. The page now runs tinted hero ->
+              white/plain content -> dark seller CTA, so there's an actual
+              rhythm and the brand color is structural rather than only
+              ever appearing inside buttons. */}
+          <section className="bg-brand-soft rounded-xl p-6 sm:p-8">
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight max-w-2xl text-balance">
               {isRTL
                 ? 'بيع واشترِ في مصر — وفلوسك مضمونة'
@@ -195,7 +204,7 @@ function HomeFeedContent() {
               </Button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6 pt-6 border-t border-slate-100">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6 pt-6 border-t border-brand/15">
               {[
                 { icon: ShieldCheck, title: isRTL ? 'ضمان مالي على كل طلب' : 'Escrow on every order',
                   body: isRTL ? 'الفلوس محجوزة لحد ما تأكد الاستلام' : 'Money is held until you confirm delivery' },
@@ -244,23 +253,28 @@ function HomeFeedContent() {
               <h2 className="text-sm font-black text-slate-900 mb-3">
                 {isRTL ? 'تصفح حسب القسم' : 'Browse by category'}
               </h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+              {/* Tiles rather than list rows: a vertical stack gives the
+                  icon room to actually read as a category marker, doubles
+                  the touch target on mobile, and fits six across on
+                  desktop instead of four -- so a short category list
+                  fills its row instead of trailing off into dead space. */}
+              <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2.5">
                 {categories.map(({ id, count, meta }) => {
                   const Icon = meta.icon;
                   return (
                     <button
                       key={id}
                       onClick={() => handleCategorySelect(id)}
-                      className="card-hover flex items-center gap-3 bg-white border border-slate-200 rounded-lg px-4 py-3 text-left rtl:text-right"
+                      className="group flex flex-col items-center gap-2 bg-white border border-slate-200 hover:border-brand/40 rounded-xl px-2 py-4 transition-colors"
                     >
-                      <span className="w-9 h-9 rounded-md bg-brand-soft text-brand flex items-center justify-center flex-shrink-0">
-                        <Icon className="w-4 h-4" />
+                      <span className="w-11 h-11 rounded-full bg-brand-soft text-brand flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                        <Icon className="w-5 h-5" />
                       </span>
-                      <span className="min-w-0">
+                      <span className="min-w-0 w-full text-center">
                         <span className="block text-xs font-bold text-slate-900 truncate">
                           {isRTL ? meta.label_ar : meta.label}
                         </span>
-                        <span className="block text-[11px] text-slate-500">
+                        <span className="block text-[11px] text-slate-400 mt-0.5">
                           {count} {isRTL ? 'إعلان' : count === 1 ? 'item' : 'items'}
                         </span>
                       </span>
@@ -374,11 +388,11 @@ function HomeFeedContent() {
 
       {/* ─── Product grid ─── */}
       {loading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-6">
           {Array.from({ length: 10 }).map((_, i) => <SkeletonProductCard key={i} />)}
         </div>
       ) : sortedProducts.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-6">
           {sortedProducts.map((product) => (
             <ProductCard key={product.id} product={product} onWishlistToggle={handleWishlistToggle} />
           ))}
@@ -453,7 +467,7 @@ function HomeFeedContent() {
 export default function HomePage() {
   return (
     <Suspense fallback={
-      <div className="max-w-7xl mx-auto px-4 py-8 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+      <div className="max-w-7xl mx-auto px-4 py-8 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-6">
         {Array.from({ length: 10 }).map((_, i) => <SkeletonProductCard key={i} />)}
       </div>
     }>

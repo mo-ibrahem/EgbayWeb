@@ -9,25 +9,30 @@ import { BOOST_BADGE_STYLES } from '@/lib/boostService';
 import SmartImage from '@/components/SmartImage';
 import PriceTag from './PriceTag';
 
-function timeAgo(dateStr?: string, isRTL?: boolean): string {
-  if (!dateStr) return '';
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return isRTL ? 'الآن' : 'Just now';
-  if (mins < 60) return isRTL ? `منذ ${mins} د` : `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return isRTL ? `منذ ${hrs} س` : `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  return isRTL ? `منذ ${days} يوم` : `${days}d ago`;
-}
-
 /**
  * The one product card for Egbay -- home feed, search results, wishlist,
  * seller profile listings all render this same component so a listing
- * looks identical everywhere it appears. Escrow protection is stated
- * once, globally (navbar/footer trust strip), not repeated on every
- * single card -- repeating it here added visual noise without adding
- * information, since it's true of every listing on the platform.
+ * looks identical everywhere it appears.
+ *
+ * Deliberately borderless: the image sits in its own rounded well and the
+ * text sits directly on the page, rather than the whole thing living in a
+ * bordered white box. A grid of bordered boxes reads as a wall of
+ * containers -- the product photography is what people actually scan, and
+ * chrome around every tile competes with it. This is the one structural
+ * thing worth taking from how the large marketplaces render a grid.
+ *
+ * Three lines of text, not five. Title and price are what a buyer
+ * compares on; governorate matters in Egypt because it decides whether a
+ * meetup is even possible. "Posted 3d ago" was dropped -- it pushed the
+ * card to five lines and nobody chooses between two listings on it.
+ *
+ * Weight is inverted from the obvious: the title is quiet and the price
+ * is the heaviest thing on the card. Reading order stays title-then-price
+ * (the convention on every marketplace, and it matches how people scan
+ * "what is it" before "what does it cost"), but the emphasis doesn't.
+ *
+ * Escrow protection is stated once, globally (hero/footer), not repeated
+ * on every card -- it's true of every listing, so per-card it's noise.
  */
 export default function ProductCard({
   product,
@@ -37,7 +42,7 @@ export default function ProductCard({
   onWishlistToggle?: (id: string, current: boolean) => void;
 }) {
   const [wishlisted, setWishlisted] = useState(product.isWishlisted ?? false);
-  const { isRTL, t } = useLanguage();
+  const { isRTL } = useLanguage();
 
   const handleWishlist = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -52,74 +57,68 @@ export default function ProductCard({
 
   return (
     <Link href={`/products/${product.id}`} className="group block h-full min-w-0">
-      <div className="card-hover bg-white rounded-lg overflow-hidden border border-slate-200 flex flex-col h-full min-w-0 relative">
-        <div className="relative aspect-square bg-slate-50 overflow-hidden w-full">
-          {imgSrc ? (
-            <SmartImage
-              src={imgSrc}
-              alt={product.title}
-              fill
-              className="object-cover group-hover:scale-105 transition-transform duration-300 ease-out"
-              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-            />
-          ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 text-slate-400">
-              <Package className="w-7 h-7 stroke-[1.5]" />
-            </div>
+      {/* White well, not a grey one: the page sits on #F7F8FA, so white
+          is what separates the image from the page here. (Marketplaces on
+          a white page do the reverse and tint the well grey -- it's the
+          contrast relationship that matters, not the specific value.) */}
+      <div className="relative aspect-square rounded-lg bg-white border border-slate-200/70 overflow-hidden">
+        {imgSrc ? (
+          <SmartImage
+            src={imgSrc}
+            alt={product.title}
+            fill
+            className="object-cover group-hover:scale-[1.04] transition-transform duration-500 ease-out"
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-slate-300">
+            <Package className="w-8 h-8 stroke-[1.5]" />
+          </div>
+        )}
+
+        {isPromotionActive(product) && (() => {
+          const style = BOOST_BADGE_STYLES[product.promotion_tier as 'urgent' | 'featured' | 'turbo'] || BOOST_BADGE_STYLES.featured;
+          return (
+            <span
+              className={`${style.className} absolute top-2 left-2 rtl:left-auto rtl:right-2 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm flex items-center gap-0.5 z-10`}
+            >
+              <Zap className="w-2.5 h-2.5 fill-current" /> {isRTL ? style.label_ar : style.label}
+            </span>
+          );
+        })()}
+
+        {/* Always reachable on touch, where there is no hover to reveal it. */}
+        {onWishlistToggle && (
+          <button
+            onClick={handleWishlist}
+            aria-label={isRTL ? 'أضف للمفضلة' : 'Save to wishlist'}
+            className={`absolute top-2 right-2 rtl:right-auto rtl:left-2 z-10 w-7 h-7 rounded-full flex items-center justify-center shadow-sm transition-all sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100 ${
+              wishlisted ? 'bg-danger text-white sm:opacity-100' : 'bg-white/95 text-slate-500 hover:text-danger'
+            }`}
+          >
+            <Heart className={`w-3.5 h-3.5 ${wishlisted ? 'fill-current' : ''}`} />
+          </button>
+        )}
+      </div>
+
+      <div className="pt-2.5 space-y-1 min-w-0">
+        <h3 className="text-xs text-slate-600 line-clamp-2 leading-snug group-hover:text-brand transition-colors">
+          {product.title}
+        </h3>
+
+        <div className="flex items-baseline gap-1.5 flex-wrap">
+          <PriceTag amount={product.price} size="md" />
+          {product.condition === 'New' && (
+            <span className="text-[10px] font-bold text-success">
+              {isRTL ? 'جديد' : 'New'}
+            </span>
           )}
-
-          <div className="absolute top-2 inset-x-2 flex items-start justify-between z-10">
-            <div className="flex flex-col gap-1">
-              {isPromotionActive(product) && (() => {
-                const style = BOOST_BADGE_STYLES[product.promotion_tier as 'urgent' | 'featured' | 'turbo'] || BOOST_BADGE_STYLES.featured;
-                return (
-                  <span className={`${style.className} text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm flex items-center gap-0.5 w-fit`}>
-                    <Zap className="w-2.5 h-2.5 fill-current" /> {isRTL ? style.label_ar : style.label}
-                  </span>
-                );
-              })()}
-            </div>
-
-            {onWishlistToggle && (
-              <button
-                onClick={handleWishlist}
-                aria-label={isRTL ? 'أضف للمفضلة' : 'Save to wishlist'}
-                className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors shadow-sm flex-shrink-0 ${
-                  wishlisted ? 'bg-danger text-white' : 'bg-white/95 text-slate-400 hover:text-danger'
-                }`}
-              >
-                <Heart className={`w-3.5 h-3.5 ${wishlisted ? 'fill-current' : ''}`} />
-              </button>
-            )}
-          </div>
         </div>
 
-        <div className="p-3 flex flex-col flex-1 gap-1.5">
-          <h3 className="text-xs font-semibold text-slate-900 line-clamp-2 leading-snug group-hover:text-brand transition-colors">
-            {product.title}
-          </h3>
-
-          <div className="mt-auto space-y-1.5">
-            <div className="flex items-center gap-1.5">
-              <PriceTag amount={product.price} size="sm" />
-              {product.condition === 'New' && (
-                <span className="text-[9px] font-bold text-success bg-success-soft px-1.5 py-0.5 rounded-sm">
-                  {isRTL ? 'جديد' : 'New'}
-                </span>
-              )}
-            </div>
-
-            <div className="flex items-center justify-between text-[10px] text-slate-400">
-              <span className="flex items-center gap-0.5 truncate max-w-[90px]">
-                <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
-                {product.location || (isRTL ? 'مصر' : 'Egypt')}
-              </span>
-              <span className="flex-shrink-0" suppressHydrationWarning>
-                {timeAgo(product.created_at, isRTL)}
-              </span>
-            </div>
-          </div>
-        </div>
+        <p className="flex items-center gap-1 text-[11px] text-slate-400 truncate">
+          <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
+          <span className="truncate">{product.location || (isRTL ? 'مصر' : 'Egypt')}</span>
+        </p>
       </div>
     </Link>
   );

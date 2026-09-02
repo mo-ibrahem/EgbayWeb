@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Package, Heart, MessageCircle, Settings, User, Camera,
-  Trash2, Eye, Wallet, ShieldCheck, Clock, MapPin, Plus,
+  Trash2, Eye, Wallet, ShieldCheck, Clock, Plus,
   Sparkles, CheckCircle2, ArrowRight, ExternalLink, Phone,
   Lock, AlertCircle, ShoppingBag, ChevronRight
 } from 'lucide-react';
@@ -16,6 +16,7 @@ import { productService, profileService, formatEGP, type Product, type UserProfi
 import { getUserOrders, type MarketplaceOrder } from '@/lib/orderService';
 import { supabase } from '@/lib/supabase';
 import SmartImage from '@/components/SmartImage';
+import ProductCard from '@/components/ui/ProductCard';
 
 const TABS = [
   { id: 'products', label: 'My Listings', label_ar: 'إعلاناتي', icon: Package },
@@ -190,6 +191,15 @@ function ProfileContent() {
     if (!confirm(isRTL ? 'هل أنت متأكد من رغبتك في حذف هذا الإعلان؟' : 'Are you sure you want to remove this listing?')) return;
     await productService.deleteProduct(productId);
     setListings(prev => prev.filter(p => p.id !== productId));
+  };
+
+  const handleWishlistRemove = async (productId: string) => {
+    setWishlist(prev => prev.filter(p => p.id !== productId));
+    try {
+      await productService.removeFromWishlist(productId);
+    } catch (e) {
+      console.error('[Profile] Failed to remove from wishlist:', e);
+    }
   };
 
   if (authLoading || loading) {
@@ -487,46 +497,20 @@ function ProfileContent() {
               </Link>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-6">
+            /* Saved items render the shared ProductCard, same as the home
+               feed. This was a hand-rolled copy of it that had drifted --
+               different radius, different greys, a "View Details" footer
+               the card doesn't have, and no boost badge -- so the same
+               listing looked like a different product depending on which
+               page you found it on. Un-hearting removes it from the list
+               in place. */
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-6">
               {wishlist.map(product => (
-                <Link
+                <ProductCard
                   key={product.id}
-                  href={`/products/${product.id}`}
-                  className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-all flex flex-col group min-w-0"
-                >
-                  <div className="relative aspect-square bg-gray-50 overflow-hidden w-full">
-                    <SmartImage
-                      src={product.images?.[0]}
-                      alt={product.title}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-300"
-                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                    />
-                    <div className="absolute top-2 right-2 bg-rose-50 text-rose-600 p-1.5 rounded-full shadow-sm">
-                      <Heart className="w-3.5 h-3.5 fill-current" />
-                    </div>
-                  </div>
-
-                  <div className="p-2.5 sm:p-4 flex-1 flex flex-col justify-between">
-                    <div>
-                      <h3 className="font-bold text-gray-900 text-xs sm:text-sm line-clamp-1 group-hover:text-blue-600 transition-colors">
-                        {product.title}
-                      </h3>
-                      <p className="text-brand font-black text-xs sm:text-base mt-0.5 sm:mt-1">
-                        {formatEGP(product.price)}
-                      </p>
-                      <p className="text-[10px] sm:text-[11px] text-gray-400 mt-0.5 sm:mt-1 flex items-center gap-1">
-                        <MapPin className="w-3 h-3 flex-shrink-0" />
-                        <span className="truncate">{product.location || (isRTL ? 'مصر' : 'Cairo, Egypt')}</span>
-                      </p>
-                    </div>
-
-                    <div className="mt-2.5 sm:mt-4 pt-2 sm:pt-3 border-t border-gray-100 flex items-center justify-between text-xs font-bold text-brand">
-                      <span>{isRTL ? 'عرض التفاصيل' : 'View Details'}</span>
-                      <ChevronRight className={`w-3.5 h-3.5 group-hover:translate-x-1 transition-transform ${isRTL ? 'rotate-180' : ''}`} />
-                    </div>
-                  </div>
-                </Link>
+                  product={{ ...product, isWishlisted: true }}
+                  onWishlistToggle={handleWishlistRemove}
+                />
               ))}
             </div>
           )}
