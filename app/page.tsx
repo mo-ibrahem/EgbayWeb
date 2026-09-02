@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Search, ShieldCheck, Truck, Zap, SlidersHorizontal, X, ChevronDown,
   LayoutGrid, Smartphone, Shirt, Home, Baby, Dumbbell, BookOpen,
-  Car, Video, Package,
+  Car, Video, Package, Tag, Sparkles, ArrowRight, Wallet,
 } from 'lucide-react';
 import { productService, type Product } from '@/lib/products';
 import { getActiveLiveSessions, type LiveSession } from '@/lib/liveService';
@@ -17,16 +17,24 @@ import { SkeletonProductCard } from '@/components/ui/Skeleton';
 import EmptyState from '@/components/ui/EmptyState';
 import Button from '@/components/ui/Button';
 
-const CATEGORIES = [
-  { id: '',            key: 'all',        label: 'All',            label_ar: 'الكل',            icon: LayoutGrid },
-  { id: 'Electronics', key: 'electronics',label: 'Electronics',    label_ar: 'إلكترونيات',      icon: Smartphone },
-  { id: 'Fashion',     key: 'fashion',    label: 'Fashion',        label_ar: 'أزياء',            icon: Shirt },
-  { id: 'Home',        key: 'home',       label: 'Home & Living',  label_ar: 'أثاث ومنزل',       icon: Home },
-  { id: 'Toys',        key: 'toys',       label: 'Toys & Kids',    label_ar: 'ألعاب وأطفال',     icon: Baby },
-  { id: 'Sports',      key: 'sports',     label: 'Sports',         label_ar: 'رياضة',            icon: Dumbbell },
-  { id: 'Books',       key: 'books',      label: 'Books & Media',  label_ar: 'كتب وميديا',       icon: BookOpen },
-  { id: 'Automotive',  key: 'automotive', label: 'Automotive',     label_ar: 'سيارات',           icon: Car },
-] as const;
+// Presentation metadata only -- which categories actually appear on the
+// homepage is derived from real inventory below, never from this list.
+// A hardcoded category rail meant Sports and Books rendered as buttons
+// that always led to zero results, while Beauty and General had real
+// listings that were unreachable by browsing. On a marketplace this
+// small, a dead category link is worse than no link: it teaches a
+// first-time visitor the whole site is empty.
+const CATEGORY_META: Record<string, { label: string; label_ar: string; icon: React.ElementType }> = {
+  Electronics: { label: 'Electronics',   label_ar: 'إلكترونيات',   icon: Smartphone },
+  Fashion:     { label: 'Fashion',       label_ar: 'أزياء',        icon: Shirt },
+  Home:        { label: 'Home & Living', label_ar: 'أثاث ومنزل',   icon: Home },
+  Toys:        { label: 'Toys & Kids',   label_ar: 'ألعاب وأطفال', icon: Baby },
+  Sports:      { label: 'Sports',        label_ar: 'رياضة',        icon: Dumbbell },
+  Books:       { label: 'Books & Media', label_ar: 'كتب وميديا',   icon: BookOpen },
+  Automotive:  { label: 'Automotive',    label_ar: 'سيارات',       icon: Car },
+  Beauty:      { label: 'Beauty',        label_ar: 'العناية والجمال', icon: Sparkles },
+  General:     { label: 'Other',         label_ar: 'أخرى',         icon: Tag },
+};
 
 type SortKey = 'newest' | 'price_asc' | 'price_desc';
 
@@ -37,6 +45,10 @@ function HomeFeedContent() {
   const { isRTL, t } = useLanguage();
 
   const [products, setProducts] = useState<Product[]>([]);
+  // Unfiltered catalogue, fetched once, used only to build the category
+  // index and the "what's actually on Egbay" counts. Kept separate from
+  // `products` so applying a filter never makes the categories vanish.
+  const [catalogue, setCatalogue] = useState<Product[]>([]);
   const [liveSessions, setLiveSessions] = useState<LiveSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
@@ -51,6 +63,7 @@ function HomeFeedContent() {
 
   useEffect(() => {
     getActiveLiveSessions().then(setLiveSessions).catch(() => {});
+    productService.getProducts().then(setCatalogue).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -115,27 +128,86 @@ function HomeFeedContent() {
   const activeFilterCount = (conditionFilter !== 'all' ? 1 : 0) + (minPrice ? 1 : 0) + (maxPrice ? 1 : 0);
   const liveCount = liveSessions.filter(s => s.status === 'live').length;
 
+  // Categories that actually have something in them, biggest first. A
+  // category with zero listings is simply not offered.
+  const categories = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const p of catalogue) {
+      if (!p.category) continue;
+      counts.set(p.category, (counts.get(p.category) ?? 0) + 1);
+    }
+    return [...counts.entries()]
+      .filter(([, n]) => n > 0)
+      .sort((a, b) => b[1] - a[1])
+      .map(([id, count]) => ({
+        id,
+        count,
+        meta: CATEGORY_META[id] ?? { label: id, label_ar: id, icon: Tag },
+      }));
+  }, [catalogue]);
+
+
   return (
     <div className="w-full max-w-7xl mx-auto px-4 py-5 sm:py-7 space-y-6 pb-24 sm:pb-10">
-      {/* ─── Trust strip: three real, always-true guarantees. Stated once,
-          here, rather than repeated on every product card. ─── */}
-      <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-1.5 bg-white border border-slate-200 rounded-md py-2.5 px-4 text-xs font-semibold text-slate-600">
-        <span className="flex items-center gap-1.5">
-          <ShieldCheck className="w-3.5 h-3.5 text-brand" />
-          {isRTL ? 'ضمان مالي ١٠٠٪ على كل عملية' : '100% Escrow on every order'}
-        </span>
-        <span className="flex items-center gap-1.5">
-          <Truck className="w-3.5 h-3.5 text-brand" />
-          {isRTL ? 'شحن لباب البيت أو تسليم يدوي' : 'Courier delivery or in-person meetup'}
-        </span>
-        <span className="flex items-center gap-1.5">
-          <Zap className="w-3.5 h-3.5 text-brand" />
-          {isRTL ? 'سحب فوري بإنستاباي وفودافون كاش' : 'Instant InstaPay & Vodafone Cash payouts'}
-        </span>
-      </div>
-
       {!isBrowsing && (
         <>
+          {/* ─── Hero.
+              Egbay is an unknown brand to a first-time Egyptian visitor,
+              and research is blunt about the cost of not saying what you
+              are: people leave in 10-20 seconds if the value isn't clear,
+              and over half of attention never goes below the fold. This
+              used to open on a thin grey trust strip and then a grid,
+              which answered "what do they sell" but never "what is this
+              and why is it safe" -- the only question that matters for a
+              marketplace nobody has heard of.
+
+              Deliberately no stock photography or big image hero: there
+              is no real brand imagery to use, and inventing some would be
+              exactly the decorative filler this redesign has been
+              stripping out. Type hierarchy carries it instead. It also
+              disappears entirely once someone starts browsing -- a
+              shopper who has already committed shouldn't be re-pitched. */}
+          <section className="bg-white border border-slate-200 rounded-lg p-6 sm:p-8">
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight max-w-2xl text-balance">
+              {isRTL
+                ? 'بيع واشترِ في مصر — وفلوسك مضمونة'
+                : 'Buy and sell across Egypt, without trusting a stranger'}
+            </h1>
+            <p className="text-sm text-slate-600 mt-2 max-w-xl leading-relaxed">
+              {isRTL
+                ? 'إيجي باي بيمسك فلوس المشتري في حساب ضمان، وما بيحوّلهاش للبائع غير لما المشتري يستلم ويأكد. لو حاجة غلط، تقدر تفتح نزاع وتسترد فلوسك.'
+                : 'Egbay holds the buyer’s money in escrow and only releases it to the seller once the buyer confirms they’ve received the item. If something’s wrong, you open a dispute and get refunded.'}
+            </p>
+
+            <div className="flex flex-wrap items-center gap-2.5 mt-5">
+              <Button href="#browse" size="lg" icon={<Search className="w-4 h-4" />}>
+                {isRTL ? 'تصفح المعروض' : 'Browse what’s listed'}
+              </Button>
+              <Button href={user ? '/sell' : '/signup'} size="lg" variant="outline" icon={<Tag className="w-4 h-4" />}>
+                {isRTL ? 'ابدأ البيع' : 'Start selling'}
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6 pt-6 border-t border-slate-100">
+              {[
+                { icon: ShieldCheck, title: isRTL ? 'ضمان مالي على كل طلب' : 'Escrow on every order',
+                  body: isRTL ? 'الفلوس محجوزة لحد ما تأكد الاستلام' : 'Money is held until you confirm delivery' },
+                { icon: Truck, title: isRTL ? 'شحن أو تسليم يدوي' : 'Courier or meet in person',
+                  body: isRTL ? 'وصّل لباب البيت أو قابل البائع بكود PIN' : 'Doorstep delivery, or hand over with a PIN' },
+                { icon: Zap, title: isRTL ? 'سحب فوري للبائع' : 'Fast seller payouts',
+                  body: isRTL ? 'إنستاباي وفودافون كاش والحساب البنكي' : 'InstaPay, Vodafone Cash or bank transfer' },
+              ].map(pillar => (
+                <div key={pillar.title} className="flex gap-2.5">
+                  <pillar.icon className="w-4 h-4 text-brand flex-shrink-0 mt-0.5" />
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-slate-900">{pillar.title}</p>
+                    <p className="text-[11px] text-slate-500 leading-relaxed mt-0.5">{pillar.body}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
           {/* Live-now teaser — only rendered when a session is genuinely
               live right now; never a fabricated "trending" claim. */}
           {liveCount > 0 && (
@@ -158,32 +230,44 @@ function HomeFeedContent() {
             </Link>
           )}
 
-          {/* Category rail */}
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
-            {CATEGORIES.map((cat) => {
-              const Icon = cat.icon;
-              const isSelected = activeCategory === cat.id;
-              return (
-                <button
-                  key={cat.id || 'all'}
-                  onClick={() => handleCategorySelect(cat.id)}
-                  className={`flex items-center gap-1.5 flex-shrink-0 px-3.5 py-2 rounded-md border text-xs font-bold transition-colors ${
-                    isSelected
-                      ? 'bg-brand-soft border-brand/30 text-brand-dark'
-                      : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
-                  }`}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  {isRTL ? cat.label_ar : cat.label}
-                </button>
-              );
-            })}
-          </div>
+          {/* Categories, derived from real stock and labelled with real
+              counts. Nothing here can lead to an empty result. */}
+          {categories.length > 0 && (
+            <section>
+              <h2 className="text-sm font-black text-slate-900 mb-3">
+                {isRTL ? 'تصفح حسب القسم' : 'Browse by category'}
+              </h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+                {categories.map(({ id, count, meta }) => {
+                  const Icon = meta.icon;
+                  return (
+                    <button
+                      key={id}
+                      onClick={() => handleCategorySelect(id)}
+                      className="card-hover flex items-center gap-3 bg-white border border-slate-200 rounded-lg px-4 py-3 text-left rtl:text-right"
+                    >
+                      <span className="w-9 h-9 rounded-md bg-brand-soft text-brand flex items-center justify-center flex-shrink-0">
+                        <Icon className="w-4 h-4" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-xs font-bold text-slate-900 truncate">
+                          {isRTL ? meta.label_ar : meta.label}
+                        </span>
+                        <span className="block text-[11px] text-slate-500">
+                          {count} {isRTL ? 'إعلان' : count === 1 ? 'item' : 'items'}
+                        </span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          )}
         </>
       )}
 
       {/* ─── Results toolbar ─── */}
-      <div className="space-y-3">
+      <div id="browse" className="space-y-3 scroll-mt-24">
         <div className="flex items-center justify-between gap-3">
           <div className="section-heading min-w-0">
             <h1 className="text-base font-black text-slate-900 truncate">
@@ -314,6 +398,46 @@ function HomeFeedContent() {
             </div>
           }
         />
+      )}
+
+      {/* ─── Seller acquisition.
+          Supply is the binding constraint on this marketplace, not demand:
+          8 sellers and 17 listings means most categories can't offer a
+          buyer a real choice yet, and the research on cold-start
+          marketplaces is consistent that supply has to be solved first
+          because buyers can simply shop elsewhere. So the homepage asks
+          for listings explicitly rather than only serving browsers.
+
+          The pitch is the honest seller-side one -- escrow protects the
+          seller from a buyer who won't pay, which is the actual fear in a
+          peer-to-peer trade -- and the commission shown is the real Tier 1
+          rate from SELLER_TIERS, not a marketing number. */}
+      {!isBrowsing && (
+        <section className="bg-slate-900 text-white rounded-lg p-6 sm:p-8">
+          <div className="max-w-2xl">
+            <h2 className="text-xl sm:text-2xl font-black tracking-tight">
+              {isRTL ? 'عندك حاجة تبيعها؟' : 'Got something to sell?'}
+            </h2>
+            <p className="text-sm text-slate-300 mt-2 leading-relaxed">
+              {isRTL
+                ? 'المشتري بيدفع قبل ما تشحن، والفلوس محجوزة في الضمان لحد ما يستلم — فمفيش حد يقدر ياخد سلعتك ويهرب. العمولة 3.5٪ وقت البيع بس، ومفيش رسوم على الإعلان.'
+                : 'The buyer pays before you ship, and the money sits in escrow until they confirm — so nobody walks off with your item. 3.5% commission when it sells, nothing to list.'}
+            </p>
+            <div className="flex flex-wrap items-center gap-2.5 mt-5">
+              <Button href={user ? '/sell' : '/signup'} size="lg" icon={<Tag className="w-4 h-4" />}>
+                {isRTL ? 'أضف إعلانك مجاناً' : 'List an item free'}
+              </Button>
+              <Link
+                href="/wallet"
+                className="inline-flex items-center gap-1.5 text-sm font-bold text-slate-300 hover:text-white transition-colors px-2"
+              >
+                <Wallet className="w-4 h-4" />
+                {isRTL ? 'إزاي بستلم فلوسي؟' : 'How payouts work'}
+                <ArrowRight className={`w-3.5 h-3.5 ${isRTL ? 'rotate-180' : ''}`} />
+              </Link>
+            </div>
+          </div>
+        </section>
       )}
     </div>
   );

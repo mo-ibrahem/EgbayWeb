@@ -10,17 +10,24 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { useLanguage } from '@/components/LanguageProvider';
+import { productService } from '@/lib/products';
 
-export const CATEGORIES_NAV = [
-  { id: '',            key: 'all',        defaultLabel: 'All Categories' },
-  { id: 'Electronics', key: 'electronics',defaultLabel: 'Electronics' },
-  { id: 'Fashion',     key: 'fashion',    defaultLabel: 'Fashion & Apparel' },
-  { id: 'Home',        key: 'home',       defaultLabel: 'Home & Living' },
-  { id: 'Toys',        key: 'toys',       defaultLabel: 'Toys & Hobbies' },
-  { id: 'Sports',      key: 'sports',     defaultLabel: 'Sports & Outdoors' },
-  { id: 'Books',       key: 'books',      defaultLabel: 'Books & Media' },
-  { id: 'Automotive',  key: 'automotive', defaultLabel: 'Motors & Vehicles' },
-] as const;
+// Label lookup only. Which categories are actually offered in the nav is
+// derived from live inventory below -- a nav link to a category with zero
+// listings is a guaranteed dead end, and on a marketplace this size that
+// teaches visitors the site is empty. (Sports and Books were exactly that;
+// Beauty and General had real listings but no way to browse to them.)
+const CATEGORY_LABELS: Record<string, { key: string; defaultLabel: string }> = {
+  Electronics: { key: 'electronics', defaultLabel: 'Electronics' },
+  Fashion:     { key: 'fashion',     defaultLabel: 'Fashion & Apparel' },
+  Home:        { key: 'home',        defaultLabel: 'Home & Living' },
+  Toys:        { key: 'toys',        defaultLabel: 'Toys & Hobbies' },
+  Sports:      { key: 'sports',      defaultLabel: 'Sports & Outdoors' },
+  Books:       { key: 'books',       defaultLabel: 'Books & Media' },
+  Automotive:  { key: 'automotive',  defaultLabel: 'Motors & Vehicles' },
+  Beauty:      { key: 'beauty',      defaultLabel: 'Beauty' },
+  General:     { key: 'general',     defaultLabel: 'Other' },
+};
 
 export default function Navbar() {
   const { user, loading, signOut } = useAuth();
@@ -32,9 +39,27 @@ export default function Navbar() {
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [categories, setCategories] = useState<{ id: string; key: string; defaultLabel: string }[]>([]);
   const profileRef = useRef<HTMLDivElement>(null);
 
   const activeCategory = searchParams.get('category') || '';
+
+  // Offer only categories that actually have listings. productService
+  // caches with stale-while-revalidate, so on most navigations this
+  // resolves from memory rather than hitting the network again.
+  useEffect(() => {
+    productService
+      .getProducts()
+      .then(items => {
+        const present = new Set(items.map(p => p.category).filter(Boolean));
+        setCategories(
+          [...present]
+            .filter(id => CATEGORY_LABELS[id])
+            .map(id => ({ id, ...CATEGORY_LABELS[id] }))
+        );
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     setSearchQuery(searchParams.get('search') || '');
@@ -212,12 +237,20 @@ export default function Navbar() {
             {isRTL ? 'بث مباشر' : 'Egbay Live'}
           </Link>
           <span className="w-px h-4 bg-slate-200 mx-1 flex-shrink-0" />
-          {CATEGORIES_NAV.map((cat) => {
-            const isActive = cat.id === '' ? !activeCategory : activeCategory === cat.id;
+          <Link
+            href="/"
+            className={`px-3 h-7 flex items-center text-xs font-semibold whitespace-nowrap rounded-md transition-colors ${
+              !activeCategory ? 'bg-brand-soft text-brand-dark font-bold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+            }`}
+          >
+            {t('categories.all', 'All Categories')}
+          </Link>
+          {categories.map((cat) => {
+            const isActive = activeCategory === cat.id;
             return (
               <Link
                 key={cat.id}
-                href={cat.id ? `/?category=${encodeURIComponent(cat.id)}` : '/'}
+                href={`/?category=${encodeURIComponent(cat.id)}`}
                 className={`px-3 h-7 flex items-center text-xs font-semibold whitespace-nowrap rounded-md transition-colors ${
                   isActive ? 'bg-brand-soft text-brand-dark font-bold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                 }`}
@@ -243,13 +276,22 @@ export default function Navbar() {
           <div className="space-y-1">
             <p className="text-[10px] uppercase font-bold tracking-wide text-slate-400 mb-2">{isRTL ? 'الأقسام' : 'Categories'}</p>
             <div className="grid grid-cols-2 gap-2">
-              {CATEGORIES_NAV.map((cat) => (
+              <Link
+                href="/"
+                onClick={() => setMenuOpen(false)}
+                className={`text-xs py-2 px-3 rounded-md font-medium ${
+                  !activeCategory ? 'bg-brand-soft text-brand-dark font-bold' : 'text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                {t('categories.all', 'All Categories')}
+              </Link>
+              {categories.map((cat) => (
                 <Link
                   key={cat.id}
-                  href={cat.id ? `/?category=${encodeURIComponent(cat.id)}` : '/'}
+                  href={`/?category=${encodeURIComponent(cat.id)}`}
                   onClick={() => setMenuOpen(false)}
                   className={`text-xs py-2 px-3 rounded-md font-medium ${
-                    (cat.id === '' ? !activeCategory : activeCategory === cat.id) ? 'bg-brand-soft text-brand-dark font-bold' : 'text-slate-700 hover:bg-slate-50'
+                    activeCategory === cat.id ? 'bg-brand-soft text-brand-dark font-bold' : 'text-slate-700 hover:bg-slate-50'
                   }`}
                 >
                   {t(`categories.${cat.key}`, cat.defaultLabel)}
