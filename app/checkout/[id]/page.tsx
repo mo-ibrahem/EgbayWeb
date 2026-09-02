@@ -180,7 +180,7 @@ function CheckoutContent() {
 
   return (
     <div className="min-h-screen bg-slate-50 py-6 sm:py-8">
-      <div className="max-w-4xl mx-auto px-4">
+      <div className="max-w-6xl mx-auto px-4">
         <div className="mb-5">
           <Link href={`/products/${product.id}`} className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 transition-colors">
             <ArrowLeft className={`w-4 h-4 ${isRTL ? 'rotate-180' : ''}`} />

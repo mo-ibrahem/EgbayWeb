@@ -91,7 +91,15 @@ function OrdersContent() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6 sm:py-8">
+    // Outer frame matches the navbar's max-w-7xl so this page's left/right
+    // edges align with the chrome above it -- the order list itself stays
+    // in a narrower, easily-scannable inner column rather than stretching
+    // edge to edge, but that narrowing happens *inside* an already-aligned
+    // frame instead of a second independently-centered container (which
+    // is what caused the list to visibly drift out of alignment with the
+    // navbar on wide screens).
+    <div className="max-w-7xl mx-auto px-4 py-6 sm:py-8">
+    <div className="max-w-3xl mx-auto">
       <div className="flex items-center justify-between gap-4 mb-5">
         <div>
           <h1 className="text-xl font-black text-slate-900">{isRTL ? 'سجل الطلبات' : 'My Orders'}</h1>
@@ -187,6 +195,7 @@ function OrdersContent() {
           })}
         </div>
       )}
+    </div>
     </div>
   );
 }

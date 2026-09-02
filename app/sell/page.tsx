@@ -247,7 +247,8 @@ function SellContent() {
 
   return (
     <div className="min-h-screen bg-slate-50 py-8">
-      <div className="max-w-2xl mx-auto px-4">
+      <div className="max-w-7xl mx-auto px-4">
+      <div className="max-w-2xl mx-auto">
         {/* Top Header & Step Tracker */}
         <div className="flex items-center justify-between gap-4 mb-6">
           <button
@@ -563,6 +564,7 @@ function SellContent() {
             </button>
           )}
         </div>
+      </div>
       </div>
     </div>
   );

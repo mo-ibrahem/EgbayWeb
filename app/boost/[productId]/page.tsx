@@ -108,7 +108,8 @@ function BoostProductContent() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="max-w-2xl mx-auto">
       <div className="flex items-center gap-2 mb-6">
         <button onClick={() => router.back()} className="text-gray-500 hover:text-gray-900">
           <ArrowLeft className={`w-5 h-5 ${isRTL ? 'rotate-180' : ''}`} />
@@ -229,6 +230,7 @@ function BoostProductContent() {
             : (isRTL ? `ترويج الإعلان الآن بمبلغ ${currentPkg.priceEGP} ج.م` : `Boost Now for EGP ${currentPkg.priceEGP}`)}
         </button>
       </div>
+    </div>
     </div>
   );
 }
