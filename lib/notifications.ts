@@ -99,6 +99,28 @@ export function getNotificationCopy(n: Pick<AppNotification, 'type' | 'payload'>
         ? { title: 'تم فتح نزاع', message: `تم فتح نزاع بخصوص "${productTitle}".` }
         : { title: 'Dispute opened', message: `A dispute was opened on "${productTitle}".` };
 
+    case 'new_message': {
+      const senderName = n.payload?.sender_name || (isRTL ? 'مستخدم إيجي باي' : 'EgyBay User');
+      const preview = n.payload?.preview || '';
+      return isRTL
+        ? { title: `رسالة جديدة من ${senderName}`, message: preview }
+        : { title: `New message from ${senderName}`, message: preview };
+    }
+
+    case 'top_up':
+      return isRTL
+        ? { title: 'تم شحن محفظتك', message: `تمت إضافة ${amountText} إلى رصيدك.` }
+        : { title: 'Wallet topped up', message: `${amountText} was added to your balance.` };
+
+    // "Request received", never "sent" -- request_wallet_payout only ever
+    // inserts a pending row; nothing in this codebase currently fulfills
+    // a payout, so claiming completion here would be exactly the kind of
+    // false transaction claim this app doesn't make.
+    case 'withdrawal':
+      return isRTL
+        ? { title: 'تم استلام طلب السحب', message: `طلب سحب ${amountText} قيد المراجعة.` }
+        : { title: 'Payout request received', message: `Your request to withdraw ${amountText} is being reviewed.` };
+
     default:
       return isRTL ? { title: 'إشعار', message: '' } : { title: 'Notification', message: '' };
   }
