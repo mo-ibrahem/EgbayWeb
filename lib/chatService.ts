@@ -30,3 +30,18 @@ export async function getOrCreateChatRoom(userId: string, otherUserId: string, p
   if (error || !created) throw error || new Error('Failed to create chat room');
   return created.id;
 }
+
+/**
+ * Removes a chat room from the caller's own inbox without touching the
+ * other participant's view or the message history -- delete-for-me, not
+ * delete-for-both. Chat history can matter to a dispute on an escrow
+ * marketplace, so nothing here ever destroys data; it only stops the
+ * room from being listed for this user. If either side sends a new
+ * message into the same room afterward, it resurfaces automatically
+ * (server-side, via unhide_chat_room_on_new_message) rather than staying
+ * silently hidden from someone who's actively being messaged.
+ */
+export async function hideChatRoomForUser(roomId: string): Promise<void> {
+  const { error } = await supabase.rpc('hide_chat_room_for_user', { p_room_id: roomId });
+  if (error) throw error;
+}

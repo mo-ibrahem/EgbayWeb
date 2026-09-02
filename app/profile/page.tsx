@@ -17,6 +17,7 @@ import { getUserOrders, type MarketplaceOrder } from '@/lib/orderService';
 import { supabase } from '@/lib/supabase';
 import SmartImage from '@/components/SmartImage';
 import ProductCard from '@/components/ui/ProductCard';
+import { hideChatRoomForUser } from '@/lib/chatService';
 
 const TABS = [
   { id: 'products', label: 'My Listings', label_ar: 'إعلاناتي', icon: Package },
@@ -102,9 +103,13 @@ function ProfileContent() {
         setEditName(prof?.full_name || '');
         setEditPhone(prof?.phone || '');
 
-        // Fetch chat rooms
+        // Fetch chat rooms -- excluding ones this user has deleted from
+        // their own inbox (delete-for-me; see hideChatRoomForUser).
         const { data: rooms } = await supabase
-          .from('chat_rooms').select('id, participant_ids, product_id').contains('participant_ids', [user.id]);
+          .from('chat_rooms')
+          .select('id, participant_ids, product_id')
+          .contains('participant_ids', [user.id])
+          .not('deleted_for', 'cs', `{${user.id}}`);
         if (rooms?.length) {
           const otherIds = rooms.map(r => r.participant_ids.find((p: string) => p !== user.id)).filter(Boolean);
           const { data: profiles } = await supabase.from('public_profiles').select('id, full_name, avatar_url').in('id', otherIds);
@@ -199,6 +204,23 @@ function ProfileContent() {
       await productService.removeFromWishlist(productId);
     } catch (e) {
       console.error('[Profile] Failed to remove from wishlist:', e);
+    }
+  };
+
+  // Delete-for-me: hides the room from this user's own inbox only. The
+  // other participant keeps their copy and message history is preserved
+  // (see hide_chat_room_for_user) -- if either side messages into the
+  // same room again, it resurfaces automatically rather than staying
+  // silently hidden.
+  const handleDeleteChat = async (roomId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!confirm(isRTL ? 'هل تريد حذف هذه المحادثة من قائمتك؟' : 'Delete this conversation from your inbox?')) return;
+    setChats(prev => prev.filter(c => c.room_id !== roomId));
+    try {
+      await hideChatRoomForUser(roomId);
+    } catch (err) {
+      console.error('[Profile] Failed to delete chat:', err);
     }
   };
 
@@ -538,34 +560,45 @@ function ProfileContent() {
           ) : (
             <div className="bg-white rounded-3xl border border-gray-200 shadow-sm divide-y divide-gray-100 overflow-hidden">
               {chats.map(chat => (
-                <Link
-                  key={chat.room_id}
-                  href={`/chat/${chat.room_id}`}
-                  className="p-5 flex items-center gap-4 hover:bg-gray-50 transition-colors group"
-                >
-                  <div className="w-12 h-12 rounded-2xl bg-blue-100 text-blue-700 flex items-center justify-center font-black text-base flex-shrink-0 overflow-hidden relative">
-                    {chat.other_user_avatar_url ? (
-                      <SmartImage src={chat.other_user_avatar_url} alt={chat.other_user_name} fill className="object-cover" />
-                    ) : (
-                      chat.other_user_name[0]?.toUpperCase() || 'U'
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-1">
-                      <h4 className="font-bold text-gray-900 text-sm group-hover:text-blue-600 transition-colors">
-                        {chat.other_user_name}
-                      </h4>
-                      {chat.last_message_time && (
-                        <span className="text-[11px] text-gray-400">{timeAgo(chat.last_message_time, isRTL)}</span>
+                // Delete button is a sibling of the Link, not nested
+                // inside it -- a <button> inside an <a> is invalid HTML
+                // and unreliable to click reliably across browsers.
+                <div key={chat.room_id} className="flex items-center hover:bg-gray-50 transition-colors group">
+                  <Link
+                    href={`/chat/${chat.room_id}`}
+                    className="flex-1 min-w-0 p-5 flex items-center gap-4"
+                  >
+                    <div className="w-12 h-12 rounded-2xl bg-blue-100 text-blue-700 flex items-center justify-center font-black text-base flex-shrink-0 overflow-hidden relative">
+                      {chat.other_user_avatar_url ? (
+                        <SmartImage src={chat.other_user_avatar_url} alt={chat.other_user_name} fill className="object-cover" />
+                      ) : (
+                        chat.other_user_name[0]?.toUpperCase() || 'U'
                       )}
                     </div>
-                    {chat.product_title && (
-                      <p className="text-[11px] font-semibold text-blue-600 truncate mb-0.5">{chat.product_title}</p>
-                    )}
-                    <p className="text-xs text-gray-500 truncate">{chat.last_message || (isRTL ? 'ابدأ المحادثة...' : 'Start conversation...')}</p>
-                  </div>
-                  <ChevronRight className={`w-4 h-4 text-gray-400 group-hover:text-blue-600 transition-all ${isRTL ? 'rotate-180' : ''}`} />
-                </Link>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <h4 className="font-bold text-gray-900 text-sm group-hover:text-blue-600 transition-colors">
+                          {chat.other_user_name}
+                        </h4>
+                        {chat.last_message_time && (
+                          <span className="text-[11px] text-gray-400">{timeAgo(chat.last_message_time, isRTL)}</span>
+                        )}
+                      </div>
+                      {chat.product_title && (
+                        <p className="text-[11px] font-semibold text-blue-600 truncate mb-0.5">{chat.product_title}</p>
+                      )}
+                      <p className="text-xs text-gray-500 truncate">{chat.last_message || (isRTL ? 'ابدأ المحادثة...' : 'Start conversation...')}</p>
+                    </div>
+                    <ChevronRight className={`w-4 h-4 text-gray-400 group-hover:text-blue-600 transition-all ${isRTL ? 'rotate-180' : ''}`} />
+                  </Link>
+                  <button
+                    onClick={(e) => handleDeleteChat(chat.room_id, e)}
+                    aria-label={isRTL ? 'حذف المحادثة' : 'Delete chat'}
+                    className="flex-shrink-0 p-2.5 mr-3 rtl:mr-0 rtl:ml-3 text-gray-300 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               ))}
             </div>
           )}

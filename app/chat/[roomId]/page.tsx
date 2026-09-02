@@ -3,11 +3,12 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Send, Loader2 } from 'lucide-react';
+import { ArrowLeft, Send, Loader2, Trash2 } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { useLanguage } from '@/components/LanguageProvider';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { supabase } from '@/lib/supabase';
+import { hideChatRoomForUser } from '@/lib/chatService';
 import { formatEGP } from '@/lib/products';
 import SmartImage from '@/components/SmartImage';
 
@@ -46,6 +47,7 @@ function ChatContent() {
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -156,6 +158,22 @@ function ChatContent() {
     finally { setSending(false); inputRef.current?.focus(); }
   };
 
+  // Delete-for-me: hides this room from the caller's own inbox only --
+  // the other participant's copy and the message history are untouched.
+  // See hide_chat_room_for_user; a new message from either side
+  // resurfaces it automatically.
+  const handleDeleteChat = async () => {
+    if (!confirm(isRTL ? 'هل تريد حذف هذه المحادثة من قائمتك؟' : 'Delete this conversation from your inbox?')) return;
+    setDeleting(true);
+    try {
+      await hideChatRoomForUser(roomId);
+      router.push('/profile?tab=chats');
+    } catch (err) {
+      console.error('[Chat] Failed to delete chat:', err);
+      setDeleting(false);
+    }
+  };
+
   if (authLoading || loading) {
     return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 text-blue-600 animate-spin" /></div>;
   }
@@ -170,10 +188,18 @@ function ChatContent() {
         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-violet-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
           {chatDetails?.other_user_name?.[0]?.toUpperCase() || '?'}
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="font-bold text-gray-900">{chatDetails?.other_user_name || (isRTL ? 'محادثة' : 'Chat')}</p>
           <p className="text-xs text-emerald-500 font-medium">{isRTL ? 'متصل الآن' : 'Active now'}</p>
         </div>
+        <button
+          onClick={handleDeleteChat}
+          disabled={deleting}
+          aria-label={isRTL ? 'حذف المحادثة' : 'Delete chat'}
+          className="text-gray-400 hover:text-rose-600 hover:bg-rose-50 p-2 rounded-full transition-colors disabled:opacity-50 flex-shrink-0"
+        >
+          {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+        </button>
       </div>
 
       {/* Item this conversation is about -- every chat room here is
