@@ -3,6 +3,7 @@
 import React from 'react';
 import { BadgeCheck, Store } from 'lucide-react';
 import { useLanguage } from '@/components/LanguageProvider';
+import { RatingDisplay } from './StarRating';
 
 const TIER_LABEL: Record<number, { en: string; ar: string }> = {
   1: { en: 'Trader', ar: 'بائع' },
@@ -21,12 +22,16 @@ export default function SellerBadge({
   name,
   tier,
   isVerified,
+  ratingAvg,
+  ratingCount,
   size = 'sm',
   className = '',
 }: {
   name: string;
   tier?: number;
   isVerified?: boolean;
+  ratingAvg?: number | null;
+  ratingCount?: number;
   size?: 'sm' | 'md';
   className?: string;
 }) {
@@ -34,17 +39,21 @@ export default function SellerBadge({
   const textSize = size === 'sm' ? 'text-[11px]' : 'text-xs';
   const iconSize = size === 'sm' ? 'w-3 h-3' : 'w-3.5 h-3.5';
   const tierInfo = tier ? TIER_LABEL[tier] : undefined;
+  const showRating = ratingAvg !== undefined || ratingCount !== undefined;
 
   return (
-    <span className={`inline-flex items-center gap-1 ${textSize} font-semibold text-slate-600 ${className}`}>
-      <Store className={`${iconSize} text-slate-400 flex-shrink-0`} />
-      <span className="truncate max-w-[140px]">{name}</span>
-      {isVerified && (
-        <BadgeCheck className={`${iconSize} text-brand flex-shrink-0`} aria-label={isRTL ? 'بائع موثّق' : 'Verified seller'} />
-      )}
-      {tier === 3 && tierInfo && (
-        <span className="text-warning font-bold flex-shrink-0">{isRTL ? tierInfo.ar : tierInfo.en}</span>
-      )}
+    <span className={`inline-flex flex-col gap-1 ${className}`}>
+      <span className={`inline-flex items-center gap-1 ${textSize} font-semibold text-slate-600`}>
+        <Store className={`${iconSize} text-slate-400 flex-shrink-0`} />
+        <span className="truncate max-w-[140px]">{name}</span>
+        {isVerified && (
+          <BadgeCheck className={`${iconSize} text-brand flex-shrink-0`} aria-label={isRTL ? 'بائع موثّق' : 'Verified seller'} />
+        )}
+        {tier === 3 && tierInfo && (
+          <span className="text-warning font-bold flex-shrink-0">{isRTL ? tierInfo.ar : tierInfo.en}</span>
+        )}
+      </span>
+      {showRating && <RatingDisplay avg={ratingAvg} count={ratingCount} size={size === 'md' ? 'sm' : 'xs'} />}
     </span>
   );
 }

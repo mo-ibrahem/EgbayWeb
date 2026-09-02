@@ -121,6 +121,19 @@ export function getNotificationCopy(n: Pick<AppNotification, 'type' | 'payload'>
         ? { title: 'تم استلام طلب السحب', message: `طلب سحب ${amountText} قيد المراجعة.` }
         : { title: 'Payout request received', message: `Your request to withdraw ${amountText} is being reviewed.` };
 
+    case 'review_received': {
+      const rating = n.payload?.rating;
+      const stars = rating ? '⭐'.repeat(Number(rating)) : '';
+      return isRTL
+        ? { title: 'تقييم جديد', message: `حصلت على تقييم ${stars} على "${productTitle}".` }
+        : { title: 'New review', message: `You received a ${stars} rating on "${productTitle}".` };
+    }
+
+    case 'rate_purchase':
+      return isRTL
+        ? { title: 'قيّم عملية الشراء', message: `كيف كانت تجربتك مع "${productTitle}"؟ شارك تقييمك للبائع.` }
+        : { title: 'Rate your purchase', message: `How was "${productTitle}"? Leave the seller a rating.` };
+
     default:
       return isRTL ? { title: 'إشعار', message: '' } : { title: 'Notification', message: '' };
   }

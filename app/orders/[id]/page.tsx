@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { getOrCreateChatRoom } from '@/lib/chatService';
 import { getOrderById, MarketplaceOrder, COURIER_DELIVERY_FEE_EGP } from '@/lib/orderService';
+import { getMyReviewForOrder, submitReview, type Review } from '@/lib/reviews';
+import { StarRatingInput, StarRow } from '@/components/ui/StarRating';
 import { 
   ArrowLeft, Package, ShieldCheck, Truck, Clock, MapPin, 
   Loader2, AlertCircle, CheckCircle2, Lock, AlertTriangle, 
@@ -60,6 +62,17 @@ export default function OrderDetailsPage() {
   const [markingDispatched, setMarkingDispatched] = useState(false);
   const [dispatchError, setDispatchError] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
+
+  // Review (buyer-only, completed orders only -- see submit_review's own
+  // server-side assertions, which are the real gate; this state just
+  // drives the UI)
+  const [myReview, setMyReview] = useState<Review | null>(null);
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState('');
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewError, setReviewError] = useState('');
 
   // Dispute filing
   const [disputeOpen, setDisputeOpen] = useState(false);
@@ -133,6 +146,42 @@ export default function OrderDetailsPage() {
       loadOrder();
     }
   }, [orderId, user, isRTL]);
+
+  useEffect(() => {
+    if (!order || !user || order.status !== 'completed' || user.id !== order.buyer_id) return;
+    setReviewLoading(true);
+    getMyReviewForOrder(order.id)
+      .then(setMyReview)
+      .catch(() => {})
+      .finally(() => setReviewLoading(false));
+  }, [order, user]);
+
+  const handleSubmitReview = async () => {
+    if (!order || reviewRating < 1) return;
+    setSubmittingReview(true);
+    setReviewError('');
+    try {
+      const reviewId = await submitReview(order.id, reviewRating, reviewComment.trim());
+      setMyReview({
+        id: reviewId,
+        order_id: order.id,
+        reviewer_id: user!.id,
+        seller_id: order.seller_id,
+        product_id: order.product_id,
+        rating: reviewRating,
+        comment: reviewComment.trim() || null,
+        seller_response: null,
+        seller_responded_at: null,
+        edited_at: null,
+        created_at: new Date().toISOString(),
+      });
+      setShowReviewForm(false);
+    } catch (err: any) {
+      setReviewError(err?.message || (isRTL ? 'تعذر إرسال التقييم' : 'Failed to submit review'));
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
 
   const handleReleaseEscrow = async (e: React.FormEvent | null) => {
     if (e) e.preventDefault();
@@ -606,6 +655,69 @@ export default function OrderDetailsPage() {
               </p>
             )}
           </div>
+
+          {/* 9b. RATE THIS SELLER -- buyer-only, completed orders only.
+              submit_review is the real gate (buyer_id + status='completed'
+              asserted server-side); this only controls what the buyer sees. */}
+          {isBuyer && order.status === 'completed' && !reviewLoading && (
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+              {myReview ? (
+                <div>
+                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-3">
+                    {isRTL ? 'تقييمك' : 'Your Review'}
+                  </h3>
+                  <StarRow rating={myReview.rating} size="md" />
+                  {myReview.comment && (
+                    <p className="text-sm text-slate-600 mt-2 leading-relaxed">{myReview.comment}</p>
+                  )}
+                  {myReview.seller_response && (
+                    <div className="mt-3 ml-2 pl-3 border-l-2 border-brand/30 rtl:ml-0 rtl:mr-2 rtl:pl-0 rtl:pr-3 rtl:border-l-0 rtl:border-r-2">
+                      <p className="text-[11px] font-bold text-brand">{isRTL ? 'رد البائع' : "Seller's response"}</p>
+                      <p className="text-xs text-slate-600 mt-1 leading-relaxed">{myReview.seller_response}</p>
+                    </div>
+                  )}
+                </div>
+              ) : showReviewForm ? (
+                <div>
+                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-3">
+                    {isRTL ? 'قيّم البائع' : 'Rate the Seller'}
+                  </h3>
+                  <StarRatingInput value={reviewRating} onChange={setReviewRating} size="lg" />
+                  <textarea
+                    value={reviewComment}
+                    onChange={e => setReviewComment(e.target.value)}
+                    maxLength={1000}
+                    rows={3}
+                    placeholder={isRTL ? 'شارك تجربتك مع هذا البائع (اختياري)' : 'Share your experience with this seller (optional)'}
+                    className="w-full mt-3 text-sm border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:border-brand resize-none"
+                  />
+                  {reviewError && <p className="text-rose-600 text-xs mt-1 font-bold">{reviewError}</p>}
+                  <div className="flex gap-2 mt-3">
+                    <button
+                      onClick={handleSubmitReview}
+                      disabled={reviewRating < 1 || submittingReview}
+                      className="flex-1 bg-brand hover:bg-brand-dark disabled:opacity-50 text-white font-bold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2"
+                    >
+                      {submittingReview ? <Loader2 className="w-4 h-4 animate-spin" /> : (isRTL ? 'إرسال التقييم' : 'Submit Review')}
+                    </button>
+                    <button
+                      onClick={() => setShowReviewForm(false)}
+                      className="px-4 py-2.5 text-sm font-bold text-slate-500 hover:text-slate-800 transition-colors"
+                    >
+                      {isRTL ? 'إلغاء' : 'Cancel'}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowReviewForm(true)}
+                  className="w-full bg-brand-soft hover:opacity-80 text-brand font-bold py-3 rounded-xl transition-colors"
+                >
+                  {isRTL ? 'قيّم هذا البائع' : 'Rate This Seller'}
+                </button>
+              )}
+            </div>
+          )}
 
           {/* 2. PRODUCT SUMMARY CARD */}
           <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">

@@ -300,7 +300,10 @@ export default function ProductDetailPage() {
             </div>
 
             {/* Seller — only claims what is actually true of this seller */}
-            <div className="bg-white rounded-lg border border-slate-200 p-4">
+            <Link
+              href={`/seller/${product.seller_id}`}
+              className="block bg-white rounded-lg border border-slate-200 p-4 hover:border-brand/40 transition-colors"
+            >
               <h3 className="text-[11px] font-bold uppercase tracking-wide text-slate-400 mb-2.5">
                 {isRTL ? 'بيانات البائع' : 'Sold By'}
               </h3>
@@ -313,6 +316,8 @@ export default function ProductDetailPage() {
                     name={product.seller?.full_name || (isRTL ? 'بائع في إيجي باي' : 'Egbay Seller')}
                     tier={product.seller?.tier}
                     isVerified={product.seller?.is_verified_seller}
+                    ratingAvg={product.seller?.rating_avg}
+                    ratingCount={product.seller?.rating_count}
                     size="md"
                   />
                   {!product.seller?.is_verified_seller && (
@@ -322,7 +327,7 @@ export default function ProductDetailPage() {
                   )}
                 </div>
               </div>
-            </div>
+            </Link>
 
             {!isOwner ? (
               <div className="bg-white rounded-lg border border-slate-200 p-4 space-y-2.5">

@@ -7,7 +7,7 @@ import {
   Package, Heart, MessageCircle, Settings, User, Camera,
   Trash2, Eye, Wallet, ShieldCheck, Clock, Plus,
   Sparkles, CheckCircle2, ArrowRight, ExternalLink, Phone,
-  Lock, AlertCircle, ShoppingBag, ChevronRight
+  Lock, AlertCircle, ShoppingBag, ChevronRight, Star, Send
 } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { useLanguage } from '@/components/LanguageProvider';
@@ -18,11 +18,14 @@ import { supabase } from '@/lib/supabase';
 import SmartImage from '@/components/SmartImage';
 import ProductCard from '@/components/ui/ProductCard';
 import { hideChatRoomForUser } from '@/lib/chatService';
+import { getSellerReviews, respondToReview, type Review } from '@/lib/reviews';
+import { StarRow } from '@/components/ui/StarRating';
 
 const TABS = [
   { id: 'products', label: 'My Listings', label_ar: 'إعلاناتي', icon: Package },
   { id: 'wishlist', label: 'Saved Items', label_ar: 'المفضلة', icon: Heart },
   { id: 'chats', label: 'Messages', label_ar: 'المحادثات', icon: MessageCircle },
+  { id: 'reviews', label: 'Reviews', label_ar: 'التقييمات', icon: Star },
   { id: 'settings', label: 'Account Settings', label_ar: 'إعدادات الحساب', icon: Settings },
 ] as const;
 
@@ -59,6 +62,10 @@ function ProfileContent() {
   const [listings, setListings] = useState<Product[]>([]);
   const [sellerOrders, setSellerOrders] = useState<MarketplaceOrder[]>([]);
   const [wishlist, setWishlist] = useState<Product[]>([]);
+  const [receivedReviews, setReceivedReviews] = useState<Review[]>([]);
+  const [respondingTo, setRespondingTo] = useState<string | null>(null);
+  const [responseText, setResponseText] = useState('');
+  const [submittingResponse, setSubmittingResponse] = useState(false);
   const [chats, setChats] = useState<ChatRoom[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabId>((searchParams.get('tab') as TabId) || 'products');
@@ -90,6 +97,14 @@ function ProfileContent() {
         setProfile(prof);
         setListings(prods);
         setWishlist(wl);
+
+        // Non-fatal: reviews received is a secondary tab, not core
+        // profile data.
+        try {
+          setReceivedReviews(await getSellerReviews(user.id));
+        } catch (reviewsErr) {
+          console.warn('[Profile] Failed to load received reviews (non-fatal):', reviewsErr);
+        }
 
         // Seller-side orders power the performance summary. Non-fatal: a
         // failure here should cost the seller their stats strip, not their
@@ -221,6 +236,23 @@ function ProfileContent() {
       await hideChatRoomForUser(roomId);
     } catch (err) {
       console.error('[Profile] Failed to delete chat:', err);
+    }
+  };
+
+  const handleSubmitResponse = async (reviewId: string) => {
+    if (!responseText.trim()) return;
+    setSubmittingResponse(true);
+    try {
+      await respondToReview(reviewId, responseText.trim());
+      setReceivedReviews(prev => prev.map(r => (
+        r.id === reviewId ? { ...r, seller_response: responseText.trim(), seller_responded_at: new Date().toISOString() } : r
+      )));
+      setRespondingTo(null);
+      setResponseText('');
+    } catch (err) {
+      console.error('[Profile] Failed to respond to review:', err);
+    } finally {
+      setSubmittingResponse(false);
     }
   };
 
@@ -598,6 +630,90 @@ function ProfileContent() {
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 3b. Reviews received (as seller) */}
+      {activeTab === 'reviews' && (
+        <div className="space-y-6 max-w-4xl">
+          <div>
+            <h2 className="text-xl font-black text-gray-900">
+              {isRTL ? `التقييمات (${receivedReviews.length})` : `Reviews (${receivedReviews.length})`}
+            </h2>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {isRTL ? 'تقييمات المشترين على مبيعاتك' : 'What buyers have said about your sales'}
+            </p>
+          </div>
+
+          {receivedReviews.length === 0 ? (
+            <div className="text-center py-20 bg-white rounded-3xl border border-gray-200 shadow-sm">
+              <Star className="w-14 h-14 text-gray-300 mx-auto mb-3 stroke-[1.5]" />
+              <h3 className="font-bold text-gray-900 text-base mb-1">{isRTL ? 'لا توجد تقييمات بعد' : 'No reviews yet'}</h3>
+              <p className="text-gray-500 text-xs max-w-xs mx-auto">
+                {isRTL ? 'ستظهر هنا تقييمات المشترين بعد إتمام عمليات البيع.' : "Buyer reviews will appear here once sales are completed."}
+              </p>
+            </div>
+          ) : (
+            <div className="bg-white rounded-3xl border border-gray-200 shadow-sm divide-y divide-gray-100 overflow-hidden">
+              {receivedReviews.map(r => (
+                <div key={r.id} className="p-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-gray-900">{r.reviewer_name || (isRTL ? 'مستخدم إيجي باي' : 'EgyBay User')}</p>
+                      {r.product_title && <p className="text-xs text-gray-400 mt-0.5">{r.product_title}</p>}
+                    </div>
+                    <span className="text-[11px] text-gray-400 flex-shrink-0">{timeAgo(r.created_at, isRTL)}</span>
+                  </div>
+
+                  <div className="mt-2"><StarRow rating={r.rating} size="md" /></div>
+
+                  {r.comment && <p className="text-sm text-gray-700 mt-2 leading-relaxed">{r.comment}</p>}
+
+                  {r.seller_response ? (
+                    <div className="mt-3 ml-2 pl-3 border-l-2 border-brand/30 rtl:ml-0 rtl:mr-2 rtl:pl-0 rtl:pr-3 rtl:border-l-0 rtl:border-r-2">
+                      <p className="text-[11px] font-bold text-brand">{isRTL ? 'ردك' : 'Your response'}</p>
+                      <p className="text-xs text-gray-600 mt-1 leading-relaxed">{r.seller_response}</p>
+                    </div>
+                  ) : respondingTo === r.id ? (
+                    <div className="mt-3">
+                      <textarea
+                        value={responseText}
+                        onChange={e => setResponseText(e.target.value)}
+                        maxLength={1000}
+                        rows={2}
+                        placeholder={isRTL ? 'اكتب ردك على هذا التقييم...' : 'Write your response to this review...'}
+                        className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-brand resize-none"
+                        autoFocus
+                      />
+                      <div className="flex gap-2 mt-2">
+                        <button
+                          onClick={() => handleSubmitResponse(r.id)}
+                          disabled={!responseText.trim() || submittingResponse}
+                          className="flex items-center gap-1.5 text-xs font-bold text-white bg-brand hover:bg-brand-dark disabled:opacity-50 px-3 py-1.5 rounded-lg transition-colors"
+                        >
+                          <Send className="w-3 h-3" />
+                          {isRTL ? 'إرسال' : 'Send'}
+                        </button>
+                        <button
+                          onClick={() => { setRespondingTo(null); setResponseText(''); }}
+                          className="text-xs font-bold text-gray-500 hover:text-gray-800 px-2"
+                        >
+                          {isRTL ? 'إلغاء' : 'Cancel'}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setRespondingTo(r.id)}
+                      className="text-[11px] font-bold text-brand hover:text-brand-dark mt-2.5"
+                    >
+                      {isRTL ? '+ إضافة رد' : '+ Add response'}
+                    </button>
+                  )}
                 </div>
               ))}
             </div>

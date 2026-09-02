@@ -8,6 +8,7 @@ import { type Product, isPromotionActive } from '@/lib/products';
 import { BOOST_BADGE_STYLES } from '@/lib/boostService';
 import SmartImage from '@/components/SmartImage';
 import PriceTag from './PriceTag';
+import { RatingDisplay } from './StarRating';
 
 /**
  * The one product card for Egbay -- home feed, search results, wishlist,
@@ -112,6 +113,14 @@ export default function ProductCard({
             <span className="text-[10px] font-bold text-success">
               {isRTL ? 'جديد' : 'New'}
             </span>
+          )}
+          {/* Only when the seller actually has reviews -- unlike
+              SellerBadge/the seller page, a dense grid of mostly-new
+              sellers doesn't need a "New seller" chip repeated on every
+              card; showing nothing is quieter than showing that on
+              every tile. */}
+          {!!product.seller?.rating_count && (
+            <RatingDisplay avg={product.seller.rating_avg} count={product.seller.rating_count} size="xs" />
           )}
         </div>
 

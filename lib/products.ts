@@ -18,7 +18,7 @@ export interface Product {
   // (no fallback default) -- a product with no resolvable seller profile
   // carries no seller object at all rather than a fabricated one, so the
   // UI never has to guess at (or invent) a trust signal.
-  seller?: { full_name: string; avatar_url?: string; tier?: number; is_verified_seller?: boolean };
+  seller?: { full_name: string; avatar_url?: string; tier?: number; is_verified_seller?: boolean; rating_avg?: number | null; rating_count?: number };
   isWishlisted?: boolean;
   is_promoted?: boolean;
   promotion_tier?: 'urgent' | 'featured' | 'turbo' | string;
@@ -150,19 +150,19 @@ export const productService = {
 
         // Safely fetch seller profiles in background
         const sellerIds = [...new Set(products.map((p) => p.seller_id).filter(Boolean))];
-        let sellerMap: Record<string, { id: string; full_name: string; avatar_url?: string; tier?: number; is_verified_seller?: boolean }> = {};
+        let sellerMap: Record<string, { id: string; full_name: string; avatar_url?: string; tier?: number; is_verified_seller?: boolean; rating_avg?: number | null; rating_count?: number }> = {};
 
         if (sellerIds.length > 0) {
           try {
             const { data: profiles } = await supabase
               .from('public_profiles')
-              .select('id, full_name, avatar_url, tier, is_verified_seller')
+              .select('id, full_name, avatar_url, tier, is_verified_seller, rating_avg, rating_count')
               .in('id', sellerIds);
 
             if (profiles) {
               sellerMap = profiles.reduce(
                 (acc, p) => ({ ...acc, [p.id]: p }),
-                {} as Record<string, { id: string; full_name: string; avatar_url?: string; tier?: number; is_verified_seller?: boolean }>
+                {} as Record<string, { id: string; full_name: string; avatar_url?: string; tier?: number; is_verified_seller?: boolean; rating_avg?: number | null; rating_count?: number }>
               );
             }
           } catch (e) {
@@ -223,11 +223,11 @@ export const productService = {
         .single();
       if (error || !product) return null;
 
-      let seller: { id: string; full_name: string; avatar_url?: string; tier?: number; is_verified_seller?: boolean } | null = null;
+      let seller: { id: string; full_name: string; avatar_url?: string; tier?: number; is_verified_seller?: boolean; rating_avg?: number | null; rating_count?: number } | null = null;
       try {
         const { data: s } = await supabase
           .from('public_profiles')
-          .select('id, full_name, avatar_url, tier, is_verified_seller')
+          .select('id, full_name, avatar_url, tier, is_verified_seller, rating_avg, rating_count')
           .eq('id', product.seller_id)
           .single();
         seller = s;
