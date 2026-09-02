@@ -1,16 +1,35 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Video, Plus, Package, User } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { useLanguage } from '@/components/LanguageProvider';
+import { getUnreadNotificationCount } from '@/lib/notifications';
 
 export default function MobileBottomNav() {
   const pathname = usePathname();
   const { user } = useAuth();
   const { isRTL } = useLanguage();
+
+  // Mobile has no room for a bell + dropdown the way the navbar does, and
+  // a sixth bottom-nav item would crowd an already-tight bar -- so
+  // notifications surface here as a dot on the existing Account item
+  // instead of a dedicated tab. Full list lives at /notifications
+  // (reachable from the desktop bell, and from Account -> the same page
+  // once there's a link for it) -- polled rather than realtime since
+  // this bar mounts on every route and a subscription per page would be
+  // wasteful for a badge that only needs to be roughly current.
+  const [hasUnread, setHasUnread] = useState(false);
+  useEffect(() => {
+    if (!user) { setHasUnread(false); return; }
+    let cancelled = false;
+    const check = () => getUnreadNotificationCount().then(c => { if (!cancelled) setHasUnread(c > 0); }).catch(() => {});
+    check();
+    const interval = setInterval(check, 60000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [user]);
 
   // Hide on full-screen pages that have their own UI
   if (
@@ -29,6 +48,7 @@ export default function MobileBottomNav() {
     isPrimary?: boolean;
     isActive: boolean;
     isLive?: boolean;
+    showDot?: boolean;
   };
 
   const navItems: NavItem[] = [
@@ -63,6 +83,7 @@ export default function MobileBottomNav() {
       label: isRTL ? 'حسابي' : 'Account',
       icon: User,
       isActive: pathname.startsWith('/profile') || pathname.startsWith('/wallet'),
+      showDot: hasUnread,
     },
   ];
 
@@ -109,6 +130,10 @@ export default function MobileBottomNav() {
                   {/* Pulsing red dot for Live */}
                   {item.isLive && (
                     <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-600 rounded-full border border-white animate-pulse" />
+                  )}
+                  {/* Unread notifications dot on Account */}
+                  {item.showDot && (
+                    <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-danger rounded-full border border-white" />
                   )}
                 </div>
                 <span className={`text-[9.5px] font-${item.isActive ? 'black' : 'medium'} whitespace-nowrap ${item.isLive ? 'text-red-600' : ''}`}>

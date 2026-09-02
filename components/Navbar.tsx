@@ -6,11 +6,12 @@ import Image from 'next/image';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import {
   Search, Plus, User, LogOut, Wallet, Package,
-  Menu, X, Heart, MessageCircle, ChevronDown, Globe, Video,
+  Menu, X, Heart, MessageCircle, ChevronDown, Globe, Video, Bell,
 } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { useLanguage } from '@/components/LanguageProvider';
 import { productService } from '@/lib/products';
+import NotificationBell from '@/components/NotificationBell';
 
 // Label lookup only. Which categories are actually offered in the nav is
 // derived from live inventory below -- a nav link to a category with zero
@@ -144,6 +145,8 @@ export default function Navbar() {
                   <Package className="w-5 h-5" />
                 </Link>
 
+                <NotificationBell />
+
                 <div className="relative" ref={profileRef}>
                   <button
                     onClick={() => setProfileOpen(!profileOpen)}
@@ -178,6 +181,9 @@ export default function Navbar() {
                       </Link>
                       <Link href="/profile?tab=chats" onClick={() => setProfileOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
                         <MessageCircle className="w-4 h-4 text-slate-400" /> {isRTL ? 'الرسائل' : 'Messages'}
+                      </Link>
+                      <Link href="/notifications" onClick={() => setProfileOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
+                        <Bell className="w-4 h-4 text-slate-400" /> {isRTL ? 'الإشعارات' : 'Notifications'}
                       </Link>
                       <div className="border-t border-slate-100 mt-1 pt-1">
                         <button onClick={handleSignOut} className="flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-danger hover:bg-danger-soft transition-colors w-full text-left">

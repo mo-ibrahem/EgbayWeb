@@ -1,0 +1,105 @@
+import { supabase } from './supabase';
+import { formatEGP } from './products';
+
+export interface AppNotification {
+  id: string;
+  user_id: string;
+  type: string;
+  payload: Record<string, any>;
+  link: string | null;
+  read_at: string | null;
+  created_at: string;
+}
+
+/**
+ * RLS already scopes every query here to `auth.uid() = user_id` (see
+ * the notifications_foundation migration) -- there is no SELECT policy
+ * that would return anyone else's rows, so nothing here filters by user
+ * id client-side. Writes go exclusively through the two RPCs below,
+ * which derive the acting user from auth.uid() server-side; there is no
+ * INSERT/UPDATE grant on the table itself.
+ */
+export async function getRecentNotifications(limit = 20): Promise<AppNotification[]> {
+  const { data, error } = await supabase
+    .from('notifications')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return data || [];
+}
+
+/** count-only query -- never fetch rows just to count them client-side. */
+export async function getUnreadNotificationCount(): Promise<number> {
+  const { count, error } = await supabase
+    .from('notifications')
+    .select('*', { count: 'exact', head: true })
+    .is('read_at', null);
+  if (error) throw error;
+  return count || 0;
+}
+
+export async function markNotificationsRead(ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  const { error } = await supabase.rpc('mark_notifications_read', { p_ids: ids });
+  if (error) throw error;
+}
+
+export async function markAllNotificationsRead(): Promise<void> {
+  const { error } = await supabase.rpc('mark_all_notifications_read');
+  if (error) throw error;
+}
+
+/**
+ * Copy lives here, not in the database -- the row stores `type` +
+ * `payload`, and this renders it per-request in whichever language the
+ * viewer currently has selected. Storing rendered strings would freeze
+ * a notification's language at write time and split i18n across two
+ * systems, when every other string in this app already lives in TSX
+ * beside a LanguageProvider ternary.
+ */
+export function getNotificationCopy(n: Pick<AppNotification, 'type' | 'payload'>, isRTL: boolean): { title: string; message: string } {
+  const productTitle = n.payload?.product_title || (isRTL ? 'إعلانك' : 'your item');
+  const amount = n.payload?.amount;
+  const amountText = amount ? formatEGP(amount) : '';
+
+  switch (n.type) {
+    case 'order_placed':
+      return isRTL
+        ? { title: '🎉 تم بيع إعلانك', message: `تم طلب "${productTitle}"${amountText ? ` بقيمة ${amountText}` : ''}. جهّز السلعة للشحن.` }
+        : { title: '🎉 Item sold', message: `"${productTitle}" was ordered${amountText ? ` for ${amountText}` : ''}. Get it ready to ship.` };
+
+    case 'escrow_secured':
+      return isRTL
+        ? { title: 'الدفع مؤمّن في الضمان', message: `تم تأمين المبلغ لطلب "${productTitle}". يمكنك الشحن الآن.` }
+        : { title: 'Payment secured in escrow', message: `Funds for "${productTitle}" are held in escrow. Safe to ship now.` };
+
+    case 'shipped':
+      return isRTL
+        ? { title: 'تم شحن طلبك', message: `قام البائع بشحن "${productTitle}".` }
+        : { title: 'Your order shipped', message: `The seller shipped "${productTitle}".` };
+
+    case 'out_for_delivery':
+      return isRTL
+        ? { title: 'الطلب في الطريق إليك', message: `"${productTitle}" خرج للتوصيل الآن.` }
+        : { title: 'Out for delivery', message: `"${productTitle}" is out for delivery.` };
+
+    case 'delivered':
+      return isRTL
+        ? { title: 'تم التسليم — أكّد الاستلام', message: `أكّد استلام "${productTitle}" لتحرير المبلغ للبائع.` }
+        : { title: 'Delivered — confirm receipt', message: `Confirm you received "${productTitle}" to release funds to the seller.` };
+
+    case 'completed':
+      return isRTL
+        ? { title: 'تم تحرير أرباحك', message: `أرباحك من "${productTitle}"${amountText ? ` (${amountText})` : ''} أصبحت متاحة في المحفظة.` }
+        : { title: 'Payout released', message: `Your earnings from "${productTitle}"${amountText ? ` (${amountText})` : ''} are now available in your wallet.` };
+
+    case 'disputed':
+      return isRTL
+        ? { title: 'تم فتح نزاع', message: `تم فتح نزاع بخصوص "${productTitle}".` }
+        : { title: 'Dispute opened', message: `A dispute was opened on "${productTitle}".` };
+
+    default:
+      return isRTL ? { title: 'إشعار', message: '' } : { title: 'Notification', message: '' };
+  }
+}
