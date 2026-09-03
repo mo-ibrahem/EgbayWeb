@@ -39,6 +39,7 @@ function OrderSuccessContent() {
   const [errorMsg, setErrorMsg] = useState('');
   const [plaintextPin, setPlaintextPin] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [pollExhausted, setPollExhausted] = useState(false);
   const [chatLoading, setChatLoading] = useState(false);
 
   useEffect(() => {
@@ -98,6 +99,54 @@ function OrderSuccessContent() {
 
     loadOrder();
   }, [orderId]);
+
+  /**
+   * Paymob's browser redirect races its own server-to-server webhook, and
+   * the browser usually wins -- the buyer lands here a moment before
+   * paymob-webhook has verified the HMAC and moved the order out of
+   * pending_payment. Loading the order exactly once meant that momentary
+   * state was the final thing the buyer saw, on a genuinely successful
+   * payment, until they thought to refresh.
+   *
+   * This only re-reads the order's real status. While the order stays
+   * pending, the page keeps saying pending -- nothing here marks anything
+   * paid, and a payment that never completes never flips to confirmed.
+   */
+  useEffect(() => {
+    if (!orderId || !order || order.status !== 'pending_payment') return;
+
+    const INTERVAL_MS = 2000;
+    const GIVE_UP_MS = 40000;
+    let elapsed = 0;
+    let cancelled = false;
+
+    const interval = setInterval(async () => {
+      if (cancelled) return;
+
+      elapsed += INTERVAL_MS;
+      if (elapsed >= GIVE_UP_MS) {
+        clearInterval(interval);
+        setPollExhausted(true);
+        return;
+      }
+
+      const { data } = await supabase
+        .from('orders')
+        .select('id, buyer_id, seller_id, product_id, status, created_at, amount, handover_method')
+        .eq('id', orderId)
+        .single();
+
+      if (!cancelled && data && data.status !== 'pending_payment') {
+        clearInterval(interval);
+        setOrder(data);
+      }
+    }, INTERVAL_MS);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [orderId, order]);
 
   if (loading) {
     return (
@@ -159,7 +208,13 @@ function OrderSuccessContent() {
           
           <p className="text-sm text-slate-500 mb-8 max-w-sm mx-auto">
             {isPending
-              ? (isRTL ? 'نحن في انتظار تأكيد البنك. برجاء الانتظار بضع دقائق وتحديث الصفحة.' : 'Waiting for bank confirmation. Please wait a few minutes and refresh.')
+              ? (pollExhausted
+                  ? (isRTL
+                      ? 'ما زلنا في انتظار تأكيد البنك. حدّث الصفحة، أو تابع الطلب من "طلباتي".'
+                      : 'Still waiting for bank confirmation. Refresh the page, or track this order in My Orders.')
+                  : (isRTL
+                      ? 'في انتظار تأكيد البنك. ستتحدث هذه الصفحة تلقائياً.'
+                      : 'Waiting for bank confirmation. This page updates automatically.'))
               : (isRTL ? 'تم حجز المبلغ بأمان في حساب الضمان. سيتم إشعار البائع لتجهيز طلبك.' : 'Funds are held safely in escrow. The seller has been notified.')}
           </p>
 
