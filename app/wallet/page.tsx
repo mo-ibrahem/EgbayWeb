@@ -28,6 +28,33 @@ import {
 } from '@/lib/walletService';
 import { supabase } from '@/lib/supabase';
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * The bare order uuid Paymob appended to this redirect, when what landed
+ * on /wallet is actually an order payment rather than a top-up.
+ *
+ * Paymob's Redirect URL is a single static field on the integration --
+ * one URL for every payment through it, top-up and order alike -- and it
+ * points here. Rather than repoint that field per purpose (it can't be
+ * templated, and editing it means mutating live gateway config we can't
+ * see the whole of or roll back), the classification is done here in
+ * code, where changing it costs a deploy.
+ *
+ * Top-ups create merchant_order_id as `topup_<uuid>` (see
+ * /api/wallet/topup/create); orders use the bare order uuid. So a bare
+ * uuid arriving here is an order-payment redirect that belongs on the
+ * order confirmation instead. Returns null for a top-up or an ordinary
+ * visit to the wallet.
+ */
+function getRedirectedOrderId(): string | null {
+  if (typeof window === 'undefined') return null;
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get('merchant_order_id') || params.get('order') || params.get('id');
+  if (!id || id.startsWith('topup_') || !UUID_RE.test(id)) return null;
+  return id;
+}
+
 function WalletContent() {
   const { user } = useAuth();
   const { isRTL } = useLanguage();
@@ -102,7 +129,20 @@ function WalletContent() {
     loadData();
   }, [loadData]);
 
+  // An order payment redirected here by Paymob: send it to the order
+  // confirmation. This only moves the browser -- marking the order paid
+  // is driven by the paymob-webhook edge function server-to-server, and
+  // happens whether or not the buyer's browser ever makes it back.
   useEffect(() => {
+    const orderId = getRedirectedOrderId();
+    if (orderId) router.replace(`/orders/success?orderId=${orderId}`);
+  }, [router]);
+
+  useEffect(() => {
+    // Leaving for the order confirmation -- don't start polling for a
+    // top-up or rewrite the URL out from under that navigation.
+    if (getRedirectedOrderId()) return;
+
     // Check if we are waiting for a top-up to complete
     if (typeof window !== 'undefined') {
       const pendingTopupId = sessionStorage.getItem('pending_topup_id');
