@@ -72,17 +72,51 @@ Deno.serve(async (req: Request) => {
     return new Response('Unauthorized: HMAC mismatch', { status: 401 });
   }
 
-  // Only process successful payments
-  if (txn.success !== true) {
-    return new Response('OK: ignored non-success event', { status: 200 });
-  }
-
   const merchantOrderId: string = String(txn.order?.merchant_order_id || '');
   const amountCents: number = Number(txn.amount_cents || 0);
   const txId: string = String(txn.id || '');
   const currency: string = String(txn.currency || 'EGP');
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+  const orderId = UUID_RE.test(merchantOrderId) ? merchantOrderId : null;
+
+  // Writes down what Paymob told us. Everything this function learns about
+  // a payment used to live only in a console.error, so a failure left the
+  // order sitting at pending_payment with no record that money had ever
+  // moved -- and cancel_abandoned_orders, which decides on age alone,
+  // cancelled it an hour later and orphaned the payment.
+  //
+  // Never throws. A bookkeeping problem must not become a 500, which
+  // would make Paymob retry a payment we may have already processed.
+  async function recordAttempt(
+    outcome: 'declined' | 'processing_failed',
+    errorMessage?: string,
+  ) {
+    try {
+      const { error } = await supabase.from('paymob_payment_attempts').insert({
+        merchant_order_id: merchantOrderId,
+        order_id: orderId,
+        paymob_transaction_id: parseInt(txId, 10) || null,
+        amount_cents: amountCents,
+        currency,
+        outcome,
+        error_message: errorMessage ?? null,
+        payload: txn,
+      });
+      if (error) console.error('[PaymobWebhook] Could not record attempt:', error);
+    } catch (e) {
+      console.error('[PaymobWebhook] Could not record attempt:', e);
+    }
+  }
+
+  // A decline is recorded rather than dropped. cancel_abandoned_orders
+  // reads these rows to free the item in 15 minutes instead of the
+  // blanket hour -- there is no resume-payment path in the UI, so a dead
+  // order holding stock for an hour serves nobody.
+  if (txn.success !== true) {
+    await recordAttempt('declined');
+    return new Response('OK: recorded non-success event', { status: 200 });
+  }
 
   try {
     // 1. Wallet Top-Up — merchant_order_id: topup_<uuid>
@@ -127,6 +161,15 @@ Deno.serve(async (req: Request) => {
     }
   } catch (err) {
     console.error('[PaymobWebhook] Processing error:', err);
+    // Paymob says this one succeeded and our processing threw, so the
+    // money is real and the order is still pending_payment. Recording it
+    // is what stops cancel_abandoned_orders cancelling the order and
+    // leaving the payment attached to nothing -- and it's the list of
+    // what needs reconciling.
+    await recordAttempt(
+      'processing_failed',
+      (err as any)?.message ? String((err as any).message) : String(err),
+    );
     // Return 200 so Paymob does not retry endlessly; investigate via Supabase logs
     return new Response('OK: internal error logged', { status: 200 });
   }

@@ -378,9 +378,13 @@ export default function OrderDetailsPage() {
                 </h2>
               </div>
               <p className="text-amber-800 text-sm font-medium leading-relaxed">
+                {/* Deliberately doesn't tell the buyer to "complete
+                    payment": there is no resume-payment path from here,
+                    so that instruction asked for something impossible.
+                    Says what actually happens instead. */}
                 {isRTL
-                  ? `لم يتم تأكيد استلام مبلغ ${formatEGP(order.amount, isRTL)} بعد. إذا أكملت الدفع للتو، قد يستغرق التأكيد بضع دقائق. إذا لم تكمل الدفع بعد، يرجى إتمامه لتأمين طلبك.`
-                  : `Payment of ${formatEGP(order.amount, isRTL)} has not been confirmed yet. If you just completed checkout, confirmation can take a few minutes. If you haven't paid yet, complete payment to secure your order.`}
+                  ? `لم يتم تأكيد استلام مبلغ ${formatEGP(order.amount, isRTL)} بعد. إذا أكملت الدفع للتو، عادةً ما يتم التأكيد خلال دقيقة أو دقيقتين. أما إذا لم تتم عملية الدفع، فسيُلغى هذا الطلب تلقائياً ويعود المنتج إلى المخزون، ويمكنك طلبه مرة أخرى.`
+                  : `Payment of ${formatEGP(order.amount, isRTL)} has not been confirmed yet. If you just completed checkout, this usually confirms within a minute or two. If the payment didn't go through, this order is cancelled automatically and the item returns to stock — you can order it again then.`}
               </p>
             </div>
           ) : order.status !== 'completed' && order.status !== 'cancelled' && (
@@ -832,21 +836,51 @@ export default function OrderDetailsPage() {
                 <span>{isRTL ? 'رسوم التوصيل' : 'Delivery Fee'}</span>
                 <span>{formatEGP(deliveryFee, isRTL)}</span>
               </div>
+              {/* "Total Paid" on an order the backend still has at
+                  pending_payment claims a payment that hasn't been
+                  confirmed -- it sat directly under a banner saying the
+                  opposite. While pending this is the order total, not a
+                  receipt. */}
               <div className="pt-3 border-t border-slate-100 flex justify-between font-black text-slate-900 text-base">
-                <span>{isRTL ? 'إجمالي المدفوع' : 'Total Paid'}</span>
+                <span>
+                  {order.status === 'pending_payment'
+                    ? (isRTL ? 'إجمالي الطلب' : 'Order Total')
+                    : (isRTL ? 'إجمالي المدفوع' : 'Total Paid')}
+                </span>
                 <span>{formatEGP(order.amount, isRTL)}</span>
               </div>
-              
+
               {/* Financial direction explicit */}
               <div className="mt-4 bg-slate-50 p-3 rounded-lg border border-slate-100">
                 {isBuyer ? (
                   <p className="text-xs text-slate-600 font-medium leading-relaxed">
-                    <span className="font-bold text-rose-600">You paid:</span> {formatEGP(order.amount, isRTL)} <br/>
+                    {order.status === 'pending_payment' ? (
+                      <>
+                        <span className="font-bold text-amber-600">{isRTL ? 'لم يتم الدفع بعد:' : 'Not paid yet:'}</span> {formatEGP(order.amount, isRTL)} <br/>
+                      </>
+                    ) : (
+                      <>
+                        <span className="font-bold text-rose-600">{isRTL ? 'دفعت:' : 'You paid:'}</span> {formatEGP(order.amount, isRTL)} <br/>
+                      </>
+                    )}
                   </p>
                 ) : (
                   <p className="text-xs text-slate-600 font-medium leading-relaxed">
-                    <span className="font-bold text-emerald-600">Escrow holding:</span> {formatEGP(order.amount, isRTL)} pending <br/>
-                    <span className="text-slate-400 mt-1 block">Payout pending legitimate release.</span>
+                    {/* Nothing is in escrow until the payment is
+                        confirmed -- saying "Escrow holding" on a
+                        pending_payment order tells the seller money is
+                        secured for them when none has arrived. */}
+                    {order.status === 'pending_payment' ? (
+                      <>
+                        <span className="font-bold text-amber-600">{isRTL ? 'بانتظار دفع المشتري:' : 'Awaiting buyer payment:'}</span> {formatEGP(order.amount, isRTL)} <br/>
+                        <span className="text-slate-400 mt-1 block">{isRTL ? 'لم يصل أي مبلغ إلى الضمان بعد.' : 'Nothing has reached escrow yet.'}</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="font-bold text-emerald-600">{isRTL ? 'محتجز في الضمان:' : 'Escrow holding:'}</span> {formatEGP(order.amount, isRTL)} <br/>
+                        <span className="text-slate-400 mt-1 block">{isRTL ? 'سيتم الصرف بعد تأكيد الاستلام.' : 'Payout pending legitimate release.'}</span>
+                      </>
+                    )}
                   </p>
                 )}
               </div>
