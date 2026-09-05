@@ -16,6 +16,7 @@ module.exports = {
           dark: 'var(--brand-dark)',
           soft: 'var(--brand-soft)',
         },
+        ink:     { DEFAULT: 'var(--ink)', soft: 'var(--ink-soft)' },
         success: { DEFAULT: 'var(--success)', soft: 'var(--success-soft)' },
         warning: { DEFAULT: 'var(--warning)', soft: 'var(--warning-soft)' },
         danger:  { DEFAULT: 'var(--danger)',  soft: 'var(--danger-soft)' },

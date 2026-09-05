@@ -22,6 +22,13 @@
   --brand:        #3665F3;   /* primary actions, links, active states */
   --brand-dark:   #2851D6;   /* hover/active of primary */
   --brand-soft:   #EEF2FF;   /* tinted backgrounds behind brand content */
+  /* Brand-derived ink for full-bleed dark surfaces (hero, seller CTA).
+     Deliberately not a neutral near-black: a tinted grey-black reads as
+     an unconsidered default, and this needs to belong to the same family
+     as --brand so the page's dark surfaces look chosen rather than
+     borrowed from a UI kit. */
+  --ink:          #101A38;
+  --ink-soft:     #1B2A52;   /* hairlines and raised detail on --ink */
 
   /* Surfaces */
   --bg:           #F7F8FA;   /* page background */

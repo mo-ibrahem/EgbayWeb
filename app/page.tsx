@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
-  Search, ShieldCheck, Truck, Zap, SlidersHorizontal, X, ChevronDown,
+  Search, SlidersHorizontal, X, ChevronDown,
   LayoutGrid, Smartphone, Shirt, Home, Baby, Dumbbell, BookOpen,
   Car, Video, Package, Tag, Sparkles, ArrowRight, Wallet,
 } from 'lucide-react';
@@ -159,68 +159,89 @@ function HomeFeedContent() {
       {!isBrowsing && (
         <>
           {/* ─── Hero.
-              Egbay is an unknown brand to a first-time Egyptian visitor,
-              and research is blunt about the cost of not saying what you
-              are: people leave in 10-20 seconds if the value isn't clear,
-              and over half of attention never goes below the fold. This
-              used to open on a thin grey trust strip and then a grid,
-              which answered "what do they sell" but never "what is this
-              and why is it safe" -- the only question that matters for a
-              marketplace nobody has heard of.
+              The one loud thing on this page, and it is the product's
+              actual mechanism rather than a pitch about it.
 
-              Deliberately no stock photography or big image hero: there
-              is no real brand imagery to use, and inventing some would be
-              exactly the decorative filler this redesign has been
-              stripping out. Type hierarchy carries it instead. It also
-              disappears entirely once someone starts browsing -- a
-              shopper who has already committed shouldn't be re-pitched.
+              What was here before ended in a three-column icon/title/body
+              pillar row -- the most templated component on the web, and
+              the wrong shape for this content besides: those three
+              "benefits" read as parallel and independent when escrow is
+              strictly sequential, each step gated by the one before it.
+              Rendering it as a real sequence is both more honest and the
+              only thing on this page a competitor's homepage couldn't
+              also say.
 
-              Tinted rather than another white bordered box. Every surface
-              on this page was previously white-on-near-white with the same
-              hairline border and radius -- hero, category tiles, filter
-              bar, cards, all at identical visual weight, which is what
-              made the page read as flat. The page now runs tinted hero ->
-              white/plain content -> dark seller CTA, so there's an actual
-              rhythm and the brand color is structural rather than only
-              ever appearing inside buttons. */}
-          <section className="bg-brand-soft rounded-xl p-6 sm:p-8">
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight max-w-2xl text-balance">
-              {isRTL
-                ? 'بيع واشترِ في مصر — وفلوسك مضمونة'
-                : 'Buy and sell across Egypt, without trusting a stranger'}
-            </h1>
-            <p className="text-sm text-slate-600 mt-2 max-w-xl leading-relaxed">
-              {isRTL
-                ? 'إيجي باي بيمسك فلوس المشتري في حساب ضمان، وما بيحوّلهاش للبائع غير لما المشتري يستلم ويأكد. لو حاجة غلط، تقدر تفتح نزاع وتسترد فلوسك.'
-                : 'Egbay holds the buyer’s money in escrow and only releases it to the seller once the buyer confirms they’ve received the item. If something’s wrong, you open a dispute and get refunded.'}
-            </p>
+              Ink rather than another tinted box. Every surface here was
+              white-on-near-white at identical weight, which is what made
+              the page read flat; it now runs ink -> paper -> ink, so the
+              brand is structural instead of only appearing inside
+              buttons. The ink is derived from --brand, not a neutral
+              near-black.
 
-            <div className="flex flex-wrap items-center gap-2.5 mt-5">
-              <Button href="#browse" size="lg" icon={<Search className="w-4 h-4" />}>
-                {isRTL ? 'تصفح المعروض' : 'Browse what’s listed'}
-              </Button>
-              <Button href={user ? '/sell' : '/signup'} size="lg" variant="outline" icon={<Tag className="w-4 h-4" />}>
-                {isRTL ? 'ابدأ البيع' : 'Start selling'}
-              </Button>
+              No stock photography: there is no real brand imagery, and
+              inventing some is exactly the decorative filler this is
+              stripping out. It disappears once browsing starts -- someone
+              who has already committed shouldn't be re-pitched. */}
+          <section className="bg-ink text-white rounded-xl p-6 sm:p-10">
+            <div className="max-w-2xl">
+              <h1 className="text-3xl sm:text-[2.75rem] font-black tracking-tight leading-[1.1] text-balance">
+                {isRTL
+                  ? 'ادفع أونلاين من غير ما تثق في حد'
+                  : 'Pay online without trusting a stranger'}
+              </h1>
+              <p className="text-sm sm:text-base text-slate-300 mt-3.5 leading-relaxed">
+                {isRTL
+                  ? 'إيجي باي بيمسك الفلوس لحد ما المنتج يبقى في إيدك. لو مجاش، بتسترد فلوسك.'
+                  : 'Egbay holds the money until the item is in your hands. If it never arrives, you get it back.'}
+              </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6 pt-6 border-t border-brand/15">
+            {/* The sequence. Numbered because it genuinely is one -- the
+                money cannot reach the seller before the buyer confirms --
+                not as decoration. Logical-property mirroring via rtl:
+                variants so the track reads right-to-left in Arabic. */}
+            <ol className="mt-8 sm:mt-10 grid grid-cols-2 lg:grid-cols-4 gap-y-7 gap-x-5 lg:gap-x-0">
               {[
-                { icon: ShieldCheck, title: isRTL ? 'ضمان مالي على كل طلب' : 'Escrow on every order',
-                  body: isRTL ? 'الفلوس محجوزة لحد ما تأكد الاستلام' : 'Money is held until you confirm delivery' },
-                { icon: Truck, title: isRTL ? 'شحن أو تسليم يدوي' : 'Courier or meet in person',
-                  body: isRTL ? 'وصّل لباب البيت أو قابل البائع بكود PIN' : 'Doorstep delivery, or hand over with a PIN' },
-                { icon: Zap, title: isRTL ? 'سحب فوري للبائع' : 'Fast seller payouts',
-                  body: isRTL ? 'إنستاباي وفودافون كاش والحساب البنكي' : 'InstaPay, Vodafone Cash or bank transfer' },
-              ].map(pillar => (
-                <div key={pillar.title} className="flex gap-2.5">
-                  <pillar.icon className="w-4 h-4 text-brand flex-shrink-0 mt-0.5" />
-                  <div className="min-w-0">
-                    <p className="text-xs font-bold text-slate-900">{pillar.title}</p>
-                    <p className="text-[11px] text-slate-500 leading-relaxed mt-0.5">{pillar.body}</p>
-                  </div>
-                </div>
+                { t: isRTL ? 'إنت بتدفع' : 'You pay',
+                  b: isRTL ? 'فلوسك بتروح لإيجي باي، مش للبائع.' : 'Your money goes to Egbay, not to the seller.' },
+                { t: isRTL ? 'إيجي باي بيمسكها' : 'Egbay holds it',
+                  b: isRTL ? 'البائع بيشحن وهو عارف إن الفلوس موجودة، ومش قادر يوصلها.' : 'The seller ships knowing it is there, and cannot touch it.' },
+                { t: isRTL ? 'المنتج بيوصلك' : 'The item reaches you',
+                  b: isRTL ? 'شحن لباب البيت، أو تقابل البائع بكود PIN.' : 'Courier to your door, or meet in person with a PIN.' },
+                { t: isRTL ? 'البائع بياخد فلوسه' : 'The seller gets paid',
+                  b: isRTL ? 'بعد ما تأكد إنت بس.' : 'Only once you have confirmed.' },
+              ].map((step, i, arr) => (
+                <li key={step.t} className="relative lg:pr-5 rtl:lg:pr-0 rtl:lg:pl-5">
+                  {i < arr.length - 1 && (
+                    <span
+                      aria-hidden
+                      className="hidden lg:block absolute top-[9px] left-5 right-0 rtl:left-0 rtl:right-5 h-px bg-white/15"
+                    />
+                  )}
+                  <span className="relative flex items-center gap-2">
+                    <span className="w-[18px] h-[18px] rounded-full bg-brand flex items-center justify-center text-[10px] font-black text-white tabular-nums flex-shrink-0">
+                      {i + 1}
+                    </span>
+                  </span>
+                  <p className="text-sm font-bold text-white mt-3">{step.t}</p>
+                  <p className="text-xs text-slate-400 mt-1 leading-relaxed">{step.b}</p>
+                </li>
               ))}
+            </ol>
+
+            <div className="flex flex-wrap items-center gap-2.5 mt-9">
+              <Button href="#browse" size="lg" icon={<Search className="w-4 h-4" />}>
+                {catalogue.length > 0
+                  ? (isRTL ? `تصفح ${catalogue.length} إعلان` : `Browse ${catalogue.length} listings`)
+                  : (isRTL ? 'تصفح المعروض' : 'Browse listings')}
+              </Button>
+              <Link
+                href={user ? '/sell' : '/signup'}
+                className="inline-flex items-center gap-1.5 text-sm font-bold text-slate-300 hover:text-white transition-colors px-2 py-2"
+              >
+                <Tag className="w-4 h-4" />
+                {isRTL ? 'ابدأ البيع' : 'Start selling'}
+              </Link>
             </div>
           </section>
 
@@ -265,9 +286,9 @@ function HomeFeedContent() {
                     <button
                       key={id}
                       onClick={() => handleCategorySelect(id)}
-                      className="group flex flex-col items-center gap-2 bg-white border border-slate-200 hover:border-brand/40 rounded-xl px-2 py-4 transition-colors"
+                      className="group flex flex-col items-center gap-2 rounded-lg px-2 py-3 hover:bg-white transition-colors"
                     >
-                      <span className="w-11 h-11 rounded-full bg-brand-soft text-brand flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                      <span className="w-11 h-11 rounded-full bg-brand-soft text-brand flex items-center justify-center flex-shrink-0 transition-colors group-hover:bg-brand group-hover:text-white">
                         <Icon className="w-5 h-5" />
                       </span>
                       <span className="min-w-0 w-full text-center">
@@ -434,7 +455,7 @@ function HomeFeedContent() {
           peer-to-peer trade -- and the commission shown is the real Tier 1
           rate from SELLER_TIERS, not a marketing number. */}
       {!isBrowsing && (
-        <section className="bg-slate-900 text-white rounded-lg p-6 sm:p-8">
+        <section className="bg-ink text-white rounded-xl p-6 sm:p-8">
           <div className="max-w-2xl">
             <h2 className="text-xl sm:text-2xl font-black tracking-tight">
               {isRTL ? 'عندك حاجة تبيعها؟' : 'Got something to sell?'}

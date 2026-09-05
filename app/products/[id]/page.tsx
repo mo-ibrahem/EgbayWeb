@@ -17,6 +17,8 @@ import { useAuth } from '@/components/AuthProvider';
 import { useLanguage } from '@/components/LanguageProvider';
 import { ProductJsonLd } from '@/components/JsonLd';
 import SellerBadge from '@/components/ui/SellerBadge';
+import { StarRow } from '@/components/ui/StarRating';
+import { getProductReviews, type Review } from '@/lib/reviews';
 import Button from '@/components/ui/Button';
 import { SkeletonBlock } from '@/components/ui/Skeleton';
 
@@ -60,6 +62,22 @@ export default function ProductDetailPage() {
   const [wishlisted, setWishlisted] = useState(false);
   const [chatLoading, setChatLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [productReviews, setProductReviews] = useState<Review[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(true);
+
+  // Non-fatal on purpose: if reviews fail to load, the listing still
+  // renders. A buyer losing the page because the reviews query broke is
+  // a far worse outcome than a missing reviews block.
+  useEffect(() => {
+    if (!product?.id) return;
+    let cancelled = false;
+    setReviewsLoading(true);
+    getProductReviews(product.id)
+      .then((rs) => { if (!cancelled) setProductReviews(rs); })
+      .catch((e) => console.error('[Product] Failed to load reviews:', e))
+      .finally(() => { if (!cancelled) setReviewsLoading(false); });
+    return () => { cancelled = true; };
+  }, [product?.id]);
 
   useEffect(() => {
     if (!id) return;
@@ -356,6 +374,71 @@ export default function ProductDetailPage() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Reviews for this specific listing.
+            Deliberately separate from the seller's overall record: a
+            buyer deciding on this item wants to know what previous
+            buyers of *this* item said, and a listing with stock above 1
+            can collect several. The seller's wider record is one click
+            away rather than conflated with it. */}
+        <div className="mt-12 pt-8 border-t border-slate-200">
+          <div className="flex items-baseline justify-between gap-3 mb-4">
+            <h2 className="text-base font-black text-slate-900">
+              {isRTL ? 'تقييمات هذا المنتج' : 'Reviews for this item'}
+            </h2>
+            <Link href={`/seller/${product.seller_id}`} className="text-xs font-bold text-brand hover:underline flex-shrink-0">
+              {isRTL ? 'سجل البائع كامل' : "The seller's full record"}
+            </Link>
+          </div>
+
+          {reviewsLoading ? (
+            <SkeletonBlock className="h-24 rounded-lg" />
+          ) : productReviews.length > 0 ? (
+            <div className="bg-white rounded-lg border border-slate-200 divide-y divide-slate-100">
+              {productReviews.map((r) => (
+                <div key={r.id} className="p-4 sm:p-5">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-xs font-bold text-slate-900 truncate">
+                      {r.reviewer_name || (isRTL ? 'مشترٍ في إيجي باي' : 'Egbay buyer')}
+                    </p>
+                    <span className="text-[11px] text-slate-400 flex-shrink-0">{timeAgo(r.created_at, isRTL)}</span>
+                  </div>
+                  <div className="mt-2">
+                    <StarRow rating={r.rating} size="sm" />
+                  </div>
+                  {r.comment && (
+                    <p className="text-sm text-slate-700 mt-2 leading-relaxed">{r.comment}</p>
+                  )}
+                  {r.seller_response && (
+                    <div className="mt-3 pl-3 border-l-2 border-brand/30 rtl:pl-0 rtl:pr-3 rtl:border-l-0 rtl:border-r-2">
+                      <p className="text-[11px] font-bold text-brand">{isRTL ? 'رد البائع' : "Seller's response"}</p>
+                      <p className="text-xs text-slate-600 mt-1 leading-relaxed">{r.seller_response}</p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            /* An empty review list is a fact, not a warning. It says why
+               it's empty and what it would take to fill it, rather than
+               leaving a buyer to read "no reviews" as a bad sign. */
+            <div className="bg-white rounded-lg border border-slate-200 p-5">
+              <p className="text-sm font-semibold text-slate-800">
+                {isRTL ? 'لا توجد تقييمات على هذا المنتج بعد' : 'No reviews on this item yet'}
+              </p>
+              <p className="text-xs text-slate-500 mt-1.5 leading-relaxed max-w-prose">
+                {isRTL
+                  ? 'التقييم متاح فقط بعد إتمام عملية شراء وتأكيد الاستلام، فلا يمكن أن يكون التقييم هنا مزيفاً.'
+                  : 'A review can only be left by someone who bought this item and confirmed they received it, so nothing here can be faked.'}
+              </p>
+              {(product.seller?.rating_count ?? 0) > 0 && (
+                <Link href={`/seller/${product.seller_id}`} className="text-xs font-bold text-brand hover:underline inline-block mt-2.5">
+                  {isRTL ? 'اطّلع على تقييمات البائع الأخرى' : 'Read what buyers said about this seller'}
+                </Link>
+              )}
+            </div>
+          )}
         </div>
 
         {similar.length > 0 && (

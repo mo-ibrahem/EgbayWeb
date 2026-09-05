@@ -25,14 +25,7 @@ export interface Review {
  * throughout this codebase (lib/products.ts's seller map, the profile
  * page's chat list) rather than inventing a new one here.
  */
-export async function getSellerReviews(sellerId: string, limit = 50): Promise<Review[]> {
-  const { data: reviews, error } = await supabase
-    .from('reviews')
-    .select('*')
-    .eq('seller_id', sellerId)
-    .order('created_at', { ascending: false })
-    .limit(limit);
-  if (error) throw error;
+async function hydrateReviews(reviews: Review[] | null): Promise<Review[]> {
   if (!reviews || reviews.length === 0) return [];
 
   const reviewerIds = [...new Set(reviews.map(r => r.reviewer_id))];
@@ -51,6 +44,37 @@ export async function getSellerReviews(sellerId: string, limit = 50): Promise<Re
     reviewer_avatar: profiles?.find(p => p.id === r.reviewer_id)?.avatar_url,
     product_title: products?.find(p => p.id === r.product_id)?.title,
   }));
+}
+
+export async function getSellerReviews(sellerId: string, limit = 50): Promise<Review[]> {
+  const { data: reviews, error } = await supabase
+    .from('reviews')
+    .select('*')
+    .eq('seller_id', sellerId)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return hydrateReviews(reviews);
+}
+
+/**
+ * Reviews left on one specific listing.
+ *
+ * Distinct from getSellerReviews, which returns everything a seller has
+ * ever been reviewed for. Someone deciding on this item wants to know
+ * what previous buyers of *this* item said; a seller with a good record
+ * across other listings doesn't answer that. A listing with stock above
+ * 1 can be bought repeatedly, so this legitimately returns several.
+ */
+export async function getProductReviews(productId: string, limit = 20): Promise<Review[]> {
+  const { data: reviews, error } = await supabase
+    .from('reviews')
+    .select('*')
+    .eq('product_id', productId)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return hydrateReviews(reviews);
 }
 
 /** Whether the current user has already reviewed this order, and what they said. */
