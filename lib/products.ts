@@ -73,6 +73,32 @@ export function promotionRank(product: Pick<Product, 'is_promoted' | 'promoted_u
   return 0;
 }
 
+/**
+ * How complete a listing is, 0-2. Used as a tiebreaker in the default
+ * homepage order, below boost rank and above recency.
+ *
+ * Not a quality or taste judgement, and it hides nothing: every listing
+ * still appears, and an explicit price sort ignores this entirely. It
+ * only asks whether the seller finished writing the listing. A stub with
+ * no photo and a three-character description tells a buyer nothing, and
+ * surfacing those above a listing with real photos and a real
+ * description makes the whole catalogue look abandoned -- which is
+ * exactly what was happening: of twelve live listings, five were
+ * placeholder stubs and several outranked the real ones on recency
+ * alone.
+ *
+ * Both signals are objective and seller-fixable: add a photo, write a
+ * description. Neither is about how good the item is.
+ */
+export function listingCompleteness(
+  product: Pick<Product, 'images' | 'description'>,
+): number {
+  let score = 0;
+  if (product.images && product.images.length > 0) score += 1;
+  if ((product.description || '').trim().length >= 20) score += 1;
+  return score;
+}
+
 // ─── Fast In-Memory Cache with Stale-While-Revalidate ─────────────────────────
 const productCache = new Map<string, { data: Product[]; timestamp: number }>();
 const singleProductCache = new Map<string, { data: Product; timestamp: number }>();

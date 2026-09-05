@@ -8,7 +8,7 @@ import {
   LayoutGrid, Smartphone, Shirt, Home, Baby, Dumbbell, BookOpen,
   Car, Video, Package, Tag, Sparkles, ArrowRight, Wallet,
 } from 'lucide-react';
-import { productService, promotionRank, type Product } from '@/lib/products';
+import { productService, promotionRank, listingCompleteness, type Product } from '@/lib/products';
 import { getActiveLiveSessions, type LiveSession } from '@/lib/liveService';
 import { useAuth } from '@/components/AuthProvider';
 import { useLanguage } from '@/components/LanguageProvider';
@@ -98,11 +98,22 @@ function HomeFeedContent() {
     else if (sortKey === 'price_desc') list.sort((a, b) => b.price - a.price);
     else {
       // 'newest': boosted listings rank first (Turbo > Featured > Urgent,
-      // this is the entire product effect sellers are paying for), tied
-      // within a tier by the existing created_at desc query order. An
-      // explicit price sort is left alone -- someone sorting by price
-      // wants price order, not a boosted item jumping the queue.
-      list.sort((a, b) => promotionRank(b) - promotionRank(a));
+      // this is the entire product effect sellers are paying for), then
+      // finished listings above stubs, then the existing created_at desc
+      // query order. An explicit price sort is left alone -- someone
+      // sorting by price wants price order, not a boosted item jumping
+      // the queue.
+      //
+      // Recency alone was putting placeholder listings -- no photo, a
+      // three-character description -- above listings with real photos
+      // and real descriptions, which made the whole catalogue read as
+      // abandoned. Completeness is a tiebreaker below boost, never a
+      // filter: nothing is hidden, and sort is stable so listings that
+      // tie stay newest-first.
+      list.sort((a, b) =>
+        (promotionRank(b) - promotionRank(a)) ||
+        (listingCompleteness(b) - listingCompleteness(a))
+      );
     }
     return list;
   }, [products, sortKey]);
