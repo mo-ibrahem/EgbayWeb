@@ -183,24 +183,45 @@ function HomeFeedContent() {
               stripping out. It disappears once browsing starts -- someone
               who has already committed shouldn't be re-pitched. */}
           <section className="bg-ink text-white rounded-xl p-6 sm:p-10">
-            <div className="max-w-2xl">
-              <h1 className="text-3xl sm:text-[2.75rem] font-black tracking-tight leading-[1.1] text-balance">
-                {isRTL
-                  ? 'ادفع أونلاين من غير ما تثق في حد'
-                  : 'Pay online without trusting a stranger'}
-              </h1>
-              <p className="text-sm sm:text-base text-slate-300 mt-3.5 leading-relaxed">
-                {isRTL
-                  ? 'إيجي باي بيمسك الفلوس لحد ما المنتج يبقى في إيدك. لو مجاش، بتسترد فلوسك.'
-                  : 'Egbay holds the money until the item is in your hands. If it never arrives, you get it back.'}
-              </p>
+            {/* Headline and actions share the top row. Capping the
+                headline at max-w-2xl inside a full-bleed section left
+                the right half of the hero as empty navy on a wide
+                screen; the actions now occupy it instead of sitting
+                below in more dead space. */}
+            <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-7">
+              <div className="max-w-2xl">
+                <h1 className="text-3xl sm:text-[2.75rem] font-black tracking-tight leading-[1.1] text-balance">
+                  {isRTL
+                    ? 'ادفع أونلاين من غير ما تثق في حد'
+                    : 'Pay online without trusting a stranger'}
+                </h1>
+                <p className="text-sm sm:text-base text-slate-300 mt-3.5 leading-relaxed">
+                  {isRTL
+                    ? 'إيجي باي بيمسك الفلوس لحد ما المنتج يبقى في إيدك. لو مجاش، بتسترد فلوسك.'
+                    : 'Egbay holds the money until the item is in your hands. If it never arrives, you get it back.'}
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2.5 flex-shrink-0">
+                <Button href="#browse" size="lg" icon={<Search className="w-4 h-4" />}>
+                  {catalogue.length > 0
+                    ? (isRTL ? `تصفح ${catalogue.length} إعلان` : `Browse ${catalogue.length} listings`)
+                    : (isRTL ? 'تصفح المعروض' : 'Browse listings')}
+                </Button>
+                <Link
+                  href={user ? '/sell' : '/signup'}
+                  className="inline-flex items-center gap-1.5 text-sm font-bold text-slate-300 hover:text-white transition-colors px-2 py-2"
+                >
+                  <Tag className="w-4 h-4" />
+                  {isRTL ? 'ابدأ البيع' : 'Start selling'}
+                </Link>
+              </div>
             </div>
 
             {/* The sequence. Numbered because it genuinely is one -- the
                 money cannot reach the seller before the buyer confirms --
                 not as decoration. Logical-property mirroring via rtl:
                 variants so the track reads right-to-left in Arabic. */}
-            <ol className="mt-8 sm:mt-10 grid grid-cols-2 lg:grid-cols-4 gap-y-7 gap-x-5 lg:gap-x-0">
+            <ol className="mt-9 sm:mt-11 pt-8 border-t border-white/10 grid grid-cols-2 lg:grid-cols-4 gap-y-8 gap-x-6 lg:gap-x-0">
               {[
                 { t: isRTL ? 'إنت بتدفع' : 'You pay',
                   b: isRTL ? 'فلوسك بتروح لإيجي باي، مش للبائع.' : 'Your money goes to Egbay, not to the seller.' },
@@ -215,34 +236,19 @@ function HomeFeedContent() {
                   {i < arr.length - 1 && (
                     <span
                       aria-hidden
-                      className="hidden lg:block absolute top-[9px] left-5 right-0 rtl:left-0 rtl:right-5 h-px bg-white/15"
+                      className="hidden lg:block absolute top-3 left-7 right-0 rtl:left-0 rtl:right-7 h-px bg-white/15"
                     />
                   )}
                   <span className="relative flex items-center gap-2">
-                    <span className="w-[18px] h-[18px] rounded-full bg-brand flex items-center justify-center text-[10px] font-black text-white tabular-nums flex-shrink-0">
+                    <span className="w-6 h-6 rounded-full bg-brand flex items-center justify-center text-[11px] font-black text-white tabular-nums flex-shrink-0">
                       {i + 1}
                     </span>
                   </span>
-                  <p className="text-sm font-bold text-white mt-3">{step.t}</p>
-                  <p className="text-xs text-slate-400 mt-1 leading-relaxed">{step.b}</p>
+                  <p className="text-[15px] font-bold text-white mt-3.5">{step.t}</p>
+                  <p className="text-[13px] text-slate-400 mt-1.5 leading-relaxed max-w-[15rem]">{step.b}</p>
                 </li>
               ))}
             </ol>
-
-            <div className="flex flex-wrap items-center gap-2.5 mt-9">
-              <Button href="#browse" size="lg" icon={<Search className="w-4 h-4" />}>
-                {catalogue.length > 0
-                  ? (isRTL ? `تصفح ${catalogue.length} إعلان` : `Browse ${catalogue.length} listings`)
-                  : (isRTL ? 'تصفح المعروض' : 'Browse listings')}
-              </Button>
-              <Link
-                href={user ? '/sell' : '/signup'}
-                className="inline-flex items-center gap-1.5 text-sm font-bold text-slate-300 hover:text-white transition-colors px-2 py-2"
-              >
-                <Tag className="w-4 h-4" />
-                {isRTL ? 'ابدأ البيع' : 'Start selling'}
-              </Link>
-            </div>
           </section>
 
           {/* Live-now teaser — only rendered when a session is genuinely
@@ -279,7 +285,7 @@ function HomeFeedContent() {
                   the touch target on mobile, and fits six across on
                   desktop instead of four -- so a short category list
                   fills its row instead of trailing off into dead space. */}
-              <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2.5">
+              <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-[repeat(auto-fit,minmax(7rem,1fr))] gap-2.5">
                 {categories.map(({ id, count, meta }) => {
                   const Icon = meta.icon;
                   return (
