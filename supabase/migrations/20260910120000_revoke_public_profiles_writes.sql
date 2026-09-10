@@ -1,0 +1,37 @@
+-- public_profiles was writable by anyone holding the publishable anon key.
+--
+-- The view is a plain (non-security_invoker) view owned by postgres, selecting
+-- seven columns straight out of user_profiles. That makes it auto-updatable, and
+-- anon + authenticated had been granted INSERT, UPDATE, DELETE and TRUNCATE on it
+-- alongside SELECT. Writes through a non-security_invoker view execute as the view
+-- owner, and user_profiles has relforcerowsecurity = false, so postgres bypasses
+-- its RLS entirely.
+--
+-- Net effect: any client could rewrite ANY user's row -- is_verified_seller, tier,
+-- rating_avg, rating_count -- not just their own. On a marketplace whose product is
+-- trust, self-granted verification is about as bad as it gets. Confirmed
+-- exploitable, not merely structurally possible: in a rolled-back transaction an
+-- authenticated user successfully set another user's is_verified_seller = true and
+-- tier = 3 through the view.
+--
+-- Only the write grants are removed. security_invoker is deliberately NOT enabled:
+-- this view is the public read gateway, and the read side depends on the owner's
+-- privileges. Measured in a rolled-back transaction:
+--
+--   anon, today ............................. 26 rows
+--   anon, with security_invoker = on ......... 0 rows
+--   authenticated, with security_invoker = on . 1 row (own only)
+--
+-- because user_profiles' only SELECT policy is "Allow public read access to all
+-- profiles" -- named misleadingly, since it is USING (auth.uid() = id) and granted
+-- to authenticated alone, with no policy for anon at all. Turning security_invoker
+-- on would blank every seller name, avatar, rating and reviewer name across web and
+-- mobile, and break logged-out browsing outright. The owner-privileged view is the
+-- deliberate read gateway; the bug was only ever the write grants sitting beside it.
+--
+-- Nothing writes through the view: the web app and the mobile app both use it
+-- read-only, and profile edits go directly to user_profiles under its own
+-- USING (auth.uid() = id) policy. Verified after applying that anon still reads 26
+-- rows and a user can still edit their own profile.
+
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON public.public_profiles FROM anon, authenticated;
