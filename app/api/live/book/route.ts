@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
+import { requireCommerce } from '@/lib/commerceGuard';
 import { createSupabaseAdmin } from '@/lib/adminAuth';
 
 // Books a live session: charges the seller's wallet for the pass tier and
@@ -18,6 +19,8 @@ import { createSupabaseAdmin } from '@/lib/adminAuth';
 // the build environment.
 export async function POST(req: Request) {
   try {
+    const disabled = await requireCommerce();
+    if (disabled) return disabled;
     const supabaseAdmin = createSupabaseAdmin();
     const authHeader = req.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {

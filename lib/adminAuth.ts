@@ -46,5 +46,14 @@ export function createSupabaseAdmin() {
   if (!supabaseKey) {
     throw new Error('SUPABASE_SERVICE_ROLE_KEY is not configured');
   }
-  return createClient(supabaseUrl, supabaseKey);
+  const client = createClient(supabaseUrl, supabaseKey);
+  const getUser = client.auth.getUser.bind(client.auth);
+  client.auth.getUser = async (jwt?: string) => {
+    const result = await getUser(jwt);
+    if (!result.data.user) return result;
+    const { data: active, error } = await client.rpc('account_is_active', { p_user_id: result.data.user.id });
+    if (error || active !== true) return { data: { user: null }, error: null } as typeof result;
+    return result;
+  };
+  return client;
 }
