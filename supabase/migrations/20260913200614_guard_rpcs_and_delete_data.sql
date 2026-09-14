@@ -855,3 +855,4 @@ END $$;
 REVOKE ALL ON FUNCTION public.purge_account_data(uuid) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.purge_account_data(uuid) TO service_role;
 COMMIT;
+;

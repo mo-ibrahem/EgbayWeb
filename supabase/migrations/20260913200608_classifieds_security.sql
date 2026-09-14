@@ -173,3 +173,4 @@ $$;
 REVOKE ALL ON FUNCTION public.account_storage_objects(uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.account_storage_objects(uuid) TO service_role;
 COMMIT;
+;

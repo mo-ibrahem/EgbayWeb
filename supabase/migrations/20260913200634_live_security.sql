@@ -37,3 +37,4 @@ REVOKE ALL ON FUNCTION public.validate_live_transition() FROM PUBLIC,anon,authen
 DROP TRIGGER IF EXISTS validate_live_transition ON public.live_sessions;
 CREATE TRIGGER validate_live_transition BEFORE UPDATE ON public.live_sessions
 FOR EACH ROW EXECUTE FUNCTION public.validate_live_transition();
+;

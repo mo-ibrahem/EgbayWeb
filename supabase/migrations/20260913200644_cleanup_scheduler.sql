@@ -1,5 +1,4 @@
 -- Hosting-only scheduler; core authorization/deletion SQL is tested in PGlite.
-BEGIN;
 CREATE OR REPLACE FUNCTION public.process_paymob_topup(p_merchant_order_id text, p_paymob_tx_id bigint, p_amount_cents bigint, p_currency text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -110,4 +109,4 @@ BEGIN
  LOOP EXECUTE format('DROP TRIGGER %I ON public.products',t.tgname); END LOOP;
 END $$;
 SELECT cron.schedule('egbay-retry-cleanup','* * * * *','SELECT public.dispatch_cleanup_jobs()');
-COMMIT;
+;

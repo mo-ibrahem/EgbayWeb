@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "prebuild": "node scripts/check-public-env.cjs",
+    "typecheck": "tsc --noEmit",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",

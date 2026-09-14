@@ -71,21 +71,21 @@ Data is shared strictly with authorized infrastructure partners necessary to ful
       id: 'rights',
       icon: Trash2,
       title: '5. Your Rights & Account Deletion (حقوق المستخدم)',
-      content: `Under Law No. 151 of 2020 and Apple App Store guidelines, you have total control over your data:
+      content: `You can request access, corrections, and deletion of your account data:
 
 • Right to Access & Rectify: You can review and edit your profile details at any time in Profile Settings.
 • Right to Data Portability: Request an export of your order history, transaction records, and listing data.
 • Right to Permanent Erasure (Account Deletion):
-  1. In-App: Go to Profile → Settings → "Delete Account & Purge Data".
+  1. In the mobile app: open your profile settings and choose Delete Account.
   2. By Email: Send a deletion request to info@egbay.shop from your registered email.
-  Upon request, all personal identifiers, active sessions, and uploaded documents are permanently purged within 72 hours, retaining only non-identifiable financial ledger records required by Egyptian commercial tax law.`,
+  Access is disabled when deletion starts. The cleanup worker removes uploaded files, your messages, profile and auth account, retrying automatically each minute if a service is unavailable. The mobile app provides a completion status. Transaction records are retained without your account identity; other participants keep their own messages. Backups follow the hosting provider’s backup lifecycle. Contact support if cleanup remains pending.`,
     },
     {
       id: 'security',
       icon: CheckCircle2,
       title: '6. Security Architecture & Encryption',
-      content: `• All traffic between your browser and our servers is encrypted using 256-bit TLS/SSL certificates.
-• Database Row-Level Security (RLS) guarantees that only you and your counterparty can read private chat messages.
+      content: `• Connections to our services use HTTPS/TLS.
+• Database access controls restrict private chats and orders. No system can guarantee absolute security.
 • National ID documents and verification media are stored in isolated private S3-compatible object storage with signed, expiring URLs.`,
     },
   ];
@@ -153,20 +153,20 @@ Data is shared strictly with authorized infrastructure partners necessary to ful
       id: 'rights',
       icon: Trash2,
       title: '٥. حقوقك وحذف الحساب نهائياً (Account Deletion)',
-      content: `وفقاً لقانون حماية البيانات الشخصية رقم ١٥١ وإرشادات آبل:
+      content: `يمكنك طلب الوصول إلى بياناتك وتصحيحها وحذف حسابك:
 
 • حق الوصول والتعديل: يمكنك تعديل بياناتك الشخصية وإعلاناتك في أي وقت عبر صفحة الملف الشخصي.
 • حق نقل البيانات: يمكنك طلب نسخة كاملة من سجل معاملاتك وبياناتك المسجلة.
 • حق الحذف النهائي للحساب والبيانات:
-  ١. عبر التطبيق والموقع: الملف الشخصي ← الإعدادات ← "حذف الحساب نهائياً".
+  ١. عبر تطبيق الهاتف: الملف الشخصي ← الإعدادات ← حذف الحساب.
   ٢. عبر البريد الإلكتروني: مراسلتنا على info@egbay.shop من البريد المسجل.
-  يتم مسح جميع بياناتك الشخصية ووثائقك وصورك نهائياً خلال ٧٢ ساعة من تاريخ الطلب.`,
+  يتوقف الوصول إلى الحساب عند بدء الحذف. تُحذف الملفات المرفوعة ورسائلك وملفك الشخصي وحساب تسجيل الدخول، وتُعاد محاولة التنظيف تلقائياً كل دقيقة عند تعذر إحدى الخدمات. يعرض تطبيق الهاتف حالة اكتمال الحذف. تبقى سجلات المعاملات دون ربطها بحسابك ويحتفظ الآخرون برسائلهم. تخضع النسخ الاحتياطية لدورة الاحتفاظ لدى مزود الاستضافة. تواصل معنا إذا استمر الانتظار.`,
     },
     {
       id: 'security',
       icon: CheckCircle2,
       title: '٦. معايير الأمان والتشفير',
-      content: `• يتم تشفير جميع الاتصالات عبر شهادات SSL/TLS 256-bit عالية الأمان.
+      content: `• تستخدم الاتصالات بخدماتنا بروتوكول HTTPS/TLS.
 • المحادثات الخاصة بين المشترين والبائعين محمية بقواعد الأمان الصارمة على مستوى الصفوف (RLS).
 • مستندات إثبات الشخصية تخضع لمستويات حماية مشددة مع روابط مؤقتة ومنتهية الصلاحية.`,
     },
@@ -212,7 +212,7 @@ Data is shared strictly with authorized infrastructure partners necessary to ful
               {isRTL ? 'معايير Apple 5.1' : 'Apple 5.1 Privacy Ready'}
             </h4>
             <p className="text-[11px] text-gray-500">
-              {isRTL ? 'حذف فوري للحساب والبيانات' : 'Instant account & data deletion'}
+              {isRTL ? 'حذف الحساب والبيانات' : 'Account & data deletion'}
             </p>
           </div>
         </div>

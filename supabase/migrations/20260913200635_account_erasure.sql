@@ -1,6 +1,5 @@
 -- Detach deleted identities from retained transaction records without deleting
 -- orders/ledgers or changing counterparty balances. Personal content is erased.
-BEGIN;
 DO $$
 DECLARE item text[]; constraint_name text;
 BEGIN
@@ -26,4 +25,4 @@ RETURNS TABLE(status text,completed_at timestamptz) LANGUAGE sql STABLE SECURITY
 $$;
 REVOKE ALL ON FUNCTION public.account_deletion_status(uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.account_deletion_status(uuid) TO anon,authenticated,service_role;
-COMMIT;
+;

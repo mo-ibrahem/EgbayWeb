@@ -13,3 +13,4 @@ END $$;
 UPDATE auth.users u SET banned_until=now()+interval '100 years'
 WHERE u.banned_until='infinity'::timestamptz AND EXISTS(
  SELECT 1 FROM public.account_deletion_jobs j WHERE j.user_id=u.id);
+;
