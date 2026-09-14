@@ -1,7 +1,6 @@
 export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
-import { requireCommerce } from '@/lib/commerceGuard';
 import { randomInt } from 'node:crypto';
 import { encryptPin, decryptPin } from '@/lib/encryption';
 import { createSupabaseAdmin } from '@/lib/adminAuth';
@@ -116,8 +115,6 @@ export async function POST(req: Request) {
 
     // Action 1: Create Order
     if (action === 'create' && orderData) {
-      const disabled = await requireCommerce();
-      if (disabled) return disabled;
       // 1. Generate secure PIN server-side
       const randomPin = randomInt(100000, 1000000).toString();
       const pinHash = await bcrypt.hash(randomPin, 10);

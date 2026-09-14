@@ -1,158 +1,60 @@
-// Supabase Edge Function: generate-agora-token
-// Deploy with: supabase functions deploy generate-agora-token
-//
-// Required environment variables in Supabase Dashboard → Settings → Edge Functions:
-//   AGORA_APP_ID     → Your Agora App ID (from console.agora.io)
-//   AGORA_APP_CERT   → Your Agora App Certificate (keep this SECRET, never in client code)
+// Replaces the unauthorised, hand-written token generator inspected in production.
+// Requires the blocking migration and Agora co-host authentication configuration.
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { RtcTokenBuilder, RtcRole } from 'npm:agora-token@2.0.6';
 
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-
-const corsHeaders = {
+const headers = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Content-Type': 'application/json',
+  'Cache-Control': 'no-store',
 };
+const reply = (status: number, error: string) => new Response(JSON.stringify({ error }), { status, headers });
 
-// ── Agora RtcTokenBuilder (inline — no external dep needed) ───────────────
-// Reference: https://github.com/AgoraIO/Tools/tree/master/DynamicKey/AgoraDynamicKey
+Deno.serve(async (req: Request) => {
+  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers });
+  if (req.method !== 'POST') return reply(405, 'Method not allowed');
+  const authorization = req.headers.get('authorization');
+  if (!authorization?.startsWith('Bearer ')) return reply(401, 'Authentication required');
+  const url = Deno.env.get('SUPABASE_URL');
+  const key = Deno.env.get('SUPABASE_ANON_KEY');
+  const appId = Deno.env.get('AGORA_APP_ID');
+  const certificate = Deno.env.get('AGORA_APP_CERT');
+  // Subscriber privileges require this provider feature. Only set after it has
+  // actually been enabled and tested in Agora; a flag does not enable it.
+  if (!url || !key || !appId || !certificate ||
+      Deno.env.get('AGORA_CO_HOST_AUTH_ENABLED') !== 'true') return reply(503, 'Live video is temporarily unavailable');
 
-function intToLittleEndianBytes(value: number): Uint8Array {
-  const buf = new Uint8Array(4);
-  buf[0] = value & 0xff;
-  buf[1] = (value >> 8) & 0xff;
-  buf[2] = (value >> 16) & 0xff;
-  buf[3] = (value >> 24) & 0xff;
-  return buf;
-}
-
-function packContent(items: Uint8Array[]): Uint8Array {
-  let total = 0;
-  for (const item of items) total += 2 + item.length;
-  const buf = new Uint8Array(total);
-  let offset = 0;
-  for (const item of items) {
-    buf[offset++] = item.length & 0xff;
-    buf[offset++] = (item.length >> 8) & 0xff;
-    buf.set(item, offset);
-    offset += item.length;
-  }
-  return buf;
-}
-
-async function buildRtcToken(
-  appId: string,
-  appCert: string,
-  channelName: string,
-  uid: number,
-  role: number, // 1 = Publisher (host), 2 = Subscriber (audience)
-  expireTs: number
-): Promise<string> {
-  const encoder = new TextEncoder();
-
-  const version = '006';
-  const msgTs = Math.floor(Date.now() / 1000);
-  const salt = Math.floor(Math.random() * 0xffffffff);
-
-  // Privileges
-  const privileges: Record<number, number> = {};
-  if (role === 1) {
-    privileges[1] = expireTs; // kJoinChannel
-    privileges[2] = expireTs; // kPublishAudioStream
-    privileges[3] = expireTs; // kPublishVideoStream
-    privileges[5] = expireTs; // kPublishDataStream
-  } else {
-    privileges[1] = expireTs; // kJoinChannel only
-    privileges[7] = expireTs; // kSubscribeVideoStream
-    privileges[8] = expireTs; // kSubscribeAudioStream
-  }
-
-  // Build message
-  const msgParts: Uint8Array[] = [
-    intToLittleEndianBytes(salt),
-    intToLittleEndianBytes(msgTs),
-    intToLittleEndianBytes(expireTs),
-  ];
-
-  // Privileges map
-  const privEntries = Object.entries(privileges);
-  const privBuf = new Uint8Array(2 + privEntries.length * 6);
-  let o = 0;
-  privBuf[o++] = privEntries.length & 0xff;
-  privBuf[o++] = (privEntries.length >> 8) & 0xff;
-  for (const [k, v] of privEntries) {
-    const key = parseInt(k);
-    privBuf[o++] = key & 0xff;
-    privBuf[o++] = (key >> 8) & 0xff;
-    privBuf[o++] = v & 0xff;
-    privBuf[o++] = (v >> 8) & 0xff;
-    privBuf[o++] = (v >> 16) & 0xff;
-    privBuf[o++] = (v >> 24) & 0xff;
-  }
-  msgParts.push(privBuf);
-
-  const msgContent = packContent(msgParts);
-
-  // Signing string
-  const uidStr = uid === 0 ? '' : String(uid);
-  const sigStr = encoder.encode(appId + channelName + uidStr);
-  const sigBuf = new Uint8Array([...sigStr, ...intToLittleEndianBytes(msgTs), ...intToLittleEndianBytes(salt), ...msgContent]);
-
-  // HMAC-SHA256 signature
-  const key = await crypto.subtle.importKey('raw', encoder.encode(appCert), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
-  const sigBytes = new Uint8Array(await crypto.subtle.sign('HMAC', key, sigBuf));
-
-  // Build token
-  const tokenParts = [
-    encoder.encode(appId),
-    encoder.encode(uidStr),
-    encoder.encode(channelName),
-    sigBytes,
-    msgContent,
-  ];
-  const tokenContent = packContent(tokenParts);
-
-  const base64 = btoa(String.fromCharCode(...tokenContent));
-  return version + base64;
-}
-
-// ── Handler ───────────────────────────────────────────────
-
-serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
-  }
-
+  const client = createClient(url, key, {
+    global: { headers: { Authorization: authorization } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
   try {
-    const { channelName, uid, role } = await req.json();
-
-    if (!channelName || uid === undefined || !role) {
-      return new Response(JSON.stringify({ error: 'Missing channelName, uid, or role' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const appId = Deno.env.get('AGORA_APP_ID');
-    const appCert = Deno.env.get('AGORA_APP_CERT');
-
-    if (!appId || !appCert) {
-      throw new Error('AGORA_APP_ID and AGORA_APP_CERT must be set in Edge Function environment');
-    }
-
-    // Token expires in 3 hours for hosts, 2 hours for viewers
-    const expirySeconds = role === 'host' ? 10800 : 7200;
-    const expireTs = Math.floor(Date.now() / 1000) + expirySeconds;
-    const agoraRole = role === 'host' ? 1 : 2;
-
-    const token = await buildRtcToken(appId, appCert, channelName, uid, agoraRole, expireTs);
-
-    return new Response(JSON.stringify({ token, channel: channelName, expireTs }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  } catch (err) {
-    return new Response(JSON.stringify({ error: (err as Error).message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    const { data: { user }, error: authError } = await client.auth.getUser(authorization.slice(7));
+    if (authError || !user) return reply(401, 'Authentication required');
+    let input;
+    try { input = await req.json(); } catch { return reply(400, 'Invalid JSON'); }
+    const { channelName, uid, role } = input ?? {};
+    if (typeof channelName !== 'string' || !/^[A-Za-z0-9_-]{1,63}$/.test(channelName) ||
+        !Number.isInteger(uid) || uid < 1 || uid > 4294967295 ||
+        (role !== 'host' && role !== 'audience')) return reply(400, 'Invalid live session request');
+    const { data: session, error } = await client.from('live_sessions')
+      .select('seller_id,status,wallet_charge_id,pass_price_egp')
+      .eq('agora_channel', channelName).maybeSingle();
+    if (error) return reply(503, 'Live video is temporarily unavailable');
+    if (!session || session.status !== 'live' || (session.pass_price_egp !== 0 && !session.wallet_charge_id))
+      return reply(403, 'This live session is unavailable');
+    if (role === 'host' && session.seller_id !== user.id)
+      return reply(403, 'Only the session owner may broadcast');
+    const { data: permitted, error: permissionError } = await client.rpc('can_interact_with', { p_other: session.seller_id });
+    if (permissionError) return reply(503, 'Live video is temporarily unavailable');
+    if (permitted !== true) return reply(403, 'This live session is unavailable');
+    const ttl = 7200;
+    const token = RtcTokenBuilder.buildTokenWithUid(appId, certificate, channelName, uid,
+      role === 'host' ? RtcRole.PUBLISHER : RtcRole.SUBSCRIBER, ttl, ttl);
+    if (!token) return reply(503, 'Live video is temporarily unavailable');
+    return new Response(JSON.stringify({ token, channel: channelName, expireTs: Math.floor(Date.now()/1000)+ttl }), { headers });
+  } catch {
+    return reply(503, 'Live video is temporarily unavailable');
   }
 });

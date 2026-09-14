@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
+import Link from 'next/link';
 import { ShieldCheck, ShieldAlert, Loader2, CheckCircle2, XCircle, ExternalLink, Wallet, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -160,6 +161,7 @@ function AdminContent() {
       <div className="flex items-center gap-2 mb-6">
         <ShieldCheck className="w-6 h-6 text-blue-600" />
         <h1 className="text-xl font-black text-slate-900">Egbay Admin</h1>
+        <Link href="/admin/reports" className="ml-auto text-blue-700 font-semibold">Content reports</Link>
       </div>
 
       <div className="flex gap-2 mb-6 border-b border-slate-200">

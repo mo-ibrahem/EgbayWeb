@@ -1,7 +1,6 @@
 export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
-import { requireCommerce } from '@/lib/commerceGuard';
 import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 
@@ -16,8 +15,6 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export async function POST(req: Request) {
   try {
-    const disabled = await requireCommerce();
-    if (disabled) return disabled;
     if (!supabaseServiceKey) {
       console.error('[API wallet/topup/create] Missing SUPABASE_SERVICE_ROLE_KEY credential.');
       return NextResponse.json({ success: false, error: 'Server misconfiguration: Missing required backend credential' }, { status: 500 });

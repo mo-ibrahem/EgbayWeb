@@ -20,7 +20,7 @@ async function getAuthenticatedUser(req: Request, supabaseAdmin: SupabaseClient)
   return user;
 }
 
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     // 1. Strict Environment Guard
     if (process.env.NODE_ENV === 'production') {
@@ -31,7 +31,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     }
 
     const supabaseAdmin = createSupabaseAdmin();
-    const { id: orderId } = params;
+    const { id: orderId } = await params;
 
     // 2. Authentication Guard
     const user = await getAuthenticatedUser(req, supabaseAdmin);

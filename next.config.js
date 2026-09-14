@@ -8,8 +8,7 @@ const nextConfig = {
         pathname: '/storage/v1/object/public/**',
       },
     ],
-    // Support HEIC and other formats by disabling optimization for those
-    dangerouslyAllowSVG: true,
+    // User uploads do not need executable SVG image support.
     contentDispositionType: 'attachment',
     formats: ['image/webp', 'image/avif'],
   },

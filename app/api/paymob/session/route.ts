@@ -1,6 +1,5 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
-import { requireCommerce } from '@/lib/commerceGuard';
 import { createSupabaseAdmin } from '@/lib/adminAuth';
 
 // No hardcoded fallback IDs here on purpose -- a wrong-but-numeric
@@ -22,8 +21,6 @@ const PAYMOB_IFRAME_ID = process.env.PAYMOB_IFRAME_ID || process.env.NEXT_PUBLIC
 // payment-processing endpoint's permissions instead of failing loudly.
 export async function POST(req: Request) {
   try {
-    const disabled = await requireCommerce();
-    if (disabled) return disabled;
     if (!PAYMOB_API_KEY || !PAYMOB_INTEGRATION_ID_RAW || !PAYMOB_IFRAME_ID || Number.isNaN(PAYMOB_INTEGRATION_ID)) {
       console.error('[API paymob/session] Missing/invalid Paymob credentials (PAYMOB_API_KEY / PAYMOB_INTEGRATION_ID / PAYMOB_IFRAME_ID).');
       return NextResponse.json({ success: false, error: 'Card payments are temporarily unavailable. Please try again shortly or pay with your Egbay wallet.' }, { status: 500 });

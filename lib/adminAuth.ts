@@ -1,4 +1,4 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { AuthError, createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 const supabaseUrl =
   process.env.NEXT_PUBLIC_SUPABASE_URL ||
@@ -52,7 +52,7 @@ export function createSupabaseAdmin() {
     const result = await getUser(jwt);
     if (!result.data.user) return result;
     const { data: active, error } = await client.rpc('account_is_active', { p_user_id: result.data.user.id });
-    if (error || active !== true) return { data: { user: null }, error: null } as typeof result;
+    if (error || active !== true) return { data: { user: null }, error: new AuthError('Account unavailable', 401, 'account_unavailable') };
     return result;
   };
   return client;

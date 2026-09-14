@@ -1,7 +1,6 @@
 export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
-import { requireCommerce } from '@/lib/commerceGuard';
 import { createSupabaseAdmin } from '@/lib/adminAuth';
 
 // The admin client is constructed lazily, inside the handler below --
@@ -13,8 +12,6 @@ import { createSupabaseAdmin } from '@/lib/adminAuth';
 // the build environment.
 export async function POST(req: Request) {
   try {
-    const disabled = await requireCommerce();
-    if (disabled) return disabled;
     const supabaseAdmin = createSupabaseAdmin();
     const authHeader = req.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
