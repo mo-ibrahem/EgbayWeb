@@ -28,6 +28,8 @@ const GOVERNORATES = [
   { en: 'Asyut', ar: 'أسيوط' }, { en: 'Beheira', ar: 'البحيرة' }, { en: 'Beni Suef', ar: 'بني سويف' },
 ];
 
+type VariantRow = { id: string; price: number; stock: number; storage: string | null; color: string | null; grade: string | null };
+
 function CheckoutContent() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -36,6 +38,7 @@ function CheckoutContent() {
   const { isRTL } = useLanguage();
 
   const [product, setProduct] = useState<Product | null>(null);
+  const [variants, setVariants] = useState<VariantRow[]>([]);
   const [wallet, setWallet] = useState<UserWallet | null>(null);
   const [useWalletBalance, setUseWalletBalance] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -61,6 +64,24 @@ function CheckoutContent() {
         if (!id) return;
         const prod = await productService.getProductById(id);
         if (!prod) { router.push('/'); return; }
+
+        // Multi-unit listings are priced per variant. The product page links
+        // here with ?variant=<id>; without a valid one, send the buyer back
+        // to pick (the server refuses that case too).
+        const { data: variantRows } = await supabase
+          .from('product_variants')
+          .select('id, price, stock, storage, color, grade')
+          .eq('product_id', id)
+          .order('position', { ascending: true });
+        const rows = (variantRows ?? []) as VariantRow[];
+        const chosen = searchParams.get('variant');
+        // (A Paymob return lands here without ?variant -- let it fall through to /orders/success below.)
+        const returningFromPayment = searchParams.get('success') === 'true' || searchParams.get('txn_response_code') === 'APPROVED';
+        if (rows.length > 0 && !returningFromPayment && !rows.some(v => v.id === chosen)) {
+          router.replace(`/products/${id}`);
+          return;
+        }
+        setVariants(rows);
         setProduct(prod);
         setFullName(user.user_metadata?.full_name || '');
 
@@ -85,7 +106,9 @@ function CheckoutContent() {
   }, [id, user, authLoading, router, searchParams]);
 
   const deliveryFee = deliveryMethod === 'courier' ? COURIER_DELIVERY_FEE_EGP : 0;
-  const itemPrice = Number(product?.price || 0);
+  const variant = variants.find(v => v.id === searchParams.get('variant'));
+  const variantLabel = variant ? [variant.storage, variant.color, variant.grade].filter(Boolean).join(' · ') : '';
+  const itemPrice = Number(variant ? variant.price : product?.price || 0);
   const totalPrice = itemPrice + deliveryFee;
   const walletAvailable = Number(wallet?.available_balance || 0);
   const canPayFullyWithWallet = walletAvailable >= totalPrice && totalPrice > 0;
@@ -117,9 +140,10 @@ function CheckoutContent() {
           buyer_id: user.id,
           seller_id: product.seller_id,
           amount: totalPrice,
+          variant_id: variant?.id,
           handover_method: deliveryMethod,
           shipping_address: { full_name: fullName || 'Buyer', phone: phoneNumber, governorate, city, street: streetAddress },
-          product_snapshot: { id: product.id, title: product.title, price: product.price, images: product.images, condition: product.condition, category: product.category },
+          product_snapshot: { id: product.id, title: product.title, price: itemPrice, images: product.images, condition: product.condition, category: product.category },
         });
 
         if (!order) throw new Error(isRTL ? 'تعذر إنشاء الطلب، يرجى المحاولة ثانية' : 'Failed to create order');
@@ -336,6 +360,7 @@ function CheckoutContent() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <h4 className="text-xs font-bold text-slate-900 line-clamp-2 leading-snug">{product.title}</h4>
+                  {variantLabel && <p className="text-[11px] text-slate-500 mt-0.5">{variantLabel}</p>}
                   <p className="text-xs font-black text-slate-900 mt-1">{formatEGP(itemPrice)}</p>
                 </div>
               </div>
