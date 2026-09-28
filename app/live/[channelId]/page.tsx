@@ -19,6 +19,7 @@ import {
   type LiveSession, type LiveChatMessage, type LivePinnedProduct
 } from '@/lib/liveService';
 import { supabase } from '@/lib/supabase';
+import { PAYMENTS_ENABLED } from '@/lib/platformCommerce';
 import SmartImage from '@/components/SmartImage';
 
 const QUICK_EMOJIS = ['❤️', '🔥', '👏', '🚀', '💎', '💯', '😂', '🎉', '👍', '👀', '✨', '⚡'];
@@ -293,7 +294,7 @@ export default function ViewerPage() {
                 </div>
                 <div className="min-w-0">
                   <span className="inline-block bg-emerald-500/20 text-emerald-300 text-[9px] font-black px-2 py-0.5 rounded-full mb-0.5">
-                    {isRTL ? 'معروض للشراء الآن ⚡' : 'FEATURED ITEM ⚡'}
+                    {isRTL ? 'معروض الآن ⚡' : 'FEATURED ITEM ⚡'}
                   </span>
                   <p className="text-xs font-bold text-white truncate">{pinnedProduct.product?.title || 'Product'}</p>
                   <div className="flex items-center gap-2 mt-0.5">
@@ -309,14 +310,23 @@ export default function ViewerPage() {
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setCheckoutOpen(true)}
-                className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-black px-4 py-2.5 rounded-xl transition-all shadow-lg shadow-emerald-900/40 flex items-center gap-1.5 flex-shrink-0 active:scale-95 animate-pulse"
-              >
-                <Zap className="w-3.5 h-3.5 fill-white" />
-                <span>{isRTL ? 'شراء فوري' : 'Buy Now'}</span>
-              </button>
+              {PAYMENTS_ENABLED ? (
+                <button
+                  type="button"
+                  onClick={() => setCheckoutOpen(true)}
+                  className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-black px-4 py-2.5 rounded-xl transition-all shadow-lg shadow-emerald-900/40 flex items-center gap-1.5 flex-shrink-0 active:scale-95 animate-pulse"
+                >
+                  <Zap className="w-3.5 h-3.5 fill-white" />
+                  <span>{isRTL ? 'شراء فوري' : 'Buy Now'}</span>
+                </button>
+              ) : (
+                <Link
+                  href={`/products/${pinnedProduct.product_id}`}
+                  className="bg-slate-700 hover:bg-slate-600 text-white text-xs font-black px-4 py-2.5 rounded-xl transition-colors flex items-center gap-1.5 flex-shrink-0 active:scale-95"
+                >
+                  <span>{isRTL ? 'عرض المنتج' : 'View item'}</span>
+                </Link>
+              )}
             </motion.div>
           </div>
         )}

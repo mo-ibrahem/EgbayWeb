@@ -13,6 +13,7 @@ import { getUserWallet, deductWalletSpendableFunds, type UserWallet } from '@/li
 import { createMarketplaceOrder, COURIER_DELIVERY_FEE_EGP } from '@/lib/orderService';
 import { sendChatMessage, type LiveSession, type LivePinnedProduct } from '@/lib/liveService';
 import SmartImage from '@/components/SmartImage';
+import { PAYMENTS_ENABLED } from '@/lib/platformCommerce';
 
 const formatEGP = (amount: number) => `EGP ${(Number(amount) || 0).toLocaleString('en-EG')}`;
 
@@ -51,7 +52,7 @@ export default function LiveQuickCheckout({
   const totalAmount = price + deliveryFee;
 
   useEffect(() => {
-    if (user && isOpen) {
+    if (user && isOpen && PAYMENTS_ENABLED) {
       getUserWallet(user.id).then(setWallet).catch(console.error);
     }
   }, [user, isOpen]);
@@ -142,7 +143,8 @@ export default function LiveQuickCheckout({
     }
   };
 
-  if (!isOpen) return null;
+  // Classifieds mode: no in-stream purchase. The live page shows "View item" instead.
+  if (!isOpen || !PAYMENTS_ENABLED) return null;
 
   return (
     <AnimatePresence>

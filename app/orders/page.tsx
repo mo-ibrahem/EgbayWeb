@@ -15,6 +15,7 @@ import StatusPill from '@/components/ui/StatusPill';
 import EmptyState from '@/components/ui/EmptyState';
 import Button from '@/components/ui/Button';
 import PriceTag from '@/components/ui/PriceTag';
+import { PAYMENTS_ENABLED } from '@/lib/platformCommerce';
 
 function OrdersContent() {
   const router = useRouter();
@@ -131,8 +132,10 @@ function OrdersContent() {
         <EmptyState
           icon={<Package className="w-6 h-6" />}
           title={isRTL ? 'لا توجد طلبات في هذا القسم' : 'No orders found'}
-          description={isRTL ? 'تصفح السوق واشترِ بأمان مع حماية الضمان المالي.' : 'Browse the marketplace and buy with escrow protection.'}
-          action={<Button href="/">{isRTL ? 'تصفح السوق' : 'Start Shopping'}</Button>}
+          description={PAYMENTS_ENABLED
+            ? (isRTL ? 'تصفح السوق وابدأ أول طلب لك.' : 'Browse the marketplace and place your first order.')
+            : (isRTL ? 'لا يوجد شراء داخل التطبيق حالياً. تصفح الإعلانات وتواصل مع البائعين.' : 'There is no in-app ordering right now. Browse listings and message sellers.')}
+          action={<Button href="/">{PAYMENTS_ENABLED ? (isRTL ? 'تصفح السوق' : 'Start Shopping') : (isRTL ? 'تصفح الإعلانات' : 'Browse listings')}</Button>}
           className="bg-white border border-slate-200 rounded-lg"
         />
       ) : (

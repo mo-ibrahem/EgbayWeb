@@ -18,6 +18,7 @@ import SmartImage from '@/components/SmartImage';
 import { supabase } from '@/lib/supabase';
 import Alert from '@/components/ui/Alert';
 import Button from '@/components/ui/Button';
+import { PAYMENTS_ENABLED } from '@/lib/platformCommerce';
 
 const GOVERNORATES = [
   { en: 'Cairo', ar: 'القاهرة' }, { en: 'Giza', ar: 'الجيزة' }, { en: 'Alexandria', ar: 'الإسكندرية' },
@@ -410,7 +411,31 @@ function CheckoutContent() {
   );
 }
 
+function CheckoutPaused() {
+  const { id } = useParams<{ id: string }>();
+  const { isRTL } = useLanguage();
+  return (
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
+      <div className="max-w-md w-full bg-white rounded-lg border border-slate-200 p-6 text-center space-y-3">
+        <h1 className="text-base font-black text-slate-900">
+          {isRTL ? 'الدفع متوقف مؤقتاً على إيجباي' : 'Payments are paused on Egbay'}
+        </h1>
+        <p className="text-xs text-slate-600 leading-relaxed">
+          {isRTL
+            ? 'لا يوجد شراء داخل التطبيق حالياً. تواصل مع البائع عبر المحادثة لترتيب المعاينة والتسليم باليد.'
+            : 'There is no in-app checkout right now. Message the seller to arrange a viewing and an in-person handover.'}
+        </p>
+        <Link href={`/products/${id}`} className="inline-flex items-center gap-1.5 text-xs font-bold text-brand hover:underline">
+          <ArrowLeft className={`w-4 h-4 ${isRTL ? 'rotate-180' : ''}`} />
+          {isRTL ? 'الرجوع للإعلان' : 'Back to the listing'}
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 export default function CheckoutPage() {
+  if (!PAYMENTS_ENABLED) return <CheckoutPaused />;
   return (
     <ProtectedRoute>
       <CheckoutContent />
