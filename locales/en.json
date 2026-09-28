@@ -19,6 +19,18 @@
     "submit": "Submit",
     "close": "Close"
   },
+  "categories": {
+    "all": "All Categories",
+    "electronics": "Electronics",
+    "fashion": "Fashion & Apparel",
+    "home": "Home & Living",
+    "toys": "Toys & Hobbies",
+    "sports": "Sports & Outdoors",
+    "books": "Books & Media",
+    "automotive": "Motors & Vehicles",
+    "beauty": "Beauty",
+    "general": "Other"
+  },
   "language": {
     "title": "Language / اللغة",
     "english": "English",
@@ -58,14 +70,14 @@
     "dealBanner1Sub": "Up to 70% off on Electronics",
     "dealBanner2Title": "✨ New Arrivals",
     "dealBanner2Sub": "Fresh listings added daily",
-    "dealBanner3Title": "🛡️ Safe Shopping",
-    "dealBanner3Sub": "Buyer protection on every purchase",
+    "dealBanner3Title": "💬 Chat Before You Buy",
+    "dealBanner3Sub": "Ask the seller anything before you meet",
     "flashDeals": "⚡ FLASH DEALS IN EGYPT",
     "endsIn": "Ends in",
-    "trustPill1Title": "Buyer Protection",
-    "trustPill1Sub": "Money back guarantee",
-    "trustPill2Title": "Egypt-wide Shipping",
-    "trustPill2Sub": "27 Governorates covered",
+    "trustPill1Title": "Chat First",
+    "trustPill1Sub": "Message sellers directly",
+    "trustPill2Title": "Meet in Person",
+    "trustPill2Sub": "Inspect the item before you pay",
     "trustPill3Title": "Best Price Bargaining",
     "trustPill3Sub": "Make offers directly",
     "categories": {
@@ -99,8 +111,6 @@
     "offerAmount": "Your Offer Amount (EGP)",
     "sendOffer": "Send Offer to Seller",
     "offerSent": "Offer sent in chat!",
-    "guaranteeTitle": "EgyBay Money Back Guarantee",
-    "guaranteeDesc": "Get the exact item you ordered or your money back. Protected by Paymob escrow.",
     "verifiedSeller": "Verified Seller",
     "fastResponder": "Replies in < 15 mins",
     "itemsSold": "items sold in Egypt",
@@ -112,7 +122,7 @@
     "safetySubtitle": "Tips for secure buyer & seller transactions",
     "safetyTip1": "🤝 Meet in busy public places (Metro stations, Malls, Cafes).",
     "safetyTip2": "🔍 Inspect and test the item thoroughly before paying.",
-    "safetyTip3": "💳 Use Paymob online payment for protected doorstep delivery.",
+    "safetyTip3": "💬 Keep the conversation in Egbay chat so you have a record of what was agreed.",
     "safetyTip4": "🚫 Never send advance deposits to unverified contacts.",
     "description": "Description",
     "seller": "Seller",
@@ -208,7 +218,7 @@
     "declineOffer": "Decline",
     "offerAccepted": "✅ Offer Accepted",
     "offerDeclined": "❌ Offer Declined",
-    "safetyReminder": "🛡️ EgyBay Tip: Meet in public places or use Paymob protected delivery. Never wire deposits directly."
+    "safetyReminder": "🛡️ Egbay Tip: Meet in a public place and inspect the item before you pay. Never send a deposit in advance."
   },
   "payment": {
     "title": "Complete Payment",
@@ -254,14 +264,12 @@
   "wallet": {
     "title": "My Wallet & Earnings",
     "available": "Available for Withdrawal",
-    "pending": "Pending in Escrow",
+    "pending": "Pending",
     "withdraw": "Withdraw Funds",
     "payoutAccounts": "Payout Accounts",
     "transactions": "Transaction Activity"
   },
   "checkout": {
-    "title": "Secure Checkout",
-    "escrowProtected": "Escrow Protected",
-    "payWithEscrow": "Pay with Escrow Protection"
+    "title": "Secure Checkout"
   }
 }

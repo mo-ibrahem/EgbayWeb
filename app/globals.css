@@ -14,21 +14,13 @@
    these map to `bg-*`/`text-*`/`border-*` utility classes.
    ══════════════════════════════════════════════════════════════════════ */
 :root {
-  /* Brand — #3665F3 is Egbay's established product blue (used across every
-     button/link/badge already); anchoring the system to it rather than
-     introducing a new hue. It is NOT derived from the egbay.svg logo mark,
-     which uses an unrelated four-color palette left over from an earlier
-     placeholder asset -- redesigning the logo itself is out of scope here. */
-  --brand:        #3665F3;   /* primary actions, links, active states */
-  --brand-dark:   #2851D6;   /* hover/active of primary */
-  --brand-soft:   #EEF2FF;   /* tinted backgrounds behind brand content */
-  /* Brand-derived ink for full-bleed dark surfaces (hero, seller CTA).
-     Deliberately not a neutral near-black: a tinted grey-black reads as
-     an unconsidered default, and this needs to belong to the same family
-     as --brand so the page's dark surfaces look chosen rather than
-     borrowed from a UI kit. */
-  --ink:          #101A38;
-  --ink-soft:     #1B2A52;   /* hairlines and raised detail on --ink */
+  /* Brand — Egbay blue, shared with the mobile app's icon and lockup. */
+  --brand:        #2563EB;   /* primary actions, links, active states */
+  --brand-dark:   #1D4ED8;   /* hover/active of primary */
+  --brand-soft:   #EFF6FF;   /* tinted backgrounds behind brand content */
+  /* Ink for full-bleed dark surfaces (hero, seller CTA); matches mobile. */
+  --ink:          #0F172A;
+  --ink-soft:     #1E293B;   /* hairlines and raised detail on --ink */
 
   /* Surfaces */
   --bg:           #F7F8FA;   /* page background */
@@ -50,8 +42,8 @@
   --warning-soft: #FFFBEB;
   --danger:       #DC2626;
   --danger-soft:  #FEF2F2;
-  --info:         #2952E3;
-  --info-soft:    #EEF2FF;
+  --info:         #2563EB;
+  --info-soft:    #EFF6FF;
 
   /* Radius scale — pick from these, don't invent one-off values */
   --radius-sm:  8px;   /* inputs, chips, small buttons */
@@ -111,7 +103,7 @@ body {
 /* ─── Focus ring — one consistent treatment everywhere ────────────── */
 input:focus, select:focus, textarea:focus, button:focus-visible, a:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(54, 101, 243, 0.18);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
   border-color: var(--brand) !important;
 }
 
@@ -176,4 +168,13 @@ main { animation: page-in 0.15s ease; }
 .surface-dark {
   background-color: #0F172A;
   color: #94A3B8;
+}
+
+/* Wordmark: the shipped lockup is white-on-transparent, so tint it with the
+   surrounding text colour (text-brand on light surfaces, text-white on dark). */
+.egbay-logo {
+  display: inline-block;
+  background-color: currentColor;
+  -webkit-mask: url('/egbay_logo_header.png') center / contain no-repeat;
+  mask: url('/egbay_logo_header.png') center / contain no-repeat;
 }

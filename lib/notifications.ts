@@ -72,7 +72,7 @@ export function getNotificationCopy(n: Pick<AppNotification, 'type' | 'payload'>
     case 'escrow_secured':
       return isRTL
         ? { title: 'الدفع مؤمّن في الضمان', message: `تم تأمين المبلغ لطلب "${productTitle}". يمكنك الشحن الآن.` }
-        : { title: 'Payment secured in escrow', message: `Funds for "${productTitle}" are held in escrow. Safe to ship now.` };
+        : { title: 'Payment secured in escrow', message: `Funds for "${productTitle}" are held in escrow.` };
 
     case 'shipped':
       return isRTL
@@ -100,7 +100,7 @@ export function getNotificationCopy(n: Pick<AppNotification, 'type' | 'payload'>
         : { title: 'Dispute opened', message: `A dispute was opened on "${productTitle}".` };
 
     case 'new_message': {
-      const senderName = n.payload?.sender_name || (isRTL ? 'مستخدم إيجي باي' : 'EgyBay User');
+      const senderName = n.payload?.sender_name || (isRTL ? 'مستخدم إيجي باي' : 'Egbay User');
       const preview = n.payload?.preview || '';
       return isRTL
         ? { title: `رسالة جديدة من ${senderName}`, message: preview }

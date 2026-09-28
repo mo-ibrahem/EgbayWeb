@@ -2,9 +2,9 @@
 
 import React from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
-import { ShieldCheck, Truck, Lock, ArrowRight } from 'lucide-react';
+import { MessageCircle, MapPin, ShieldCheck, ArrowRight } from 'lucide-react';
 import { useLanguage } from '@/components/LanguageProvider';
+import { PAYMENTS_ENABLED } from '@/lib/platformCommerce';
 
 export default function Footer() {
   const { isRTL, t } = useLanguage();
@@ -20,42 +20,42 @@ export default function Footer() {
         <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 sm:grid-cols-3 gap-6 text-center sm:text-left">
           <div className="flex items-center gap-4 justify-center sm:justify-start">
             <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 border" style={{ background: 'rgba(16,185,129,0.12)', borderColor: 'rgba(16,185,129,0.25)' }}>
-              <ShieldCheck className="w-5 h-5 text-emerald-400" />
+              <MessageCircle className="w-5 h-5 text-emerald-400" />
             </div>
             <div>
               <h4 className="text-xs font-bold text-white">
-                {isRTL ? 'حماية الضمان المالي 100%' : '100% Escrow Protection'}
+                {isRTL ? 'تكلم مع البائع قبل ما تشتري' : 'Chat Before You Buy'}
               </h4>
               <p className="text-[11px] text-slate-500 mt-0.5">
-                {isRTL ? 'أموالك محفوظة بأمان حتى فحص واستلام المنتج' : 'Funds held safely until order inspection'}
+                {isRTL ? 'اسأل واتفق على التفاصيل مباشرة مع البائع' : 'Ask questions and agree the details with the seller'}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-4 justify-center sm:justify-start">
-            <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 border" style={{ background: 'rgba(54,101,243,0.12)', borderColor: 'rgba(54,101,243,0.25)' }}>
-              <Truck className="w-5 h-5 text-blue-400" />
+            <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 border" style={{ background: 'rgba(37,99,235,0.12)', borderColor: 'rgba(37,99,235,0.25)' }}>
+              <MapPin className="w-5 h-5 text-blue-400" />
             </div>
             <div>
               <h4 className="text-xs font-bold text-white">
-                {isRTL ? 'شحن سريع لباب البيت' : 'Doorstep Courier Delivery'}
+                {isRTL ? 'قابل البائع بنفسك' : 'Meet in Person'}
               </h4>
               <p className="text-[11px] text-slate-500 mt-0.5">
-                {isRTL ? 'تغطية لجميع المحافظات مع شحن أو تسليم يدوي' : 'Nationwide coverage with courier delivery or in-person meetups'}
+                {isRTL ? 'اتفقوا على مكان عام وافحص المنتج قبل ما تدفع' : 'Agree a public place and inspect the item before you pay'}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-4 justify-center sm:justify-start">
             <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 border" style={{ background: 'rgba(124,58,237,0.12)', borderColor: 'rgba(124,58,237,0.25)' }}>
-              <Lock className="w-5 h-5 text-violet-400" />
+              <ShieldCheck className="w-5 h-5 text-violet-400" />
             </div>
             <div>
               <h4 className="text-xs font-bold text-white">
                 {isRTL ? 'توثيق اختياري للبائعين' : 'Optional Seller ID Verification'}
               </h4>
               <p className="text-[11px] text-slate-500 mt-0.5">
-                {isRTL ? 'توثيق بطاقة الرقم القومي + سحب فوري لإنستاباي وفودافون كاش' : 'Egyptian National ID KYC + instant InstaPay/Vodafone Cash payouts'}
+                {isRTL ? 'يمكن للبائعين توثيق هويتهم ببطاقة الرقم القومي' : 'Sellers can verify their identity with an Egyptian National ID'}
               </p>
             </div>
           </div>
@@ -68,21 +68,14 @@ export default function Footer() {
           {/* Brand Column */}
           <div className="col-span-2">
             <Link href="/" className="inline-block mb-4">
-              <div className="h-8 relative flex items-center">
-                <Image
-                  src="/egbay.svg"
-                  alt="egbay"
-                  width={100}
-                  height={32}
-                  className="h-8 w-auto object-contain brightness-200"
-                  unoptimized
-                />
+              <div className="h-9 relative flex items-center">
+                <span role="img" aria-label="Egbay" className="egbay-logo h-9 w-[108px] text-white" />
               </div>
             </Link>
             <p className="text-xs text-slate-500 leading-relaxed max-w-sm mb-5">
               {isRTL
-                ? 'السوق المصري الحديث للبيع والشراء المباشر. إلكترونيات، أزياء، سيارات، ومقتنيات مع حماية كاملة للمدفوعات عبر نظام الضمان.'
-                : "Egypt's modern peer-to-peer marketplace. Buy, sell, and trade electronics, fashion, vehicles, and collectibles with total escrow peace of mind."}
+                ? 'سوق مصري للبيع والشراء. إلكترونيات، أزياء، سيارات، ومقتنيات جديدة ومستعملة. تكلم مع البائع وقابله.'
+                : "Egypt's marketplace for new, used and refurbished items. Chat with sellers, make an offer, and meet in person."}
             </p>
 
             {/* Sell CTA */}
@@ -116,8 +109,12 @@ export default function Footer() {
             </h4>
             <ul className="space-y-2.5 text-xs">
               <li><Link href="/sell" className="text-brand hover:text-blue-400 transition-colors font-semibold">{isRTL ? 'إضافة إعلان' : 'List an Item'}</Link></li>
-              <li><Link href="/orders" className="hover:text-white transition-colors">{isRTL ? 'طلباتي والضمان' : 'My Escrow Orders'}</Link></li>
-              <li><Link href="/wallet" className="hover:text-white transition-colors">{isRTL ? 'المحفظة والسحب' : 'Wallet & Payouts'}</Link></li>
+              {PAYMENTS_ENABLED && (
+                <>
+                  <li><Link href="/orders" className="hover:text-white transition-colors">{isRTL ? 'طلباتي' : 'My Orders'}</Link></li>
+                  <li><Link href="/wallet" className="hover:text-white transition-colors">{isRTL ? 'المحفظة والسحب' : 'Wallet & Payouts'}</Link></li>
+                </>
+              )}
               <li><Link href="/seller-verification" className="hover:text-white transition-colors">{isRTL ? 'توثيق البائع' : 'Seller Verification'}</Link></li>
               <li><Link href="/profile" className="hover:text-white transition-colors">{isRTL ? 'الملف الشخصي' : 'User Profile'}</Link></li>
             </ul>
@@ -141,6 +138,7 @@ export default function Footer() {
         </div>
 
         {/* ─── Payout Methods ─── */}
+        {PAYMENTS_ENABLED && (
         <div className="flex flex-wrap items-center gap-2 mb-8 pb-8 border-b border-white/5">
           <span className="text-[11px] font-semibold text-slate-500">{isRTL ? 'طرق الدفع والسحب:' : 'Payouts & Payments:'}</span>
           {['InstaPay', 'Vodafone Cash', 'Bank Transfer'].map((m) => (
@@ -149,6 +147,7 @@ export default function Footer() {
             </span>
           ))}
         </div>
+        )}
 
         {/* ─── Bottom Bar ─── */}
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-slate-600">
@@ -160,13 +159,6 @@ export default function Footer() {
             <span className="text-white/10">•</span>
             <a href="mailto:info@egbay.shop" className="hover:text-slate-400 transition-colors">{isRTL ? 'المساعدة' : 'Help'}</a>
           </div>
-        </div>
-
-        {/* ─── Disclaimer ─── */}
-        <div className="mt-5 text-[10px] text-slate-700 text-center leading-relaxed">
-          {isRTL
-            ? 'إيجي باي (egbay.shop) هي منصة تجارة إلكترونية مصرية مستقلة تعمل داخل جمهورية مصر العربية ولا تتبع أي جهات تجارية خارجية.'
-            : 'EgyBay (egbay.shop) is an independent peer-to-peer marketplace operating in Egypt. EgyBay is not affiliated with, endorsed by, or sponsored by eBay Inc. or any international entities.'}
         </div>
       </div>
     </footer>

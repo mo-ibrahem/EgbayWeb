@@ -9,10 +9,10 @@ import Footer from '@/components/Footer';
 import MobileBottomNav from '@/components/MobileBottomNav';
 import PageTransition from '@/components/PageTransition';
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://egbay.shop';
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.egbay.shop';
 
 export const viewport: Viewport = {
-  themeColor: '#3665F3',
+  themeColor: '#2563EB',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
@@ -21,29 +21,24 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "EgyBay — Egypt's Trusted Escrow Marketplace (سوق إيجي باي مصر)",
-    template: "%s | EgyBay — Egypt's Marketplace",
+    default: 'Egbay — Buy and sell in Egypt (سوق إيجي باي مصر)',
+    template: '%s | Egbay',
   },
   description:
-    'Buy and sell electronics, sneakers, fashion, and vehicles safely across Egypt. 100% Escrow Protection, doorstep courier delivery, and instant InstaPay / Vodafone Cash payouts.',
+    'Buy and sell new, used and refurbished electronics, fashion, vehicles and more across Egypt. Chat with sellers, make an offer, and meet in person.',
   keywords: [
-    'EgyBay',
+    'Egbay',
     'Egypt marketplace',
     'buy and sell Egypt',
-    'escrow payment Egypt',
     'online shopping Cairo',
     'used electronics Egypt',
     'سوق مصر',
     'بيع واشتري في مصر',
-    'ضمان مالي مصر',
-    'إنستاباي',
-    'فودافون كاش',
     'مستعمل مصر',
-    'اوليكس مصر بديل',
   ],
-  authors: [{ name: 'EgyBay Marketplace Inc.', url: siteUrl }],
-  creator: 'EgyBay Team',
-  publisher: 'EgyBay Marketplace',
+  authors: [{ name: 'Egbay', url: siteUrl }],
+  creator: 'Egbay',
+  publisher: 'Egbay',
   category: 'ecommerce',
   alternates: {
     canonical: '/',
@@ -54,29 +49,28 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "EgyBay — Egypt's Trusted Escrow Marketplace",
+    title: 'Egbay — Buy and sell in Egypt',
     description:
-      'Buy & sell with complete escrow peace of mind across all Egyptian governorates. Nationwide courier delivery, verified sellers, and instant payouts.',
+      'New, used and refurbished items across Egypt. Chat with sellers, make an offer, and meet in person.',
     url: siteUrl,
-    siteName: 'EgyBay',
+    siteName: 'Egbay',
     locale: 'en_US',
     alternateLocale: 'ar_EG',
     type: 'website',
     images: [
       {
-        url: '/icon.svg',
+        url: '/icon-512.png',
         width: 512,
         height: 512,
-        alt: 'EgyBay - Escrow Marketplace Egypt',
+        alt: 'Egbay',
       },
     ],
   },
   twitter: {
-    card: 'summary_large_image',
-    title: "EgyBay — Egypt's Trusted Marketplace",
-    description: '100% Escrow Protection, doorstep courier delivery, and instant InstaPay & Vodafone Cash payouts in Egypt.',
-    images: ['/icon.svg'],
-    creator: '@egbay_market',
+    card: 'summary',
+    title: 'Egbay — Buy and sell in Egypt',
+    description: 'New, used and refurbished items across Egypt. Chat with sellers and meet in person.',
+    images: ['/icon-512.png'],
   },
   robots: {
     index: true,
@@ -95,7 +89,7 @@ export const metadata: Metadata = {
       { url: '/favicon.svg', type: 'image/svg+xml' },
     ],
     shortcut: '/icon.svg',
-    apple: '/icon.svg',
+    apple: '/apple-icon.png',
   },
 };
 

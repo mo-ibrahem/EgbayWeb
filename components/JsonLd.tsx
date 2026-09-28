@@ -14,7 +14,7 @@ export default function JsonLd({ data }: JsonLdProps) {
 }
 
 export function MarketplaceJsonLd() {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://egbay.shop';
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.egbay.shop';
 
   const schema = {
     '@context': 'https://schema.org',
@@ -23,8 +23,8 @@ export function MarketplaceJsonLd() {
         '@type': 'WebSite',
         '@id': `${baseUrl}/#website`,
         url: baseUrl,
-        name: 'EgyBay',
-        description: "Egypt's Trusted Peer-to-Peer Escrow Marketplace",
+        name: 'Egbay',
+        description: "Egypt's marketplace for new, used and refurbished items",
         publisher: {
           '@id': `${baseUrl}/#organization`,
         },
@@ -41,11 +41,11 @@ export function MarketplaceJsonLd() {
       {
         '@type': 'Organization',
         '@id': `${baseUrl}/#organization`,
-        name: 'EgyBay Market',
+        name: 'Egbay',
         url: baseUrl,
         logo: {
           '@type': 'ImageObject',
-          url: `${baseUrl}/icon.svg`,
+          url: `${baseUrl}/icon-512.png`,
           width: 512,
           height: 512,
         },
@@ -56,7 +56,6 @@ export function MarketplaceJsonLd() {
           areaServed: 'EG',
           availableLanguage: ['Arabic', 'English'],
         },
-        sameAs: ['https://twitter.com/egbay_market', 'https://instagram.com/egbay.market'],
       },
     ],
   };
@@ -78,15 +77,15 @@ export function ProductJsonLd({
     created_at?: string;
   };
 }) {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://egbay.shop';
-  const imgUrl = product.images?.[0] || `${baseUrl}/icon.svg`;
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.egbay.shop';
+  const imgUrl = product.images?.[0] || `${baseUrl}/icon-512.png`;
 
   const schema = {
     '@context': 'https://schema.org',
     '@type': 'Product',
     name: product.title,
     image: product.images && product.images.length > 0 ? product.images : [imgUrl],
-    description: product.description || `${product.title} on EgyBay Marketplace`,
+    description: product.description || `${product.title} on Egbay`,
     sku: product.id,
     category: product.category,
     offers: {
@@ -100,10 +99,6 @@ export function ProductJsonLd({
           ? 'https://schema.org/NewCondition'
           : 'https://schema.org/UsedCondition',
       availability: 'https://schema.org/InStock',
-      seller: {
-        '@type': 'Organization',
-        name: 'EgyBay Verified Seller',
-      },
     },
   };
 

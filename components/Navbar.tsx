@@ -2,20 +2,20 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import {
   Search, Plus, User, LogOut, Wallet, Package,
   Menu, X, Heart, MessageCircle, ChevronDown, Globe, Video, Bell,
 } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
+import { PAYMENTS_ENABLED } from '@/lib/platformCommerce';
 import { useLanguage } from '@/components/LanguageProvider';
 import { productService } from '@/lib/products';
 import NotificationBell from '@/components/NotificationBell';
 
 // Label lookup only. Which categories are actually offered in the nav is
 // derived from live inventory below -- a nav link to a category with zero
-// listings is a guaranteed dead end, and on a marketplace this size that
+// listings is a dead end, and on a marketplace this size that
 // teaches visitors the site is empty. (Sports and Books were exactly that;
 // Beauty and General had real listings but no way to browse to them.)
 const CATEGORY_LABELS: Record<string, { key: string; defaultLabel: string }> = {
@@ -93,7 +93,7 @@ export default function Navbar() {
       {/* ─── Main header row: logo, search, actions ─── */}
       <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-3 md:gap-6">
         <Link href="/" className="flex items-center flex-shrink-0">
-          <Image src="/egbay.svg" alt="egbay" width={104} height={32} className="h-7 w-auto object-contain" unoptimized priority />
+          <span role="img" aria-label="Egbay" className="egbay-logo h-9 w-[108px] text-brand" />
         </Link>
 
         <form onSubmit={handleSearch} className="flex-1 max-w-2xl hidden md:flex items-center">
@@ -141,9 +141,11 @@ export default function Navbar() {
                 <Link href="/profile?tab=wishlist" className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-md transition-colors hidden sm:flex" title={isRTL ? 'المفضلة' : 'Saved items'}>
                   <Heart className="w-5 h-5" />
                 </Link>
-                <Link href="/orders" className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-md transition-colors hidden sm:flex" title={isRTL ? 'طلباتي' : 'My Orders'}>
-                  <Package className="w-5 h-5" />
-                </Link>
+                {PAYMENTS_ENABLED && (
+                  <Link href="/orders" className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-md transition-colors hidden sm:flex" title={isRTL ? 'طلباتي' : 'My Orders'}>
+                    <Package className="w-5 h-5" />
+                  </Link>
+                )}
 
                 <NotificationBell />
 
@@ -170,12 +172,16 @@ export default function Navbar() {
                       <Link href="/profile" onClick={() => setProfileOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
                         <User className="w-4 h-4 text-slate-400" /> {isRTL ? 'الملف الشخصي وإعلاناتي' : 'My Profile & Listings'}
                       </Link>
-                      <Link href="/wallet" onClick={() => setProfileOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
-                        <Wallet className="w-4 h-4 text-slate-400" /> {isRTL ? 'المحفظة والأرباح' : 'My Wallet & Payouts'}
-                      </Link>
-                      <Link href="/orders" onClick={() => setProfileOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
-                        <Package className="w-4 h-4 text-slate-400" /> {isRTL ? 'الطلبات وتتبع الضمان' : 'Orders & Escrow Track'}
-                      </Link>
+                      {PAYMENTS_ENABLED && (
+                        <>
+                          <Link href="/wallet" onClick={() => setProfileOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
+                            <Wallet className="w-4 h-4 text-slate-400" /> {isRTL ? 'المحفظة والأرباح' : 'My Wallet & Payouts'}
+                          </Link>
+                          <Link href="/orders" onClick={() => setProfileOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
+                            <Package className="w-4 h-4 text-slate-400" /> {isRTL ? 'طلباتي' : 'My Orders'}
+                          </Link>
+                        </>
+                      )}
                       <Link href="/profile?tab=wishlist" onClick={() => setProfileOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
                         <Heart className="w-4 h-4 text-slate-400" /> {isRTL ? 'الإعلانات المحفوظة' : 'Saved Items'}
                       </Link>
