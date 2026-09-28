@@ -141,6 +141,7 @@ function HomeFeedContent() {
       else await productService.addToWishlist(productId);
     } catch (e) {
       console.error(e);
+      throw e;
     }
   };
 

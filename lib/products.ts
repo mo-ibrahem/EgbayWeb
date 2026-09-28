@@ -185,6 +185,7 @@ export const productService = {
     minPrice?: number;
     maxPrice?: number;
     condition?: string[];
+    strict?: boolean;
   }): Promise<Product[]> => {
     const key = getFilterCacheKey(filters);
     const cached = productCache.get(key);
@@ -222,6 +223,7 @@ export const productService = {
         const { data: products, error } = await query;
         if (error) {
           console.warn('[ProductService] Supabase products query error:', error);
+          if (filters?.strict) throw error;
           if (cached) return cached.data;
           return [];
         }
@@ -279,6 +281,7 @@ export const productService = {
         return formatted;
       } catch (err) {
         console.error('[ProductService] Fatal fetchFresh error:', err);
+        if (filters?.strict) throw err;
         return cached?.data || [];
       }
     };
@@ -410,10 +413,12 @@ export const productService = {
   getWishlist: async (): Promise<Product[]> => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user?.id) return [];
-    const { data: wl } = await supabase.from('wishlists').select('product_id').eq('user_id', session.user.id);
+    const { data: wl, error: wishlistError } = await supabase.from('wishlists').select('product_id').eq('user_id', session.user.id);
+    if (wishlistError) throw wishlistError;
     if (!wl || wl.length === 0) return [];
     const ids = wl.map((w) => w.product_id);
-    const { data: products } = await supabase.from('products').select('*').in('id', ids);
+    const { data: products, error: productsError } = await supabase.from('products').select('*').in('id', ids);
+    if (productsError) throw productsError;
     return (products || []).map((p) => ({ ...p, isWishlisted: true })) as Product[];
   },
 
@@ -450,10 +455,28 @@ export const productService = {
   },
 
   deleteProduct: async (productId: string) => {
-    const { error } = await supabase.from('products').delete().eq('id', productId);
-    if (error) throw error;
+    const { data: deleted, error } = await supabase.from('products').delete().eq('id', productId).select('id');
+    if (error?.code === '23503') {
+      const { data, error: withdrawalError } = await supabase.from('products')
+        .update({ status: 'removed', updated_at: new Date().toISOString() })
+        .eq('id', productId).select('id');
+      if (withdrawalError) throw withdrawalError;
+      if (!data?.length) throw new Error('Listing not found or not yours');
+    } else if (error) throw error;
+    else if (!deleted?.length) throw new Error('Listing not found or not yours');
     productCache.clear();
     singleProductCache.delete(productId);
+  },
+
+  markAsSold: async (productId: string, sold: boolean): Promise<Product> => {
+    const { data, error } = await supabase.from('products')
+      .update({ status: sold ? 'sold' : 'active', updated_at: new Date().toISOString() })
+      .eq('id', productId).select('*');
+    if (error) throw error;
+    if (!data?.length) throw new Error('Listing not found or not yours');
+    productCache.clear();
+    singleProductCache.delete(productId);
+    return data[0] as Product;
   },
 
   updateProduct: async (productId: string, updates: Partial<Product>): Promise<Product> => {

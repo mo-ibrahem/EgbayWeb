@@ -41,8 +41,12 @@ function ChatContent() {
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [chatDetails, setChatDetails] = useState<ChatDetails | null>(null);
-  const [newMessage, setNewMessage] = useState('');
+  const [newMessage, setNewMessage] = useState(searchParams.get('draft') || '');
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [hasEarlier, setHasEarlier] = useState(false);
+  const [loadingEarlier, setLoadingEarlier] = useState(false);
+  const [showNewMessages, setShowNewMessages] = useState(false);
   const [sending, setSending] = useState(false);
   const [deleting, setDeleting] = useState(false);
   // Offer mode: the composer sends a whole-EGP price offer instead of text.
@@ -61,6 +65,9 @@ function ChatContent() {
   const [safetyBusy, setSafetyBusy] = useState(false);
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const messageViewportRef = useRef<HTMLDivElement>(null);
+  const nearBottomRef = useRef(true);
+  const initialScrollRef = useRef(true);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Scroll to bottom
@@ -103,9 +110,13 @@ function ChatContent() {
         }
 
         // Load messages
-        const { data: msgs } = await supabase.from('messages').select('*').eq('room_id', roomId).order('created_at', { ascending: true });
-        setMessages((msgs || []) as Message[]);
-      } catch { router.push('/profile?tab=chats'); }
+        const { data: msgs, error: messagesError } = await supabase.from('messages').select('*').eq('room_id', roomId)
+          .order('created_at', { ascending: false }).limit(50);
+        if (messagesError) throw messagesError;
+        setMessages(((msgs || []) as Message[]).reverse());
+        setHasEarlier((msgs || []).length === 50);
+        initialScrollRef.current = true;
+      } catch (err) { setLoadError((err as Error)?.message || (isRTL ? 'تعذر تحميل المحادثة.' : 'Could not load chat.')); }
       finally { setLoading(false); }
     })();
   }, [user, authLoading, roomId, router, isRTL]);
@@ -127,6 +138,7 @@ function ChatContent() {
       }, (payload) => {
         const incoming = payload.new as Message;
         if (incoming.sender_id === user?.id) return;
+        if (!nearBottomRef.current) setShowNewMessages(true);
         setMessages(prev => {
           if (prev.some(m => m.id === incoming.id)) return prev;
           return [...prev, incoming];
@@ -146,8 +158,32 @@ function ChatContent() {
     return () => { supabase.removeChannel(channel); };
   }, [roomId, user?.id]);
 
-  // Scroll on new messages
-  useEffect(() => { scrollToBottom(); }, [messages]);
+  // Keep the reader's position when they scroll up through earlier messages.
+  useEffect(() => {
+    if (initialScrollRef.current || nearBottomRef.current) {
+      bottomRef.current?.scrollIntoView({ behavior: initialScrollRef.current ? 'instant' : 'smooth' });
+      initialScrollRef.current = false;
+      setShowNewMessages(false);
+    }
+  }, [messages]);
+
+  const loadEarlier = async () => {
+    if (!hasEarlier || loadingEarlier || !messages.length) return;
+    nearBottomRef.current = false;
+    const viewport = messageViewportRef.current;
+    const previousHeight = viewport?.scrollHeight || 0;
+    setLoadingEarlier(true);
+    try {
+      const { data, error } = await supabase.from('messages').select('*').eq('room_id', roomId)
+        .lt('created_at', messages[0].created_at).order('created_at', { ascending: false }).limit(50);
+      if (error) throw error;
+      const earlier = ((data || []) as Message[]).reverse();
+      setHasEarlier(earlier.length === 50);
+      setMessages(prev => [...earlier.filter(m => !prev.some(p => p.id === m.id)), ...prev]);
+      requestAnimationFrame(() => { if (viewport) viewport.scrollTop += viewport.scrollHeight - previousHeight; });
+    } catch (err) { setSendError((err as Error)?.message || (isRTL ? 'تعذر تحميل الرسائل السابقة.' : 'Could not load earlier messages.')); }
+    finally { setLoadingEarlier(false); }
+  };
 
   const sendFailureText = (err: unknown) => {
     if (isBlockedInsertError(err)) {
@@ -210,11 +246,12 @@ function ChatContent() {
     }
 
     setSending(true);
+    nearBottomRef.current = true;
     setSendError('');
 
     if (offerMode) {
       try {
-        const row = await sendOffer(roomId, user.id, amount);
+        const row = await sendOffer(roomId, user.id, amount, searchParams.get('variant') || undefined);
         // Our own INSERT is skipped in the realtime handler, so add it here.
         setMessages(prev => (prev.some(m => m.id === row.id) ? prev : [...prev, row]));
         setNewMessage('');
@@ -252,7 +289,7 @@ function ChatContent() {
     } catch (err) {
       // Not sent: drop the unconfirmed bubble, give the text back and say so.
       setMessages(prev => prev.filter(m => m.id !== tempId));
-      setNewMessage(content);
+      setNewMessage(current => current === '' ? content : current);
       setSendError(sendFailureText(err));
     }
     finally { setSending(false); inputRef.current?.focus(); }
@@ -290,6 +327,8 @@ function ChatContent() {
     return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 text-blue-600 animate-spin" /></div>;
   }
 
+  if (loadError) return <div className="min-h-[50vh] flex flex-col items-center justify-center gap-4 px-4"><p role="alert" className="text-red-700">{loadError}</p><button type="button" onClick={() => window.location.reload()} className="bg-brand text-white px-5 py-2 rounded-lg">{isRTL ? 'إعادة المحاولة' : 'Retry'}</button><Link href="/profile?tab=chats" className="text-brand">{isRTL ? 'العودة للمحادثات' : 'Back to messages'}</Link></div>;
+
   return (
     <div className="flex flex-col h-[calc(100vh-136px)] bg-gray-50">
       {/* Chat header */}
@@ -302,7 +341,7 @@ function ChatContent() {
         </div>
         <div className="min-w-0 flex-1">
           <p className="font-bold text-gray-900">{chatDetails?.other_user_name || (isRTL ? 'محادثة' : 'Chat')}</p>
-          <p className="text-xs text-emerald-500 font-medium">{isRTL ? 'متصل الآن' : 'Active now'}</p>
+          <p className="text-xs text-slate-500 font-medium">{isRTL ? 'محادثة حول الإعلان' : 'Listing conversation'}</p>
         </div>
         <div className="relative flex-shrink-0">
           <button
@@ -369,7 +408,8 @@ function ChatContent() {
       )}
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-5 space-y-3">
+      <div ref={messageViewportRef} onScroll={e => { const el = e.currentTarget; nearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 120; if (nearBottomRef.current) setShowNewMessages(false); }} className="relative flex-1 overflow-y-auto px-4 py-5 space-y-3">
+        {hasEarlier && <button type="button" onClick={loadEarlier} disabled={loadingEarlier} className="block mx-auto text-xs font-bold text-brand bg-white border border-slate-200 rounded-full px-4 py-2 disabled:opacity-50">{loadingEarlier ? (isRTL ? 'جاري التحميل...' : 'Loading...') : (isRTL ? 'تحميل رسائل أقدم' : 'Load earlier messages')}</button>}
         {messages.length === 0 && (
           <div className="text-center py-16 text-gray-400">
             <p className="text-sm">
@@ -400,6 +440,7 @@ function ChatContent() {
                       {isMine ? (isRTL ? 'عرضك' : 'Your offer') : (isRTL ? 'عرض سعر' : 'Price offer')}
                     </p>
                     <p className="text-2xl font-black text-gray-900 mt-1">{formatEGP(Number(msg.offer_amount_egp))}</p>
+                    {msg.content.includes(' · ') && <p className="text-xs font-semibold text-gray-600 mt-1">{msg.content.split(' · ').slice(1).join(' · ')}</p>}
                     {msg.offer_status === 'pending' ? (
                       isMine ? (
                         <p className="text-xs font-semibold text-amber-700 mt-2">{isRTL ? 'بانتظار الرد' : 'Waiting for a reply'}</p>
@@ -454,6 +495,8 @@ function ChatContent() {
         })}
         <div ref={bottomRef} />
       </div>
+
+      {showNewMessages && <button type="button" onClick={() => { nearBottomRef.current = true; scrollToBottom(); setShowNewMessages(false); }} className="self-center -mt-10 mb-2 z-10 bg-brand text-white text-xs font-bold rounded-full px-4 py-2 shadow-lg">{isRTL ? 'رسائل جديدة ↓' : 'New messages ↓'}</button>}
 
       {/* Input */}
       <div className="bg-white border-t border-gray-100 px-4 py-3">

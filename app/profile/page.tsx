@@ -220,8 +220,21 @@ function ProfileContent() {
 
   const handleDeleteProduct = async (productId: string) => {
     if (!confirm(isRTL ? 'هل أنت متأكد من رغبتك في حذف هذا الإعلان؟' : 'Are you sure you want to remove this listing?')) return;
-    await productService.deleteProduct(productId);
-    setListings(prev => prev.filter(p => p.id !== productId));
+    try {
+      await productService.deleteProduct(productId);
+      setListings(prev => prev.filter(p => p.id !== productId));
+    } catch (err) {
+      setSaveError((err as Error)?.message || (isRTL ? 'تعذر حذف الإعلان.' : 'Could not remove listing.'));
+    }
+  };
+
+  const handleSoldToggle = async (product: Product) => {
+    try {
+      const updated = await productService.markAsSold(product.id, product.status !== 'sold');
+      setListings(prev => prev.map(p => p.id === product.id ? updated : p));
+    } catch (err) {
+      setSaveError((err as Error)?.message || (isRTL ? 'تعذر تحديث الإعلان.' : 'Could not update listing.'));
+    }
   };
 
   const handleWishlistRemove = async (productId: string) => {
@@ -337,7 +350,7 @@ function ProfileContent() {
               <div className="flex flex-wrap items-center justify-center sm:justify-start gap-1.5 sm:gap-3 mt-3 sm:mt-4">
                 <div className="bg-white/15 backdrop-blur-sm px-2.5 sm:px-3.5 py-1 rounded-xl text-[11px] sm:text-xs font-semibold flex items-center gap-1.5 border border-white/10">
                   <Package className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-200" />
-                  <span>{listings.length} {isRTL ? 'إعلان نشط' : `Active ${listings.length === 1 ? 'Listing' : 'Listings'}`}</span>
+                  <span>{listings.filter(p => p.status === 'active').length} {isRTL ? 'إعلان نشط' : 'Active listings'}</span>
                 </div>
                 <div className="bg-white/15 backdrop-blur-sm px-2.5 sm:px-3.5 py-1 rounded-xl text-[11px] sm:text-xs font-semibold flex items-center gap-1.5 border border-white/10">
                   <Heart className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-rose-200" />
@@ -374,7 +387,7 @@ function ProfileContent() {
         {TABS.map(tab => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => tab.id === 'wishlist' ? router.push('/saved') : tab.id === 'settings' ? router.push('/settings') : setActiveTab(tab.id)}
             className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-6 py-2 sm:py-3 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-bold transition-all flex-shrink-0 ${
               activeTab === tab.id
                 ? 'bg-brand text-white shadow-md shadow-blue-500/20'
@@ -402,6 +415,7 @@ function ProfileContent() {
       {/* 1. My Listings */}
       {activeTab === 'products' && (
         <div className="space-y-4 sm:space-y-6">
+          {saveError && <p role="alert" className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-3">{saveError}</p>}
           {/* Seller performance summary.
               Every number here is real: listing count and view_count come
               straight from the seller's products, sold/awaiting come from
@@ -507,7 +521,7 @@ function ProfileContent() {
                       </p>
                     </div>
 
-                    <div className="flex gap-1.5 sm:gap-2 mt-2.5 sm:mt-4 pt-2 sm:pt-3 border-t border-gray-100">
+                    <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-2.5 sm:mt-4 pt-2 sm:pt-3 border-t border-gray-100">
                       <Link
                         href={`/products/${product.id}`}
                         className="flex-1 flex items-center justify-center gap-1 text-[11px] sm:text-xs font-bold text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 py-1.5 sm:py-2 rounded-lg sm:rounded-xl transition-colors"
@@ -515,6 +529,14 @@ function ProfileContent() {
                         <Eye className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                         <span>{isRTL ? 'عرض' : 'View'}</span>
                       </Link>
+                      <Link href={`/products/edit/${product.id}`}
+                        className="flex-1 flex items-center justify-center text-[11px] sm:text-xs font-bold text-brand bg-blue-50 hover:bg-blue-100 border border-blue-100 py-1.5 sm:py-2 rounded-lg sm:rounded-xl transition-colors">
+                        {isRTL ? 'تعديل' : 'Edit'}
+                      </Link>
+                      {(product.status === 'active' || product.status === 'sold') && <button type="button" onClick={() => handleSoldToggle(product)}
+                        className="flex-1 text-[11px] sm:text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 px-2 py-1.5 sm:py-2 rounded-lg sm:rounded-xl">
+                        {product.status === 'sold' ? (isRTL ? 'إعادة النشر' : 'Relist') : (isRTL ? 'تم البيع' : 'Mark sold')}
+                      </button>}
                       <button
                         onClick={() => handleDeleteProduct(product.id)}
                         className="flex items-center justify-center text-[11px] sm:text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl transition-colors"

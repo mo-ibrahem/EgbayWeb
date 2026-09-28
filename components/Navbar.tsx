@@ -78,7 +78,7 @@ export default function Navbar() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    router.push(searchQuery.trim() ? `/?search=${encodeURIComponent(searchQuery.trim())}` : '/');
+    router.push(searchQuery.trim() ? `/search?q=${encodeURIComponent(searchQuery.trim())}` : '/search');
     setMenuOpen(false);
   };
 
@@ -138,7 +138,7 @@ export default function Navbar() {
           {!loading && (
             user ? (
               <div className="flex items-center gap-0.5 sm:gap-1">
-                <Link href="/profile?tab=wishlist" className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-md transition-colors hidden sm:flex" title={isRTL ? 'المفضلة' : 'Saved items'}>
+                <Link href="/saved" className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-md transition-colors flex" title={isRTL ? 'المفضلة' : 'Saved items'}>
                   <Heart className="w-5 h-5" />
                 </Link>
                 {PAYMENTS_ENABLED && (
@@ -182,8 +182,11 @@ export default function Navbar() {
                           </Link>
                         </>
                       )}
-                      <Link href="/profile?tab=wishlist" onClick={() => setProfileOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
+                      <Link href="/saved" onClick={() => setProfileOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
                         <Heart className="w-4 h-4 text-slate-400" /> {isRTL ? 'الإعلانات المحفوظة' : 'Saved Items'}
+                      </Link>
+                      <Link href="/settings" onClick={() => setProfileOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
+                        <User className="w-4 h-4 text-slate-400" /> {isRTL ? 'الإعدادات' : 'Settings'}
                       </Link>
                       <Link href="/profile?tab=chats" onClick={() => setProfileOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
                         <MessageCircle className="w-4 h-4 text-slate-400" /> {isRTL ? 'الرسائل' : 'Messages'}

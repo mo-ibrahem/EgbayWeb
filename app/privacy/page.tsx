@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { Shield, Lock, Eye, Trash2, Mail, FileText, CheckCircle2, Globe, Building2, AlertTriangle } from 'lucide-react';
 import { useLanguage } from '@/components/LanguageProvider';
+import { PAYMENTS_ENABLED } from '@/lib/platformCommerce';
 
 export default function PrivacyPage() {
   const { isRTL } = useLanguage();
@@ -172,7 +173,24 @@ Data is shared strictly with authorized infrastructure partners necessary to ful
     },
   ];
 
-  const sections = isRTL ? arSections : enSections;
+  const currentEnSections = [
+    { id: 'scope', icon: Eye, title: '1. Scope', content: `This policy explains how Egbay handles information used for listings, messaging, offers, safety reports and accounts on the website and mobile app. Online payments are currently unavailable. We may still hold records from earlier orders and wallet activity.` },
+    { id: 'collection', icon: FileText, title: '2. Information We Collect', content: `We process the account details you provide, such as your name, email address and phone number; listing details and uploaded photos; messages, offers, reports and blocks; and technical information needed to operate and secure the service. Optional seller verification may require identity documents.\n\nIf you used earlier checkout or wallet features, we may also retain the associated order, transaction and payout records. Egbay does not collect card numbers through the current classifieds experience.` },
+    { id: 'usage', icon: Shield, title: '3. How We Use Information', content: `We use this information to run listings and chat, show seller profiles and reviews, process safety reports, protect accounts, provide support, and manage existing order or wallet records. In-app notifications may tell you about activity connected to your account.` },
+    { id: 'sharing', icon: Lock, title: '4. Who Can See Information', content: `Public listings and seller profiles are visible to visitors. People in a conversation can see its messages and offers. Service providers that operate the app and its infrastructure process information needed for those services. Information may also be disclosed when legally required. We do not offer user contact details for sale to advertisers.` },
+    { id: 'rights', icon: Trash2, title: '5. Access, Changes and Deletion', content: `You can edit your profile, manage blocked users and request account deletion from Settings in the app or website. You can also contact info@egbay.shop about access, corrections or deletion. Account deletion may take time to complete; the status page shows whether it is complete or still pending. Some records may be retained when required for existing transactions or legal obligations.` },
+    { id: 'security', icon: CheckCircle2, title: '6. Security and Contact', content: `We use access controls and encrypted connections to protect information. No online service can guarantee absolute security. For privacy questions, contact info@egbay.shop.` },
+  ];
+  const currentArSections = [
+    { id: 'scope', icon: Eye, title: '١. نطاق السياسة', content: `توضح هذه السياسة كيفية تعامل إيجباي مع المعلومات المستخدمة في الإعلانات والمحادثات وعروض الأسعار والبلاغات والحسابات على الموقع والتطبيق. الدفع عبر إيجباي غير متاح حالياً، وقد نحتفظ بسجلات طلبات ومحافظ سابقة.` },
+    { id: 'collection', icon: FileText, title: '٢. المعلومات التي نجمعها', content: `نعالج بيانات الحساب التي تقدمها، مثل الاسم والبريد الإلكتروني ورقم الهاتف؛ وبيانات الإعلانات والصور المرفوعة؛ والرسائل والعروض والبلاغات والحظر؛ والمعلومات التقنية اللازمة لتشغيل الخدمة وحمايتها. قد يتطلب توثيق البائع الاختياري مستندات هوية.\n\nإذا استخدمت الدفع أو المحفظة سابقاً، فقد نحتفظ بسجلات الطلبات والمعاملات ووجهات الصرف المرتبطة بها. لا تجمع تجربة الإعلانات الحالية أرقام البطاقات البنكية عبر إيجباي.` },
+    { id: 'usage', icon: Shield, title: '٣. استخدام المعلومات', content: `نستخدم المعلومات لتشغيل الإعلانات والمحادثات، وعرض ملفات البائعين وتقييماتهم، ومعالجة بلاغات الأمان، وحماية الحسابات، وتقديم الدعم، وإدارة سجلات الطلبات والمحافظ السابقة. قد تصلك إشعارات داخل التطبيق حول نشاط حسابك.` },
+    { id: 'sharing', icon: Lock, title: '٤. من يمكنه الاطلاع على المعلومات', content: `الإعلانات العامة وملفات البائعين ظاهرة للزوار. يرى أطراف المحادثة رسائلها وعروضها. يعالج مزودو الخدمات اللازمة لتشغيل التطبيق والبنية التحتية البيانات المطلوبة لتلك الخدمات. وقد نكشف معلومات عندما يفرض القانون ذلك. لا نعرض بيانات الاتصال بالمستخدمين للبيع للمعلنين.` },
+    { id: 'rights', icon: Trash2, title: '٥. الوصول والتعديل والحذف', content: `يمكنك تعديل ملفك الشخصي وإدارة المستخدمين المحظورين وطلب حذف حسابك من الإعدادات في التطبيق أو الموقع. يمكنك أيضاً مراسلة info@egbay.shop بشأن الوصول أو التصحيح أو الحذف. قد يستغرق حذف الحساب وقتاً؛ وتوضح صفحة الحالة ما إذا اكتمل أو لا يزال قيد التنفيذ. قد تُحفظ بعض السجلات عند الحاجة لمعاملات سابقة أو التزامات قانونية.` },
+    { id: 'security', icon: CheckCircle2, title: '٦. الأمان والتواصل', content: `نستخدم ضوابط الوصول والاتصالات المشفرة لحماية المعلومات. لا توجد خدمة عبر الإنترنت تضمن الأمان المطلق. للاستفسارات المتعلقة بالخصوصية، راسل info@egbay.shop.` },
+  ];
+
+  const sections = PAYMENTS_ENABLED ? (isRTL ? arSections : enSections) : (isRTL ? currentArSections : currentEnSections);
 
   return (
     <div className="w-full max-w-5xl mx-auto px-4 py-12">
@@ -186,8 +204,8 @@ Data is shared strictly with authorized infrastructure partners necessary to ful
         </h1>
         <p className="text-xs sm:text-sm text-gray-500 max-w-xl mx-auto mb-6">
           {isRTL
-            ? 'نلتزم بحماية بياناتك الشخصية ومعاملاتك المالية وفقاً للقانون المصري رقم ١٥١ لسنة ٢٠٢٠ والمعايير العالمية.'
-            : 'Compliant with Egyptian Law No. 151 of 2020, Law No. 181 of 2018, and Apple App Store Review Guidelines.'}
+            ? 'كيف نستخدم بياناتك في الإعلانات والمحادثات وأمان الحساب.'
+            : 'How we handle information for listings, chat and account safety.'}
         </p>
       </div>
 
@@ -209,10 +227,10 @@ Data is shared strictly with authorized infrastructure partners necessary to ful
           <Lock className="w-6 h-6 text-blue-600 flex-shrink-0" />
           <div>
             <h4 className="text-xs font-bold text-gray-900">
-              {isRTL ? 'معايير Apple 5.1' : 'Apple 5.1 Privacy Ready'}
+              {isRTL ? 'إدارة الحساب' : 'Account controls'}
             </h4>
             <p className="text-[11px] text-gray-500">
-              {isRTL ? 'حذف الحساب والبيانات' : 'Account & data deletion'}
+              {isRTL ? 'تعديل البيانات وطلب حذف الحساب' : 'Profile edits and deletion requests'}
             </p>
           </div>
         </div>
@@ -221,10 +239,10 @@ Data is shared strictly with authorized infrastructure partners necessary to ful
           <Shield className="w-6 h-6 text-purple-600 flex-shrink-0" />
           <div>
             <h4 className="text-xs font-bold text-gray-900">
-              {isRTL ? 'تشفير TLS' : 'TLS Encryption'}
+              {isRTL ? 'اتصال آمن' : 'Secure connection'}
             </h4>
             <p className="text-[11px] text-gray-500">
-              {isRTL ? 'اتصال HTTPS مشفّر' : 'HTTPS on every connection'}
+              {isRTL ? 'اتصالات مشفرة' : 'Encrypted connections'}
             </p>
           </div>
         </div>
@@ -256,13 +274,13 @@ Data is shared strictly with authorized infrastructure partners necessary to ful
           <div className="flex items-center gap-2 mb-2">
             <Mail className="w-5 h-5 text-blue-600" />
             <h3 className="text-base font-bold text-gray-900">
-              {isRTL ? 'التواصل مع مسؤول الخصوصية وحماية البيانات' : 'Data Protection Officer & Privacy Inquiries'}
+              {isRTL ? 'استفسارات الخصوصية' : 'Privacy inquiries'}
             </h3>
           </div>
           <p className="text-gray-600 text-xs sm:text-sm mb-4 leading-relaxed">
             {isRTL
-              ? 'إذا كان لديك أي استفسار أو طلب لتعديل أو حذف بياناتك الشخصية، يسعدنا تواصلك مع فريق الامتثال القانوني:'
-              : 'For data access requests, deletion verifications, or regulatory inquiries, contact our dedicated legal & privacy team:'}
+              ? 'للاستفسار أو طلب الوصول إلى بياناتك أو تعديلها أو حذفها، راسلنا:'
+              : 'For questions about your data, access, corrections or deletion, contact us:'}
           </p>
           <div className="flex flex-wrap gap-3">
             <a

@@ -14,14 +14,15 @@ import { useLanguage } from '@/components/LanguageProvider';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import FloatingReactions, { type FloatingReactionParticle } from '@/components/live/FloatingReactions';
 import {
-  startLiveSession, endLiveSession, pinProduct, unpinProduct,
+  startLiveSession, revertLiveSessionToScheduled, endLiveSession, generateAgoraToken, pinProduct, unpinProduct,
   sendChatMessage, getRecentChatMessages, getLiveSessionById,
-  getActivePinnedProduct,
+  getActivePinnedProduct, deleteLiveChatMessage,
   type LiveSession, type LiveChatMessage, type LivePinnedProduct
 } from '@/lib/liveService';
 import { productService, type Product } from '@/lib/products';
 import { supabase } from '@/lib/supabase';
 import SmartImage from '@/components/SmartImage';
+import { blockUser } from '@/lib/chatService';
 
 const QUICK_EMOJIS = ['❤️', '🔥', '👏', '🚀', '💎', '💯', '😂', '🎉', '👍', '👀', '✨', '⚡'];
 
@@ -47,6 +48,8 @@ function StudioContent() {
 
   // Chat & Reactions
   const [messages, setMessages] = useState<LiveChatMessage[]>([]);
+  const [chatActionId, setChatActionId] = useState<string | null>(null);
+  const [chatError, setChatError] = useState('');
   const [chatInput, setChatInput] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [reactions, setReactions] = useState<FloatingReactionParticle[]>([]);
@@ -60,6 +63,7 @@ function StudioContent() {
 
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState('');
+  const [retryLoad, setRetryLoad] = useState(0);
 
   // Agora refs
   const clientRef = useRef<any>(null);
@@ -84,11 +88,11 @@ function StudioContent() {
     if (!sessionId || !user) return;
     (async () => {
       try {
+        setError('');
         const sess = await getLiveSessionById(sessionId);
-        if (sess) {
-          setSession(sess);
-          setTotalSales(sess.total_sales_egp || 0);
-        }
+        if (!sess || sess.seller_id !== user.id) throw new Error(isRTL ? 'جلسة البث غير متاحة لك.' : 'Live session not found or not yours.');
+        setSession(sess);
+        setTotalSales(sess.total_sales_egp || 0);
 
         const prods = await productService.getProductsBySeller(user.id);
         const activeListings = (prods ?? []).filter((p: Product) => p.status === 'active');
@@ -118,7 +122,7 @@ function StudioContent() {
         setError(err?.message || 'Failed to load live session');
       }
     })();
-  }, [sessionId, user]);
+  }, [sessionId, user, isRTL, retryLoad]);
 
   // Realtime: viewer count + chat + purchases
   useEffect(() => {
@@ -144,6 +148,9 @@ function StudioContent() {
           triggerFloatingParticle(newMsg.message);
         }
       })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'live_chat_messages', filter: `session_id=eq.${sessionId}` }, payload => {
+        setMessages(prev => prev.filter(m => m.id !== payload.old.id));
+      })
       .subscribe();
 
     return () => {
@@ -162,6 +169,18 @@ function StudioContent() {
 
   const handleRemoveParticle = (id: string) => {
     setReactions(prev => prev.filter(r => r.id !== id));
+  };
+
+  const moderateChat = async (msg: LiveChatMessage, andBlock: boolean) => {
+    setError('');
+    try {
+      if (andBlock) await blockUser(msg.user_id);
+      await deleteLiveChatMessage(msg.id);
+      setMessages(prev => prev.filter(m => andBlock ? m.user_id !== msg.user_id : m.id !== msg.id));
+      setChatActionId(null);
+    } catch (err) {
+      setError((err as Error)?.message || (isRTL ? 'تعذر إزالة الرسالة.' : 'Could not remove message.'));
+    }
   };
 
   // Camera/mic permission denials surface as a raw browser DOMException
@@ -202,75 +221,62 @@ function StudioContent() {
 
     try {
       const appId = process.env.NEXT_PUBLIC_AGORA_APP_ID || 'f9fd0dadb9674b698d234f4551d6100b';
-      let agoraSuccess = false;
-
-      // Try Agora RTC CDN network
-      try {
-        if (!AgoraRTC) {
-          const mod = await import('agora-rtc-sdk-ng');
-          AgoraRTC = mod.default;
-        }
-
-        const hostUid = Math.floor(Math.random() * 1000000);
-        const { token, channel } = await startLiveSession(sessionId, hostUid);
-        const client = AgoraRTC.createClient({ mode: 'live', codec: 'vp8' });
-        await client.setClientRole('host');
-        clientRef.current = client;
-
-        if (appId && appId.length === 32) {
-          await client.join(appId, channel, token || null, hostUid);
-          const [audioTrack, videoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
-          localAudioTrackRef.current = audioTrack;
-          localVideoTrackRef.current = videoTrack;
-          await client.publish([audioTrack, videoTrack]);
-
-          if (videoContainerRef.current) {
-            videoContainerRef.current.innerHTML = '';
-            videoTrack.play(videoContainerRef.current);
-          }
-          agoraSuccess = true;
-        }
-      } catch (agoraErr: any) {
-        console.warn('[Studio] Agora cloud gateway fallback to direct browser WebRTC media:', agoraErr);
+      if (!appId || appId.length !== 32) throw new Error('Live video is not configured');
+      if (!AgoraRTC) {
+        const mod = await import('agora-rtc-sdk-ng');
+        AgoraRTC = mod.default;
       }
 
-      // If Agora RTC cloud gateway is not reachable, activate direct browser camera & microphone
-      if (!agoraSuccess) {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
-          audio: true,
-        });
-        const videoElem = document.createElement('video');
-        videoElem.srcObject = stream;
-        videoElem.autoplay = true;
-        videoElem.playsInline = true;
-        videoElem.muted = true;
-        videoElem.className = 'w-full h-full object-cover';
-        if (videoContainerRef.current) {
-          videoContainerRef.current.innerHTML = '';
-          videoContainerRef.current.appendChild(videoElem);
+      const hostUid = Math.floor(Math.random() * 1000000);
+      const { token, channel } = await startLiveSession(sessionId, hostUid);
+      const client = AgoraRTC.createClient({ mode: 'live', codec: 'vp8' });
+      await client.setClientRole('host');
+      clientRef.current = client;
+      await client.join(appId, channel, token, hostUid);
+      const renewHostToken = async () => {
+        try { await client.renewToken(await generateAgoraToken(channel, hostUid, 'host')); }
+        catch {
+          localVideoTrackRef.current?.close();
+          localAudioTrackRef.current?.close();
+          await client.leave().catch(() => {});
+          await endLiveSession(sessionId).catch(() => {});
+          setIsLive(false);
+          setError(isRTL ? 'انتهت صلاحية الاتصال بالبث. ابدأ جلسة جديدة.' : 'Live connection expired. Please start a new session.');
         }
-        (window as any).__localLiveMediaStream = stream;
+      };
+      client.on('token-privilege-will-expire', renewHostToken);
+      client.on('token-privilege-did-expire', renewHostToken);
+      const [audioTrack, videoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
+      localAudioTrackRef.current = audioTrack;
+      localVideoTrackRef.current = videoTrack;
+      await client.publish([audioTrack, videoTrack]);
+      if (videoContainerRef.current) {
+        videoContainerRef.current.innerHTML = '';
+        videoTrack.play(videoContainerRef.current);
       }
 
       setIsLive(true);
       setError('');
 
       // System message to chat
-      await sendChatMessage({
+      sendChatMessage({
         sessionId,
         userId: user.id,
         username: 'Egbay Live',
         message: '🔴 البث المباشر قد انطلق! أهلاً وسهلاً بجميع المشاهدين 🎉',
         isHost: true,
         msgType: 'system',
-      });
+      }).catch(err => console.warn('[Studio] Live announcement failed:', err));
     } catch (err: any) {
+      localVideoTrackRef.current?.close();
+      localAudioTrackRef.current?.close();
+      await clientRef.current?.leave().catch(() => {});
+      await revertLiveSessionToScheduled(sessionId).catch(() => {});
       setError(getCameraErrorMessage(err));
     } finally {
       setStarting(false);
     }
-  }, [sessionId, user, session, getCameraErrorMessage]);
+  }, [sessionId, user, session, getCameraErrorMessage, isRTL]);
 
   const [showEndModal, setShowEndModal] = useState(false);
   const [ending, setEnding] = useState(false);
@@ -328,14 +334,13 @@ function StudioContent() {
     if (!textToSend) setChatInput('');
     setShowEmojiPicker(false);
 
-    await sendChatMessage({
-      sessionId,
-      userId: user.id,
-      username: user.user_metadata?.full_name || 'Host',
-      message: msg,
-      isHost: true,
-      msgType: 'chat',
-    });
+    try {
+      await sendChatMessage({ sessionId, userId: user.id,
+        username: user.user_metadata?.full_name || 'Host', message: msg, isHost: true, msgType: 'chat' });
+    } catch (err) {
+      if (!textToSend) setChatInput(current => current === '' ? msg : current);
+      setChatError((err as Error)?.message || (isRTL ? 'تعذر إرسال الرسالة.' : 'Could not send message.'));
+    }
   };
 
   const handleSendHostReaction = async (emoji: string) => {
@@ -348,7 +353,7 @@ function StudioContent() {
       message: emoji,
       isHost: true,
       msgType: 'reaction',
-    });
+    }).catch(() => setChatError(isRTL ? 'تعذر إرسال التفاعل.' : 'Could not send reaction.'));
   };
 
   // 1-Click Spotlight / Pin with custom Live Deal Price
@@ -416,12 +421,13 @@ function StudioContent() {
               <div className="mb-5 bg-red-950/80 border border-red-800 text-red-300 text-xs px-4 py-3 rounded-2xl flex items-center gap-2 max-w-md">
                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
                 <span>{error}</span>
+                {!session && <button type="button" onClick={() => setRetryLoad(n => n + 1)} className="underline font-bold">{isRTL ? 'إعادة المحاولة' : 'Retry'}</button>}
               </div>
             )}
 
             <button
               onClick={handleGoLive}
-              disabled={starting}
+              disabled={starting || !session || session.status === 'ended' || session.status === 'cancelled'}
               className="bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 disabled:opacity-60 text-white font-black px-9 py-4 rounded-2xl shadow-2xl shadow-red-600/40 flex items-center gap-2.5 text-sm transition-all transform hover:scale-105 active:scale-95"
             >
               {starting ? (
@@ -597,6 +603,7 @@ function StudioContent() {
 
         {/* Message Feed */}
         <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
+          {chatError && <p role="alert" className="text-xs text-red-300 px-3">{chatError}</p>}
           {messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-slate-500 text-center p-6 space-y-2">
               <Sparkles className="w-8 h-8 text-slate-600" />
@@ -680,6 +687,17 @@ function StudioContent() {
                       {msg.message}
                     </p>
                   </div>
+                  {!msg.is_host && msg.user_id !== user?.id && (
+                    <div className="relative">
+                      <button type="button" onClick={() => setChatActionId(chatActionId === msg.id ? null : msg.id)}
+                        aria-label={isRTL ? 'إدارة الرسالة' : 'Moderate message'}
+                        className="text-[10px] text-slate-400 hover:text-white px-1.5 py-1 rounded border border-slate-700">•••</button>
+                      {chatActionId === msg.id && <div className="absolute end-0 top-full z-20 w-40 bg-slate-800 border border-slate-600 rounded-lg shadow-xl p-1">
+                        <button type="button" onClick={() => moderateChat(msg, false)} className="block w-full text-start text-xs text-white px-2 py-1.5 hover:bg-slate-700">{isRTL ? 'إزالة الرسالة' : 'Remove message'}</button>
+                        <button type="button" onClick={() => moderateChat(msg, true)} className="block w-full text-start text-xs text-red-300 px-2 py-1.5 hover:bg-slate-700">{isRTL ? 'إزالة وحظر' : 'Remove and block'}</button>
+                      </div>}
+                    </div>
+                  )}
                 </div>
               );
             })

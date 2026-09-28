@@ -21,6 +21,7 @@ import {
 import { supabase } from '@/lib/supabase';
 import { PAYMENTS_ENABLED } from '@/lib/platformCommerce';
 import SmartImage from '@/components/SmartImage';
+import { blockUser, getBlockedUserIds, reportContent } from '@/lib/chatService';
 
 const QUICK_EMOJIS = ['❤️', '🔥', '👏', '🚀', '💎', '💯', '😂', '🎉', '👍', '👀', '✨', '⚡'];
 
@@ -37,12 +38,18 @@ export default function ViewerPage() {
   const [session, setSession] = useState<LiveSession | null>(null);
   const [viewerCount, setViewerCount] = useState(0);
   const [messages, setMessages] = useState<LiveChatMessage[]>([]);
+  const [blockedIds, setBlockedIds] = useState<string[]>([]);
+  const [chatActionId, setChatActionId] = useState<string | null>(null);
+  const [chatError, setChatError] = useState('');
   const [pinnedProduct, setPinnedProduct] = useState<LivePinnedProduct | null>(null);
   const [chatInput, setChatInput] = useState('');
   const [chatOpen, setChatOpen] = useState(true);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [mediaError, setMediaError] = useState('');
+  const [retryCount, setRetryCount] = useState(0);
   const [reactions, setReactions] = useState<FloatingReactionParticle[]>([]);
 
   const videoContainerRef = useRef<HTMLDivElement>(null);
@@ -66,12 +73,15 @@ export default function ViewerPage() {
   useEffect(() => {
     if (!channelId) return;
     let isMounted = true;
+    setLoading(true);
+    setLoadError('');
+    setMediaError('');
 
     (async () => {
       try {
         const s = await getLiveSessionByChannel(channelId as string);
         if (!s) {
-          router.push('/live');
+          if (isMounted) setLoadError(isRTL ? 'هذا البث غير متاح.' : 'This live session is unavailable.');
           return;
         }
         if (isMounted) {
@@ -79,14 +89,12 @@ export default function ViewerPage() {
           setViewerCount(s.current_viewers || 1);
         }
 
-        const msgs = await getRecentChatMessages(s.id);
-        if (isMounted) setMessages(msgs);
+        getRecentChatMessages(s.id).then(msgs => { if (isMounted) setMessages(msgs); }).catch(() => {});
 
         // Detect current pinned product
-        const activePin = await getActivePinnedProduct(s.id);
-        if (activePin && isMounted) {
-          setPinnedProduct(activePin);
-        }
+        getActivePinnedProduct(s.id).then(activePin => { if (isMounted) setPinnedProduct(activePin); }).catch(() => {});
+
+        if (s.status !== 'live') return;
 
         // Join Agora as audience
         try {
@@ -101,7 +109,16 @@ export default function ViewerPage() {
           await client.setClientRole('audience');
           clientRef.current = client;
 
-          await client.join(appId, channelId as string, token || null, uid);
+          await client.join(appId, channelId as string, token, uid);
+
+          client.on('token-privilege-will-expire', async () => {
+            try { await client.renewToken(await joinLiveSession(channelId as string, uid)); }
+            catch { if (isMounted) setMediaError(isRTL ? 'انتهت صلاحية الاتصال بالبث.' : 'Live video connection expired.'); }
+          });
+          client.on('token-privilege-did-expire', async () => {
+            try { await client.renewToken(await joinLiveSession(channelId as string, uid)); }
+            catch { if (isMounted) setMediaError(isRTL ? 'انتهت صلاحية الاتصال بالبث.' : 'Live video connection expired.'); }
+          });
 
           client.on('user-published', async (remoteUser: any, mediaType: 'video' | 'audio') => {
             await client.subscribe(remoteUser, mediaType);
@@ -113,8 +130,11 @@ export default function ViewerPage() {
             }
           });
         } catch (agoraErr) {
-          console.warn('[Viewer] Agora audience connection fallback:', agoraErr);
+          if (isMounted) setMediaError(isRTL ? 'تعذر الاتصال بالفيديو المباشر.' : 'Could not connect to live video.');
+          console.warn('[Viewer] Agora connection failed:', agoraErr);
         }
+      } catch (err) {
+        if (isMounted) setLoadError((err as Error)?.message || (isRTL ? 'تعذر تحميل البث.' : 'Could not load live session.'));
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -124,7 +144,12 @@ export default function ViewerPage() {
       isMounted = false;
       clientRef.current?.leave().catch(() => {});
     };
-  }, [channelId, router]);
+  }, [channelId, retryCount, isRTL]);
+
+  useEffect(() => {
+    if (!user) return;
+    getBlockedUserIds(user.id).then(setBlockedIds).catch(() => {});
+  }, [user]);
 
   const [streamEndedModal, setStreamEndedModal] = useState(false);
 
@@ -143,12 +168,15 @@ export default function ViewerPage() {
           triggerFloatingParticle(newMsg.message);
         }
       })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'live_chat_messages', filter: `session_id=eq.${session.id}` }, payload => {
+        setMessages(prev => prev.filter(m => m.id !== payload.old.id));
+      })
       .subscribe();
 
     const pinsSub = supabase
       .channel(`viewer_pins_${session.id}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'live_pinned_products', filter: `session_id=eq.${session.id}` }, payload => {
-        setPinnedProduct(payload.new as LivePinnedProduct);
+        getActivePinnedProduct(session.id).then(setPinnedProduct).catch(() => {});
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'live_pinned_products', filter: `session_id=eq.${session.id}` }, payload => {
         if (payload.new.unpinned_at) {
@@ -176,6 +204,23 @@ export default function ViewerPage() {
     };
   }, [session, router, isRTL]);
 
+  const moderateMessage = async (msg: LiveChatMessage, action: 'report' | 'block') => {
+    if (!user) { router.push(`/login?redirect=${encodeURIComponent(`/live/${channelId}`)}`); return; }
+    setChatError('');
+    try {
+      if (action === 'report') {
+        await reportContent('live_message', msg.id, `Abusive live chat message (live ${session?.id})`);
+      } else {
+        if (!window.confirm(isRTL ? 'حظر هذا المستخدم وإخفاء رسائله؟' : 'Block this user and hide their messages?')) return;
+        await blockUser(msg.user_id);
+        setBlockedIds(prev => [...prev, msg.user_id]);
+      }
+      setChatActionId(null);
+    } catch (err) {
+      setChatError((err as Error)?.message || (isRTL ? 'تعذر تنفيذ الإجراء.' : 'Action failed.'));
+    }
+  };
+
   const handleSendChat = async (textToSend?: string) => {
     const content = textToSend || chatInput;
     if (!content.trim() || !user || !session) return;
@@ -183,13 +228,15 @@ export default function ViewerPage() {
     if (!textToSend) setChatInput('');
     setShowEmojiPicker(false);
 
-    await sendChatMessage({
-      sessionId: session.id,
-      userId: user.id,
-      username: user.user_metadata?.full_name || 'Buyer',
-      message: msg,
-      msgType: 'chat',
-    });
+    try {
+      await sendChatMessage({
+        sessionId: session.id, userId: user.id,
+        username: user.user_metadata?.full_name || 'Buyer', message: msg, msgType: 'chat',
+      });
+    } catch (err) {
+      if (!textToSend) setChatInput(current => current === '' ? msg : current);
+      setChatError((err as Error)?.message || (isRTL ? 'تعذر إرسال الرسالة.' : 'Could not send message.'));
+    }
   };
 
   const handleSendReaction = async (emoji: string) => {
@@ -201,7 +248,7 @@ export default function ViewerPage() {
         username: user.user_metadata?.full_name || 'Buyer',
         message: emoji,
         msgType: 'reaction',
-      });
+      }).catch(() => setChatError(isRTL ? 'تعذر إرسال التفاعل.' : 'Could not send reaction.'));
     }
   };
 
@@ -223,7 +270,7 @@ export default function ViewerPage() {
     );
   }
 
-  if (!session) return null;
+  if (!session) return <main className="min-h-[60vh] flex flex-col items-center justify-center gap-4 p-6 text-center"><p role="alert" className="text-red-700">{loadError || (isRTL ? 'هذا البث غير متاح.' : 'Live session unavailable.')}</p><button onClick={() => setRetryCount(n => n + 1)} className="bg-brand text-white rounded-lg px-5 py-2">{isRTL ? 'إعادة المحاولة' : 'Retry'}</button><Link href="/live" className="text-brand">{isRTL ? 'العودة إلى البثوث' : 'Back to live sessions'}</Link></main>;
 
   return (
     <div className="flex flex-col lg:flex-row h-screen bg-slate-950 text-white overflow-hidden select-none">
@@ -272,6 +319,10 @@ export default function ViewerPage() {
             </div>
           </div>
         </div>
+
+        {mediaError && <div role="alert" className="relative z-20 mx-4 bg-red-950/90 border border-red-700 text-red-100 text-xs p-3 rounded-lg">
+          {mediaError} <button type="button" onClick={() => setRetryCount(n => n + 1)} className="ms-2 underline font-bold">{isRTL ? 'إعادة المحاولة' : 'Retry'}</button>
+        </div>}
 
         {/* Spotlight Pinned Product Card (Bottom Left) */}
         {pinnedProduct && (
@@ -375,7 +426,8 @@ export default function ViewerPage() {
 
         {/* Message Feed */}
         <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
-          {messages.map(msg => {
+          {chatError && <p role="alert" className="text-xs text-red-300">{chatError}</p>}
+          {messages.filter(msg => !blockedIds.includes(msg.user_id)).map(msg => {
             // Purchase Event Card
             if (msg.msg_type === 'purchase') {
               return (
@@ -452,6 +504,17 @@ export default function ViewerPage() {
                     {msg.message}
                   </p>
                 </div>
+                {msg.user_id !== user?.id && (
+                  <div className="relative">
+                    <button type="button" onClick={() => setChatActionId(chatActionId === msg.id ? null : msg.id)}
+                      aria-label={isRTL ? 'خيارات الرسالة' : 'Message options'}
+                      className="text-[10px] text-slate-400 hover:text-white px-1.5 py-1 rounded border border-slate-700">•••</button>
+                    {chatActionId === msg.id && <div className="absolute end-0 top-full z-20 w-32 bg-slate-800 border border-slate-600 rounded-lg shadow-xl p-1">
+                      <button type="button" onClick={() => moderateMessage(msg, 'report')} className="block w-full text-start text-xs text-white px-2 py-1.5 hover:bg-slate-700">{isRTL ? 'إبلاغ' : 'Report'}</button>
+                      <button type="button" onClick={() => moderateMessage(msg, 'block')} className="block w-full text-start text-xs text-red-300 px-2 py-1.5 hover:bg-slate-700">{isRTL ? 'حظر المستخدم' : 'Block user'}</button>
+                    </div>}
+                  </div>
+                )}
               </div>
             );
           })}

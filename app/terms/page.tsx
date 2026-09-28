@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { Scale, ShieldCheck, AlertOctagon, HelpCircle, Mail, FileText, CheckCircle2, ArrowRight } from 'lucide-react';
 import { useLanguage } from '@/components/LanguageProvider';
+import { PAYMENTS_ENABLED } from '@/lib/platformCommerce';
 
 export default function TermsPage() {
   const { isRTL } = useLanguage();
@@ -150,7 +151,24 @@ Sellers must dispatch sold items via our integrated courier partner within 48 ho
     },
   ];
 
-  const sections = isRTL ? arSections : enSections;
+  // Current classifieds terms. The payment-era text above remains available
+  // only if checkout is deliberately re-enabled and its legal copy is reviewed.
+  const currentEnSections = [
+    { id: 'role', title: '1. What Egbay Provides', content: `Egbay lets people post listings, browse items, message one another and make offers. Sellers are responsible for their listings and the items they offer. Egbay does not own the listed items.\n\nOnline checkout, escrow, wallet top-ups and new payouts are currently unavailable. A price offer in chat is a proposal between users; it does not create a payment or an order through Egbay.` },
+    { id: 'handover', title: '2. Price, Payment and Handover', content: `Buyers and sellers agree the final price, payment method and handover directly with one another. Any payment takes place outside Egbay. Egbay does not hold funds, arrange delivery, or guarantee an off-platform transaction. Meet in a public place where possible and inspect the item before paying.\n\nExisting orders and wallet records from earlier Egbay checkout activity remain subject to their recorded status. Contact info@egbay.shop about an existing order or balance.` },
+    { id: 'listings', title: '3. Listings and Seller Responsibilities', content: `Sellers must describe the item accurately, including its condition, defects, price, availability and what is included. A listing marked “sourced to order” means the seller does not have that unit in hand; the stated lead time is an estimate to discuss before agreeing to a purchase. Do not post stolen, counterfeit, unsafe or unlawful items.` },
+    { id: 'safety', title: '4. Reports and Account Safety', content: `You can report a listing, message or user, block another user, and request account deletion from Settings. Egbay may remove content or restrict accounts that violate these terms. If a transaction or safety concern needs help, contact info@egbay.shop with the relevant listing or conversation details.` },
+    { id: 'contact', title: '5. Contact', content: `Questions about these terms, existing orders or your account can be sent to info@egbay.shop.` },
+  ];
+  const currentArSections = [
+    { id: 'role', title: '١. خدمات إيجباي', content: `تتيح إيجباي نشر الإعلانات وتصفح السلع والمراسلة وتقديم عروض الأسعار. البائع مسؤول عن إعلانه والسلعة التي يعرضها، ولا تملك إيجباي السلع المعروضة.\n\nالدفع عبر الموقع والضمان المالي وشحن المحفظة وصرف أرباح جديدة غير متاحين حالياً. عرض السعر في المحادثة هو اقتراح بين المستخدمين، ولا ينشئ عملية دفع أو طلباً عبر إيجباي.` },
+    { id: 'handover', title: '٢. السعر والدفع والتسليم', content: `يتفق المشتري والبائع مباشرة على السعر النهائي وطريقة الدفع والتسليم. أي دفع يتم خارج إيجباي. لا تحتفظ إيجباي بالأموال ولا ترتب التوصيل ولا تضمن التعاملات الخارجية. يُفضّل اللقاء في مكان عام وفحص السلعة قبل الدفع.\n\nتظل سجلات الطلبات والمحافظ الناتجة عن عمليات دفع سابقة على إيجباي مرتبطة بحالتها المسجلة. للاستفسار عن طلب أو رصيد سابق، راسل info@egbay.shop.` },
+    { id: 'listings', title: '٣. الإعلانات والتزامات البائع', content: `يجب على البائع وصف السلعة بدقة، بما في ذلك حالتها وعيوبها وسعرها وتوفرها ومحتوياتها. عبارة «يُجلب عند الطلب» تعني أن الوحدة ليست لدى البائع حالياً؛ ومدة التوريد المذكورة تقديرية ويجب مناقشتها قبل الاتفاق. يُحظر عرض السلع المسروقة أو المقلدة أو الخطرة أو غير القانونية.` },
+    { id: 'safety', title: '٤. البلاغات وأمان الحساب', content: `يمكنك الإبلاغ عن إعلان أو رسالة أو مستخدم، وحظر مستخدم آخر، وطلب حذف الحساب من الإعدادات. قد تزيل إيجباي المحتوى أو تقيّد الحسابات المخالفة لهذه الشروط. للمساعدة بشأن تعامل أو مشكلة أمان، راسل info@egbay.shop مع تفاصيل الإعلان أو المحادثة.` },
+    { id: 'contact', title: '٥. التواصل', content: `للاستفسار عن هذه الشروط أو الطلبات السابقة أو حسابك، راسل info@egbay.shop.` },
+  ];
+
+  const sections = PAYMENTS_ENABLED ? (isRTL ? arSections : enSections) : (isRTL ? currentArSections : currentEnSections);
 
   return (
     <div className="w-full max-w-4xl mx-auto px-4 py-12">
@@ -178,7 +196,7 @@ Sellers must dispatch sold items via our integrated courier partner within 48 ho
               {isRTL ? 'قواعد واضحة' : 'Clear Marketplace Rules'}
             </h4>
             <p className="text-[11px] text-gray-500">
-              {isRTL ? 'السلع المحظورة والتزامات البائع وخطوات النزاع أدناه' : 'Prohibited items, seller duties and dispute steps below'}
+              {isRTL ? 'الإعلانات والتعامل المباشر والبلاغات' : 'Listings, direct transactions and reports'}
             </p>
           </div>
         </div>
@@ -202,7 +220,7 @@ Sellers must dispatch sold items via our integrated courier partner within 48 ho
               {isRTL ? 'منع السلع المقلدة' : 'Counterfeit Items Prohibited'}
             </h4>
             <p className="text-[11px] text-gray-500">
-              {isRTL ? 'إحالة المخالفين لمباحث الإنترنت' : 'Violations may be reported to the authorities'}
+              {isRTL ? 'السلع المسروقة أو المقلدة أو غير القانونية محظورة' : 'Stolen, counterfeit and unlawful items are prohibited'}
             </p>
           </div>
         </div>
@@ -225,12 +243,12 @@ Sellers must dispatch sold items via our integrated courier partner within 48 ho
         <div className="p-6 sm:p-8 bg-gradient-to-br from-slate-50 to-blue-50/50 rounded-b-3xl">
           <h3 className="text-base font-bold text-gray-900 mb-2 flex items-center gap-2">
             <HelpCircle className="w-5 h-5 text-blue-600" />
-            {isRTL ? 'هل لديك استفسار أو طلب مساعدة في نزاع؟' : 'Need Support or Mediation Assistance?'}
+            {isRTL ? 'هل تحتاج مساعدة؟' : 'Need help?'}
           </h3>
           <p className="text-gray-600 text-xs sm:text-sm mb-4 leading-relaxed">
             {isRTL
-              ? 'فريق خدمة العملاء والوساطة متاح لمساعدتك في حل أي نزاع أو الإجابة على استفسارات الشروط:'
-              : 'Our mediation and dispute resolution specialists are available to review transaction claims and answer legal inquiries:'}
+              ? 'للاستفسار عن الشروط أو طلب سابق أو مشكلة في الحساب، راسلنا:'
+              : 'For questions about these terms, an earlier order or your account, contact us:'}
           </p>
           <div className="flex flex-wrap gap-3">
             <a

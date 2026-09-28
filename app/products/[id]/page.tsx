@@ -128,7 +128,7 @@ export default function ProductDetailPage() {
   }, [id, router]);
 
   const handleWishlist = async () => {
-    if (!user) { router.push('/login'); return; }
+    if (!user) { router.push(`/login?redirect=${encodeURIComponent(`/products/${id}`)}`); return; }
     const next = !wishlisted;
     setWishlisted(next);
     try {
@@ -140,12 +140,17 @@ export default function ProductDetailPage() {
   };
 
   const handleChat = async (offer = false) => {
-    if (!user) { router.push('/login'); return; }
+    if (!user) { router.push(`/login?redirect=${encodeURIComponent(`/products/${id}`)}`); return; }
     if (!product || product.seller_id === user.id) return;
     setChatLoading(true);
     try {
       const roomId = await getOrCreateChatRoom(user.id, product.seller_id, product.id);
-      router.push(`/chat/${roomId}${offer ? '?offer=1' : ''}`);
+      const variant = resolveVariant(variants, selection);
+      const variantNote = variant ? [variant.storage, variant.color, variant.grade].filter(Boolean).join(' · ') : '';
+      const params = new URLSearchParams();
+      if (offer) params.set('offer', '1');
+      if (variantNote) params.set(offer ? 'variant' : 'draft', offer ? variantNote : `[${variantNote}] `);
+      router.push(`/chat/${roomId}${params.size ? `?${params}` : ''}`);
     } catch (err) {
       console.error('Chat error:', err);
     } finally {
@@ -154,7 +159,7 @@ export default function ProductDetailPage() {
   };
 
   const handleReport = async () => {
-    if (!user) { router.push('/login'); return; }
+    if (!user) { router.push(`/login?redirect=${encodeURIComponent(`/products/${id}`)}`); return; }
     const reason = reportReason.trim();
     if (!reason) return;
     setReportBusy(true);
@@ -458,7 +463,7 @@ export default function ProductDetailPage() {
                   {reportMsg && <p className="text-[11px] text-slate-500 mb-1">{reportMsg}</p>}
                   {!reportOpen ? (
                     <button
-                      onClick={() => { if (!user) { router.push('/login'); return; } setReportMsg(null); setReportOpen(true); }}
+                      onClick={() => { if (!user) { router.push(`/login?redirect=${encodeURIComponent(`/products/${id}`)}`); return; } setReportMsg(null); setReportOpen(true); }}
                       className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-400 hover:text-danger transition-colors"
                     >
                       <Flag className="w-3 h-3" />

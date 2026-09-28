@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Heart, Package, Zap, MapPin } from 'lucide-react';
 import { useLanguage } from '@/components/LanguageProvider';
@@ -42,10 +42,12 @@ export default function ProductCard({
   onWishlistToggle,
 }: {
   product: Product;
-  onWishlistToggle?: (id: string, current: boolean) => void;
+  onWishlistToggle?: (id: string, current: boolean) => void | Promise<void>;
 }) {
   const [wishlisted, setWishlisted] = useState(product.isWishlisted ?? false);
   const { isRTL } = useLanguage();
+
+  useEffect(() => { setWishlisted(product.isWishlisted ?? false); }, [product.isWishlisted]);
 
   const handleWishlist = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -53,7 +55,7 @@ export default function ProductCard({
     if (!onWishlistToggle) return;
     const next = !wishlisted;
     setWishlisted(next);
-    onWishlistToggle(product.id, !next);
+    Promise.resolve(onWishlistToggle(product.id, !next)).catch(() => setWishlisted(!next));
   };
 
   const imgSrc = product.images?.[0] || null;

@@ -129,8 +129,7 @@ export async function generateAgoraToken(channelName: string, uid: number, role:
     body: { channelName, uid, role },
   });
   if (error || !data?.token) {
-    console.error('[LiveService] Failed to generate Agora token:', error);
-    return '';
+    throw error || new Error('Could not get a live access token');
   }
   return data.token as string;
 }
@@ -204,8 +203,20 @@ export async function startLiveSession(sessionId: string, sellerUid: number): Pr
 
   if (error || !session) throw error || new Error('Session not found');
 
-  const token = await generateAgoraToken(session.agora_channel, sellerUid, 'host');
-  return { token, channel: session.agora_channel };
+  try {
+    const token = await generateAgoraToken(session.agora_channel, sellerUid, 'host');
+    return { token, channel: session.agora_channel };
+  } catch (tokenError) {
+    await revertLiveSessionToScheduled(sessionId).catch(() => {});
+    throw tokenError;
+  }
+}
+
+export async function revertLiveSessionToScheduled(sessionId: string): Promise<void> {
+  const { error } = await supabase.from('live_sessions')
+    .update({ status: 'scheduled', started_at: null })
+    .eq('id', sessionId).eq('status', 'live');
+  if (error) throw error;
 }
 
 /**
@@ -371,9 +382,16 @@ export async function getRecentChatMessages(sessionId: string, limit = 50): Prom
     .from('live_chat_messages')
     .select('*')
     .eq('session_id', sessionId)
-    .order('created_at', { ascending: true })
+    .order('created_at', { ascending: false })
     .limit(limit);
 
   if (error) throw error;
-  return (data as LiveChatMessage[]) || [];
+  return ((data as LiveChatMessage[]) || []).reverse();
+}
+
+export async function deleteLiveChatMessage(messageId: string): Promise<void> {
+  const { data, error } = await supabase.from('live_chat_messages')
+    .delete().eq('id', messageId).select('id');
+  if (error) throw error;
+  if (!data?.length) throw new Error('Message could not be removed');
 }

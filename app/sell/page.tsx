@@ -187,20 +187,20 @@ function SellContent() {
     }
 
     setUploading(true);
+    const uploadedPaths: string[] = [];
     try {
       // 1. Upload images to Supabase storage
       const uploadedUrls: string[] = [];
       for (const img of images) {
         const ext = img.file.name.split('.').pop() || 'jpg';
-        const filename = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const filename = `${user.id}/${crypto.randomUUID()}.${ext}`;
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('product-images')
           .upload(filename, img.file, { contentType: img.file.type });
 
-        if (uploadError) {
-          console.warn('Storage upload note:', uploadError.message);
-          uploadedUrls.push(img.preview);
-        } else if (uploadData) {
+        if (uploadError) throw uploadError;
+        if (uploadData) {
+          uploadedPaths.push(uploadData.path);
           const { data: urlData } = supabase.storage
             .from('product-images')
             .getPublicUrl(uploadData.path);
@@ -240,6 +240,7 @@ function SellContent() {
         router.push(newProd ? `/products/${newProd.id}` : '/');
       }, 1500);
     } catch (err: any) {
+      if (uploadedPaths.length) await supabase.storage.from('product-images').remove(uploadedPaths).catch(() => {});
       console.error(err);
       setError(err?.message || (isRTL ? 'حدث خطأ أثناء نشر الإعلان، يرجى المحاولة ثانية' : 'Failed to publish listing. Please try again.'));
     } finally {

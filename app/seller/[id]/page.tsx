@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { Store, BadgeCheck, MessageSquare } from 'lucide-react';
 import { useLanguage } from '@/components/LanguageProvider';
 import { supabase } from '@/lib/supabase';
-import { type Product, getSellerReplySeconds, formatReplyTime } from '@/lib/products';
+import { productService, type Product, getSellerReplySeconds, formatReplyTime } from '@/lib/products';
+import { useAuth } from '@/components/AuthProvider';
 import { getSellerReviews, type Review } from '@/lib/reviews';
 import ProductCard from '@/components/ui/ProductCard';
 import { RatingDisplay, StarRow } from '@/components/ui/StarRating';
@@ -46,6 +47,8 @@ function timeAgo(dateStr: string, isRTL: boolean): string {
  */
 export default function SellerProfilePage() {
   const { id: sellerId } = useParams<{ id: string }>();
+  const router = useRouter();
+  const { user } = useAuth();
   const { isRTL } = useLanguage();
 
   const [seller, setSeller] = useState<SellerProfile | null>(null);
@@ -55,12 +58,13 @@ export default function SellerProfilePage() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [tab, setTab] = useState<'listings' | 'reviews'>('listings');
+  const [wishlistError, setWishlistError] = useState('');
 
   useEffect(() => {
     if (!sellerId) return;
     (async () => {
       try {
-        const [{ data: profile }, { data: products }, reviewList] = await Promise.all([
+        const [{ data: profile }, { data: products }, reviewList, saved] = await Promise.all([
           supabase
             .from('public_profiles')
             .select('id, full_name, avatar_url, tier, is_verified_seller, rating_avg, rating_count')
@@ -74,13 +78,16 @@ export default function SellerProfilePage() {
             .gt('stock', 0)
             .order('created_at', { ascending: false }),
           getSellerReviews(sellerId).catch(() => []),
+          user ? productService.getWishlist().catch(() => [] as Product[]) : Promise.resolve([] as Product[]),
         ]);
 
         if (!profile) { setNotFound(true); return; }
         setSeller(profile);
+        const savedIds = new Set(saved.map(p => p.id));
         setListings((products || []).map(({ product_variants, ...p }) => ({
           ...p,
           has_variants: (product_variants?.[0]?.count ?? 0) > 0,
+          isWishlisted: savedIds.has(p.id),
         })) as Product[]);
         // Real average only, and only from 3+ measured replies; otherwise nothing.
         getSellerReplySeconds(sellerId).then(setReplySeconds).catch(() => {});
@@ -92,7 +99,17 @@ export default function SellerProfilePage() {
         setLoading(false);
       }
     })();
-  }, [sellerId]);
+  }, [sellerId, user]);
+
+  const toggleWishlist = async (id: string, wasWishlisted: boolean) => {
+    if (!user) { router.push(`/login?redirect=${encodeURIComponent(`/seller/${sellerId}`)}`); return; }
+    setWishlistError('');
+    try {
+      if (wasWishlisted) await productService.removeFromWishlist(id);
+      else await productService.addToWishlist(id);
+      setListings(prev => prev.map(p => p.id === id ? { ...p, isWishlisted: !wasWishlisted } : p));
+    } catch (err) { setWishlistError((err as Error)?.message || (isRTL ? 'تعذر تحديث المحفوظات.' : 'Could not update saved items.')); throw err; }
+  };
 
   if (loading) {
     return (
@@ -169,9 +186,12 @@ export default function SellerProfilePage() {
 
       {tab === 'listings' && (
         listings.length > 0 ? (
+          <>
+          {wishlistError && <p role="alert" className="text-sm text-red-700">{wishlistError}</p>}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-6">
-            {listings.map(p => <ProductCard key={p.id} product={p} />)}
+            {listings.map(p => <ProductCard key={p.id} product={p} onWishlistToggle={toggleWishlist} />)}
           </div>
+          </>
         ) : (
           <EmptyState
             icon={<Store className="w-6 h-6" />}

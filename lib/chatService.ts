@@ -68,7 +68,7 @@ export const messagePreview = (m?: { content?: string | null; msg_type?: string 
  * handover -- no payment is created or implied. The database enforces the
  * shape (msg_type/offer_amount_egp/offer_status check constraint).
  */
-export async function sendOffer(roomId: string, senderId: string, amountEgp: number): Promise<ChatMessage> {
+export async function sendOffer(roomId: string, senderId: string, amountEgp: number, variantNote?: string): Promise<ChatMessage> {
   const amount = Math.round(amountEgp);
   if (!Number.isFinite(amount) || amount <= 0) throw new Error('Enter an amount');
   const { data, error } = await supabase
@@ -76,7 +76,7 @@ export async function sendOffer(roomId: string, senderId: string, amountEgp: num
     .insert({
       room_id: roomId,
       sender_id: senderId,
-      content: formatOfferText(amount),
+      content: `${formatOfferText(amount)}${variantNote ? ` · ${variantNote.slice(0, 160)}` : ''}`,
       msg_type: 'offer',
       offer_amount_egp: amount,
       offer_status: 'pending',
