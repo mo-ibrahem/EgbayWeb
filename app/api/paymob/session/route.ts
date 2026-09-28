@@ -64,7 +64,7 @@ export async function POST(req: Request) {
 
       amountEgp = Number(order.amount);
       merchantOrderId = order.id;
-      itemName = `EgyBay Order #${order.id.slice(-6).toUpperCase()}`;
+      itemName = `Egbay Order #${order.id.slice(-6).toUpperCase()}`;
 
     } else {
       // 'boost' is intentionally not offered here: boost purchases are
@@ -114,7 +114,7 @@ export async function POST(req: Request) {
           shipping_method: 'NA', postal_code: 'NA',
           first_name: b.first_name || 'User',
           last_name: b.last_name || 'Name',
-          email: b.email || 'customer@egbay.market',
+          email: b.email || 'customer@egbay.shop',
           phone_number: b.phone_number || '+201000000000',
           street: b.street || 'NA',
           city: b.city || 'Cairo',

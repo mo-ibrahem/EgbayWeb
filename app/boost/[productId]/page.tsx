@@ -229,7 +229,7 @@ function BoostProductContent() {
           <div className="flex items-center gap-2 mb-1">
             <Wallet className="w-4 h-4 text-blue-600" />
             <span className="font-bold text-xs text-gray-900">
-              {isRTL ? 'رصيد محفظة إيجي باي' : 'Spendable Wallet Balance'}
+              {isRTL ? 'رصيد محفظة إيجباي' : 'Spendable Wallet Balance'}
             </span>
           </div>
           <p className="text-xs text-gray-500">

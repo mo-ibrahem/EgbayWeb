@@ -818,7 +818,7 @@ function WalletContent() {
               </h2>
               <p className="text-xs text-slate-500 mb-6 leading-relaxed">
                 {isRTL
-                  ? 'تمت إضافة الرصيد بنجاح إلى حسابك في إيجي باي وهو جاهز للاستخدام فوراً!'
+                  ? 'تمت إضافة الرصيد بنجاح إلى حسابك في إيجباي وهو جاهز للاستخدام فوراً!'
                   : 'Your funds have been deposited safely and are ready to spend across the marketplace!'}
               </p>
 

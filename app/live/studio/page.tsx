@@ -260,7 +260,7 @@ function StudioContent() {
       await sendChatMessage({
         sessionId,
         userId: user.id,
-        username: 'EgyBay Live',
+        username: 'Egbay Live',
         message: '🔴 البث المباشر قد انطلق! أهلاً وسهلاً بجميع المشاهدين 🎉',
         isHost: true,
         msgType: 'system',
@@ -366,7 +366,7 @@ function StudioContent() {
     await sendChatMessage({
       sessionId,
       userId: user?.id || 'host',
-      username: 'EgyBay Live',
+      username: 'Egbay Live',
       message: `📌 قام البائع بتثبيت "${product.title}" بسعر خاص ${formatEGP(livePrice)}!`,
       isHost: true,
       msgType: 'pin',
@@ -404,7 +404,7 @@ function StudioContent() {
               <Video className="w-10 h-10 animate-pulse" />
             </div>
             <h2 className="text-2xl font-black text-white mb-2">
-              {isRTL ? 'استوديو البث المباشر — EgyBay Live' : 'Live Seller Studio — EgyBay Live'}
+              {isRTL ? 'استوديو البث المباشر — Egbay Live' : 'Live Seller Studio — Egbay Live'}
             </h2>
             <p className="text-xs text-slate-400 max-w-md mb-6 leading-relaxed">
               {isRTL
@@ -775,9 +775,9 @@ function StudioContent() {
             onClick={() => setInventoryDrawerOpen(false)}
           >
             <motion.div
-              initial={{ y: '100%', opacity: 0 }}
+              initial={{ y: '100vh', opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              exit={{ y: '100%', opacity: 0 }}
+              exit={{ y: '100vh', opacity: 0 }}
               transition={{ type: 'spring', damping: 28, stiffness: 350 }}
               className="bg-slate-900 border border-slate-800 w-full sm:max-w-xl sm:rounded-3xl rounded-t-3xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh] text-white"
               onClick={e => e.stopPropagation()}
@@ -794,7 +794,7 @@ function StudioContent() {
                     </h3>
                     <p className="text-[11px] text-slate-400">
                       {isRTL
-                        ? 'حدد سعر البث المخفّض واضغط على تثبيت (Spotlight) لعرض القطعة للشراء الفوري'
+                        ? 'حدد سعر البث المخفّض واضغط على تثبيت (Spotlight) لعرض القطعة لجميع المشاهدين'
                         : 'Set a Live Deal Price & tap Spotlight to push the item to all viewers'}
                     </p>
                   </div>

@@ -172,13 +172,13 @@ function CheckoutContent() {
         }
         return;
       } else {
-        const nameParts = (fullName || 'Buyer EgyBay').split(' ');
+        const nameParts = (fullName || 'Buyer Egbay').split(' ');
         const session = await startPaymobCheckoutSession({
           purpose: 'order',
           referenceId: currentOrderId,
           billingData: {
-            first_name: nameParts[0] || 'Buyer', last_name: nameParts[1] || 'EgyBay',
-            email: user.email || 'buyer@egbay.market', phone_number: phoneNumber || '+201000000000',
+            first_name: nameParts[0] || 'Buyer', last_name: nameParts[1] || 'Egbay',
+            email: user.email || 'buyer@egbay.shop', phone_number: phoneNumber || '+201000000000',
             city, state: governorate, street: streetAddress,
           },
         });

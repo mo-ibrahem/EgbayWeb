@@ -99,7 +99,7 @@ export const LIVE_PASSES: LivePass[] = [
     maxViewers: 100,
     priceEGP: 149,
     badge: '🔥',
-    color: '#3665F3',
+    color: '#2563EB',
     recommended: true,
     features: ['60 minutes live', 'Up to 100 viewers', 'Live chat + reactions', 'Pin up to 10 products', 'Push notification to all users'],
     features_ar: ['بث لمدة ٦٠ دقيقة', 'حتى ١٠٠ مشاهد', 'دردشة وتفاعلات', 'تثبيت ١٠ منتجات', 'إشعار فوري لجميع المستخدمين'],

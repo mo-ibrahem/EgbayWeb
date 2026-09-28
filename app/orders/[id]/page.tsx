@@ -804,7 +804,7 @@ export default function OrderDetailsPage() {
                     </div>
                     <div>
                       <p className="text-sm font-bold text-slate-900">
-                        {buyerProfile.full_name || (isRTL ? 'مشتري إيجي باي' : 'EgyBay Buyer')}
+                        {buyerProfile.full_name || (isRTL ? 'مشتري إيجباي' : 'Egbay Buyer')}
                       </p>
                     </div>
                   </div>
@@ -954,7 +954,7 @@ export default function OrderDetailsPage() {
                 <h3 className="text-base font-black text-slate-900">{isRTL ? 'تم فتح النزاع' : 'Dispute filed'}</h3>
                 <p className="text-xs text-slate-500 leading-relaxed max-w-xs mx-auto">
                   {isRTL
-                    ? 'أموالك مجمدة في الضمان أثناء المراجعة. سيقوم فريق إيجي باي بمراجعة النزاع يدوياً.'
+                    ? 'أموالك مجمدة في الضمان أثناء المراجعة. سيقوم فريق إيجباي بمراجعة النزاع يدوياً.'
                     : 'Your funds stay frozen in escrow while this is reviewed. The Egbay team will review the dispute manually.'}
                 </p>
                 <button onClick={() => setDisputeOpen(false)} className="text-xs font-bold text-brand hover:text-brand-dark">
@@ -967,7 +967,7 @@ export default function OrderDetailsPage() {
                   <h3 className="text-base font-black text-slate-900">{isRTL ? 'فتح نزاع' : 'Open a Dispute'}</h3>
                   <p className="text-xs text-slate-500 mt-1">
                     {isRTL
-                      ? 'أموالك ستبقى مجمدة في الضمان أثناء مراجعة إيجي باي للنزاع يدوياً.'
+                      ? 'أموالك ستبقى مجمدة في الضمان أثناء مراجعة إيجباي للنزاع يدوياً.'
                       : 'Your funds stay frozen in escrow while Egbay reviews this manually.'}
                   </p>
                 </div>

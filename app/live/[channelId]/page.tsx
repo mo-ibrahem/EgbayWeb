@@ -371,12 +371,6 @@ export default function ViewerPage() {
             <h3 className="text-xs font-black text-white">{isRTL ? 'الدردشة الحية' : 'Live Chat'}</h3>
             <span className="text-[10px] text-slate-500 font-mono">({messages.length})</span>
           </div>
-          <div className="flex items-center gap-2 text-xs text-slate-400">
-            <span className="flex items-center gap-1 text-[11px] text-emerald-400">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-              {isRTL ? 'ضمان مالي ١٠٠٪' : '100% Escrow'}
-            </span>
-          </div>
         </div>
 
         {/* Message Feed */}
