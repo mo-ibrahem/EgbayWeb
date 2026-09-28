@@ -131,7 +131,11 @@ export async function POST(req: Request) {
           p_handover_pin_hash: pinHash,
           p_handover_pin_encrypted: encryptedPin,
           p_shipping_address: orderData.shipping_address || null,
-          p_live_session_id: orderData.live_session_id || null
+          p_live_session_id: orderData.live_session_id || null,
+          // Which combination of a multi-unit listing was chosen. The RPC
+          // prices from the variant and verifies it belongs to this
+          // product -- the amount in orderData is still ignored.
+          p_variant_id: orderData.variant_id || null
         });
 
       if (rpcError || !newOrderId) {
