@@ -124,7 +124,7 @@ export default function SignupPage() {
               {isRTL ? 'إنشاء حساب جديد' : 'Create your account'}
             </h1>
             <p className="text-gray-500 text-xs mt-1.5">
-              {isRTL ? 'انضم إلى سوق إيجي باي' : 'Join Egypt\'s marketplace'}
+              {isRTL ? 'انضم إلى سوق إيجباي' : 'Join Egypt\'s marketplace'}
             </p>
           </div>
 

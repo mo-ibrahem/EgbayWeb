@@ -624,7 +624,7 @@ function SellContent() {
                         <span className="font-semibold text-slate-900">{formatEGP(listing)}</span>
                       </div>
                       <div className="flex justify-between text-slate-600">
-                        <span>{isRTL ? 'عمولة إيجي باي' : 'Egbay commission'}</span>
+                        <span>{isRTL ? 'عمولة إيجباي' : 'Egbay commission'}</span>
                         <span>−{formatEGP(meetupFee)}</span>
                       </div>
                       <div className="flex justify-between font-black text-success pt-1.5 border-t border-slate-100">
@@ -642,7 +642,7 @@ function SellContent() {
                         <span className="font-semibold text-slate-900">{formatEGP(courierTotal)}</span>
                       </div>
                       <div className="flex justify-between text-slate-600">
-                        <span>{isRTL ? 'عمولة إيجي باي' : 'Egbay commission'}</span>
+                        <span>{isRTL ? 'عمولة إيجباي' : 'Egbay commission'}</span>
                         <span>−{formatEGP(courierFee)}</span>
                       </div>
                       <div className="flex justify-between font-black text-success pt-1.5 border-t border-slate-100">

@@ -21,7 +21,7 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: 'Egbay — Buy and sell in Egypt (سوق إيجي باي مصر)',
+    default: 'Egbay — Buy and sell in Egypt (سوق إيجباي مصر)',
     template: '%s | Egbay',
   },
   description:

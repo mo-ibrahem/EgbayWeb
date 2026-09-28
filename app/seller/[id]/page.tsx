@@ -129,7 +129,7 @@ export default function SellerProfilePage() {
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-lg sm:text-xl font-black text-slate-900">{seller.full_name || (isRTL ? 'بائع في إيجي باي' : 'Egbay Seller')}</h1>
+            <h1 className="text-lg sm:text-xl font-black text-slate-900">{seller.full_name || (isRTL ? 'بائع في إيجباي' : 'Egbay Seller')}</h1>
             {seller.is_verified_seller && (
               <BadgeCheck className="w-5 h-5 text-brand flex-shrink-0" aria-label={isRTL ? 'بائع موثّق' : 'Verified seller'} />
             )}
@@ -196,7 +196,7 @@ export default function SellerProfilePage() {
                       )}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-xs font-bold text-slate-900 truncate">{r.reviewer_name || (isRTL ? 'مستخدم إيجي باي' : 'Egbay User')}</p>
+                      <p className="text-xs font-bold text-slate-900 truncate">{r.reviewer_name || (isRTL ? 'مستخدم إيجباي' : 'Egbay User')}</p>
                       {r.product_title && <p className="text-[11px] text-slate-400 truncate">{r.product_title}</p>}
                     </div>
                   </div>

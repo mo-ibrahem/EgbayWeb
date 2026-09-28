@@ -322,7 +322,7 @@ export default function ProductDetailPage() {
                 <Handshake className="w-5 h-5 text-brand flex-shrink-0 mt-0.5" />
                 <p className="text-slate-600 text-xs leading-relaxed">
                   {isRTL
-                    ? 'الدفع والاستلام بينك وبين البائع مباشرة، خارج إيجي باي. عاين المنتج قبل ما تدفع.'
+                    ? 'الدفع والاستلام بينك وبين البائع مباشرة، خارج إيجباي. عاين المنتج قبل ما تدفع.'
                     : 'Payment and handover are arranged directly with the seller, outside Egbay. Check the item before you pay.'}
                 </p>
               </div>
@@ -401,7 +401,7 @@ export default function ProductDetailPage() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <SellerBadge
-                    name={product.seller?.full_name || (isRTL ? 'بائع في إيجي باي' : 'Egbay Seller')}
+                    name={product.seller?.full_name || (isRTL ? 'بائع في إيجباي' : 'Egbay Seller')}
                     tier={product.seller?.tier}
                     isVerified={product.seller?.is_verified_seller}
                     ratingAvg={product.seller?.rating_avg}
@@ -528,7 +528,7 @@ export default function ProductDetailPage() {
                 <div key={r.id} className="p-4 sm:p-5">
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-xs font-bold text-slate-900 truncate">
-                      {r.reviewer_name || (isRTL ? 'مشترٍ في إيجي باي' : 'Egbay buyer')}
+                      {r.reviewer_name || (isRTL ? 'مشترٍ في إيجباي' : 'Egbay buyer')}
                     </p>
                     <span className="text-[11px] text-slate-400 flex-shrink-0">{timeAgo(r.created_at, isRTL)}</span>
                   </div>

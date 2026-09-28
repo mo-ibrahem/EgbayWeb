@@ -100,7 +100,7 @@ export function getNotificationCopy(n: Pick<AppNotification, 'type' | 'payload'>
         : { title: 'Dispute opened', message: `A dispute was opened on "${productTitle}".` };
 
     case 'new_message': {
-      const senderName = n.payload?.sender_name || (isRTL ? 'مستخدم إيجي باي' : 'Egbay User');
+      const senderName = n.payload?.sender_name || (isRTL ? 'مستخدم إيجباي' : 'Egbay User');
       const preview = n.payload?.preview || '';
       return isRTL
         ? { title: `رسالة جديدة من ${senderName}`, message: preview }

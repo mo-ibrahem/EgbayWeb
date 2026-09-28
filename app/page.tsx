@@ -210,10 +210,10 @@ function HomeFeedContent() {
                 <p className="text-sm sm:text-base text-slate-300 mt-3.5 leading-relaxed">
                   {PAYMENTS_ENABLED
                     ? (isRTL
-                      ? 'إيجي باي بيمسك الفلوس لحد ما المنتج يبقى في إيدك. لو مجاش، بتسترد فلوسك.'
+                      ? 'إيجباي بيمسك الفلوس لحد ما المنتج يبقى في إيدك. لو مجاش، بتسترد فلوسك.'
                       : 'Egbay holds the money until the item is in your hands. If it never arrives, you get it back.')
                     : (isRTL
-                      ? 'تصفح الإعلانات، كلّم البائع مباشرة، واتفقوا على السعر والاستلام. مفيش دفع على إيجي باي.'
+                      ? 'تصفح الإعلانات، كلّم البائع مباشرة، واتفقوا على السعر والاستلام. مفيش دفع على إيجباي.'
                       : 'Browse listings, talk to the seller directly, and agree the price and handover between you. Nothing is paid through Egbay.')}
                 </p>
               </div>
@@ -240,8 +240,8 @@ function HomeFeedContent() {
             <ol className="mt-9 sm:mt-11 pt-8 border-t border-white/10 grid grid-cols-2 lg:grid-cols-4 gap-y-8 gap-x-6 lg:gap-x-0">
               {(PAYMENTS_ENABLED ? [
                 { t: isRTL ? 'إنت بتدفع' : 'You pay',
-                  b: isRTL ? 'فلوسك بتروح لإيجي باي، مش للبائع.' : 'Your money goes to Egbay, not to the seller.' },
-                { t: isRTL ? 'إيجي باي بيمسكها' : 'Egbay holds it',
+                  b: isRTL ? 'فلوسك بتروح لإيجباي، مش للبائع.' : 'Your money goes to Egbay, not to the seller.' },
+                { t: isRTL ? 'إيجباي بيمسكها' : 'Egbay holds it',
                   b: isRTL ? 'البائع بيشحن وهو عارف إن الفلوس موجودة، ومش قادر يوصلها.' : 'The seller ships knowing it is there, and cannot touch it.' },
                 { t: isRTL ? 'المنتج بيوصلك' : 'The item reaches you',
                   b: isRTL ? 'شحن لباب البيت، أو تقابل البائع بكود PIN.' : 'Courier to your door, or meet in person with a PIN.' },
@@ -255,7 +255,7 @@ function HomeFeedContent() {
                 { t: isRTL ? 'اتفقوا على السعر' : 'Agree a price',
                   b: isRTL ? 'أو قدّم عرضك للبائع.' : 'Or make the seller an offer.' },
                 { t: isRTL ? 'قابله واستلم' : 'Meet and hand over',
-                  b: isRTL ? 'الدفع والاستلام بينكم، برّه إيجي باي.' : 'Payment and handover happen between you, outside Egbay.' },
+                  b: isRTL ? 'الدفع والاستلام بينكم، برّه إيجباي.' : 'Payment and handover happen between you, outside Egbay.' },
               ]).map((step, i, arr) => (
                 <li key={step.t} className="relative lg:pr-5 rtl:lg:pr-0 rtl:lg:pl-5">
                   {i < arr.length - 1 && (
