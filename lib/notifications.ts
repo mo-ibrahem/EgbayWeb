@@ -72,7 +72,7 @@ export function getNotificationCopy(n: Pick<AppNotification, 'type' | 'payload'>
     case 'escrow_secured':
       return isRTL
         ? { title: 'الدفع مؤمّن في الضمان', message: `تم تأمين المبلغ لطلب "${productTitle}". يمكنك الشحن الآن.` }
-        : { title: 'Payment secured in escrow', message: `Funds for "${productTitle}" are held in escrow. Safe to ship now.` };
+        : { title: 'Payment secured in escrow', message: `Funds for "${productTitle}" are held in escrow.` };
 
     case 'shipped':
       return isRTL

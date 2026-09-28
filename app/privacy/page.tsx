@@ -13,7 +13,7 @@ export default function PrivacyPage() {
       id: 'scope',
       icon: Eye,
       title: '1. Scope & Legal Framework',
-      content: `Welcome to Egbay (egbay.shop / Egbay Mobile Application). We are dedicated to maintaining the highest standards of data privacy and security.
+      content: `Welcome to Egbay (egbay.shop / Egbay Mobile Application). We are committed to protecting your data and your privacy.
 
 This Privacy Policy complies with:
 • Egyptian Personal Data Protection Law No. 151 of 2020 (قانون حماية البيانات الشخصية).
@@ -95,7 +95,7 @@ Data is shared strictly with authorized infrastructure partners necessary to ful
       id: 'scope',
       icon: Eye,
       title: '١. النطاق والإطار القانوني',
-      content: `أهلاً بك في منصة إيجي باي (egbay.shop وتطبيق الهاتف المحمول). نحن نلتزم بأعلى معايير حماية البيانات والخصوصية لجميع مستخدمينا في مصر.
+      content: `أهلاً بك في منصة إيجي باي (egbay.shop وتطبيق الهاتف المحمول). نحن نلتزم بحماية بيانات وخصوصية جميع مستخدمينا في مصر.
 
 تتوافق هذه السياسة بشكل كامل مع:
 • قانون حماية البيانات الشخصية المصري رقم ١٥١ لسنة ٢٠٢٠.
@@ -200,7 +200,7 @@ Data is shared strictly with authorized infrastructure partners necessary to ful
               {isRTL ? 'قانون ١٥١ لسنة ٢٠٢٠' : 'Egyptian Law 151/2020'}
             </h4>
             <p className="text-[11px] text-gray-500">
-              {isRTL ? 'حماية تامة للبيانات الشخصية' : 'Personal data protection compliant'}
+              {isRTL ? 'قانون حماية البيانات الشخصية' : 'Personal data protection law'}
             </p>
           </div>
         </div>
@@ -221,10 +221,10 @@ Data is shared strictly with authorized infrastructure partners necessary to ful
           <Shield className="w-6 h-6 text-purple-600 flex-shrink-0" />
           <div>
             <h4 className="text-xs font-bold text-gray-900">
-              {isRTL ? 'تشفير AES-256' : 'AES-256 TLS Encryption'}
+              {isRTL ? 'تشفير TLS' : 'TLS Encryption'}
             </h4>
             <p className="text-[11px] text-gray-500">
-              {isRTL ? 'أعلى معايير الأمان المصرفي' : 'Bank-grade SSL transmission'}
+              {isRTL ? 'اتصال HTTPS مشفّر' : 'HTTPS on every connection'}
             </p>
           </div>
         </div>

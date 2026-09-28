@@ -2,9 +2,9 @@ import { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Egbay — Egypt's Trusted Escrow Marketplace",
+    name: 'Egbay — Buy and sell in Egypt',
     short_name: 'Egbay',
-    description: 'Buy and sell anything safely in Egypt with 100% escrow protection, doorstep courier delivery, and instant local payouts.',
+    description: 'Buy and sell new, used and refurbished items across Egypt. Chat with sellers, make an offer, and meet in person.',
     start_url: '/',
     display: 'standalone',
     background_color: '#F8FAFC',

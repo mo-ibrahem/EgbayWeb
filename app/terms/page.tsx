@@ -19,18 +19,18 @@ Egbay acts strictly as an intermediary technology platform providing peer-to-pee
     {
       id: 'escrow',
       title: '2. Escrow Protection & Payout Mechanics',
-      content: `All transactions conducted through Egbay's checkout are protected by our mandatory 100% Escrow Protection System:
+      content: `All transactions conducted through Egbay's checkout use our mandatory escrow system:
 
 A. Buyer Payment Holding:
 When a buyer purchases an item, funds are immediately secured in a neutral escrow holding ledger. The seller is notified to prepare and dispatch the item.
 
 B. Courier & In-Person PIN Verification:
 • Courier Delivery: The seller arranges delivery via a courier of their choice. Upon delivery, the buyer verifies that the item matches the seller's photos and description and confirms receipt to release funds.
-• In-Person Meetup: The buyer inspects the item physically, and upon total satisfaction, provides the confidential 6-digit PIN to the seller to authorize instantaneous fund release.
+• In-Person Meetup: The buyer inspects the item physically, and upon total satisfaction, provides the confidential 6-digit PIN to the seller to authorize fund release.
 
 C. Seller Payout Execution:
 Upon PIN confirmation (in-person meetup) or the buyer confirming receipt (courier delivery), seller net proceeds are transferred directly to their registered Egyptian payout method:
-• InstaPay (Instant Transfer via IPA)
+• InstaPay (via IPA)
 • Vodafone Cash / Smart Wallet (Same-Day)
 • Egyptian Bank IBAN (1–2 Business Days)
 
@@ -75,7 +75,7 @@ Sellers must dispatch sold items via our integrated courier partner within 48 ho
     {
       id: 'liability',
       title: '6. Limitation of Liability & Force Majeure',
-      content: `Egbay provides its marketplace platform on an "as-is" and "as-available" basis. While we enforce rigorous escrow safeguards and seller verification, Egbay shall not be liable for indirect, incidental, or consequential damages resulting from unauthorized user conduct or off-platform transactions. All transactions conducted outside Egbay's escrow checkout forfeit all platform buyer and seller protections.`,
+      content: `Egbay provides its marketplace platform on an "as-is" and "as-available" basis. While we enforce escrow safeguards and seller verification, Egbay shall not be liable for indirect, incidental, or consequential damages resulting from unauthorized user conduct or off-platform transactions. All transactions conducted outside Egbay's escrow checkout forfeit all platform buyer and seller protections.`,
     },
   ];
 
@@ -85,23 +85,23 @@ Sellers must dispatch sold items via our integrated courier partner within 48 ho
       title: '١. طبيعة المنصة والموافقة على الشروط',
       content: `مرحباً بكم في منصة إيجي باي (egbay.shop). بالوصول إلى الموقع أو تسجيل حساب أو إتمام عمليات شراء وبيع، فإنك توافق على الالتزام الكامل بهذه الشروط والأحكام الخاضعة لقوانين جمهورية مصر العربية (قانون حماية المستهلك رقم ١٨١ لسنة ٢٠١٨ والقانون المدني).
 
-تعمل إيجي باي كمنصة تكنولوجية وسيطة لربط البائعين والمشترين، وتوفير نظام حماية الضمان المالي (Escrow)، وتنسيق الشحن السريع، والوساطة في النزاعات. إيجي باي ليست مُصنّعاً أو مالكاً للمنتجات المعروضة من البائعين المستقلين.`,
+تعمل إيجي باي كمنصة تكنولوجية وسيطة لربط البائعين والمشترين، وتوفير نظام الضمان المالي (Escrow)، وتنسيق الشحن، والوساطة في النزاعات. إيجي باي ليست مُصنّعاً أو مالكاً للمنتجات المعروضة من البائعين المستقلين.`,
     },
     {
       id: 'escrow',
       title: '٢. نظام الضمان المالي وآليات صرف الأرباح',
-      content: `جميع المعاملات التي تتم عبر نظام الدفع في إيجي باي محمية بنظام الضمان المالي الإلزامي ١٠٠٪:
+      content: `جميع المعاملات التي تتم عبر نظام الدفع في إيجي باي تستخدم نظام الضمان المالي الإلزامي:
 
 أ. حجز أموال المشتري:
 عند قيام المشتري بالطلب، يتم تجميد المبلغ في حساب ضمان آمن ومحايد وإخطار البائع لتجهيز وشحن السلعة.
 
 ب. التحقق عند التسليم (شحن أو تسليم يدوي):
 • التوصيل عبر الشحن: يقوم البائع بترتيب الشحن عبر شركة الشحن التي يختارها. عند استلام الطلب، يتحقق المشتري من مطابقة السلعة للوصف والصور ثم يؤكد الاستلام لتحرير المبلغ.
-• التسليم اليدوي: يعاين المشتري السلعة بنفسه، وعند الرضا التام يسلّم كود الـ PIN المكون من ٦ أرقام للبائع لتحرير المبلغ فوراً.
+• التسليم اليدوي: يعاين المشتري السلعة بنفسه، وعند الرضا التام يسلّم كود الـ PIN المكون من ٦ أرقام للبائع لتحرير المبلغ.
 
 ج. تحويل مستحقات البائع:
 بمجرد إدخال كود الـ PIN (تسليم يدوي) أو تأكيد المشتري للاستلام (شحن)، يتم تحويل صافي أرباح البائع مباشرة عبر:
-• إنستاباي (InstaPay IPA) — تحويل فوري
+• إنستاباي (InstaPay IPA)
 • فودافون كاش والمحافظ الذكية — في نفس اليوم
 • الحساب البنكي (IBAN) — خلال يوم إلى يومي عمل
 
@@ -146,7 +146,7 @@ Sellers must dispatch sold items via our integrated courier partner within 48 ho
     {
       id: 'liability',
       title: '٦. إخلاء المسؤولية والحد القانوني',
-      content: `تقدم إيجي باي خدماتها وفق أعلى معايير الأمان التكنولوجي والضمان المالي. لا تتحمل المنصة مسؤولية أي تعاملات مالية أو اتفاقات تتم خارج نظام الضمان المالي الرسمي للموقع. المعاملات الخارجية تفقد كافة حقوق الحماية والتعويض.`,
+      content: `تقدم إيجي باي خدماتها وفق معايير الأمان التكنولوجي والضمان المالي. لا تتحمل المنصة مسؤولية أي تعاملات مالية أو اتفاقات تتم خارج نظام الضمان المالي الرسمي للموقع. المعاملات الخارجية تفقد كافة حقوق الحماية والتعويض.`,
     },
   ];
 
@@ -160,12 +160,12 @@ Sellers must dispatch sold items via our integrated courier partner within 48 ho
           <Scale className="w-7 h-7" />
         </div>
         <h1 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight mb-2">
-          {isRTL ? 'شروط وأحكام الاستخدام والضمان المالي' : 'Terms of Service & Escrow Agreement'}
+          {isRTL ? 'شروط وأحكام الاستخدام' : 'Terms of Service'}
         </h1>
         <p className="text-xs sm:text-sm text-gray-500 max-w-xl mx-auto mb-6">
           {isRTL
-            ? 'القواعد الحاكمة لمنصة إيجي باي، نظام حماية الضمان المالي، التزامات البائعين وحقوق المشترين وفقاً للقانون المصري.'
-            : 'Governing rules for Egbay, Escrow protection mechanisms, seller verification, and buyer rights under Egyptian Law.'}
+            ? 'القواعد الحاكمة لمنصة إيجي باي، التزامات البائعين وحقوق المشترين وفقاً للقانون المصري.'
+            : 'Governing rules for Egbay, seller obligations, and buyer rights under Egyptian Law.'}
         </p>
       </div>
 
@@ -175,10 +175,10 @@ Sellers must dispatch sold items via our integrated courier partner within 48 ho
           <ShieldCheck className="w-6 h-6 text-emerald-600 flex-shrink-0" />
           <div>
             <h4 className="text-xs font-bold text-gray-900">
-              {isRTL ? 'ضمان مالي ١٠٠٪' : '100% Escrow Protection'}
+              {isRTL ? 'قواعد واضحة' : 'Clear Marketplace Rules'}
             </h4>
             <p className="text-[11px] text-gray-500">
-              {isRTL ? 'حجز الأموال حتى فحص السلعة' : 'Funds released only after inspection'}
+              {isRTL ? 'السلع المحظورة والتزامات البائع وخطوات النزاع أدناه' : 'Prohibited items, seller duties and dispute steps below'}
             </p>
           </div>
         </div>
@@ -190,7 +190,7 @@ Sellers must dispatch sold items via our integrated courier partner within 48 ho
               {isRTL ? 'قانون حماية المستهلك' : 'Law No. 181/2018'}
             </h4>
             <p className="text-[11px] text-gray-500">
-              {isRTL ? 'امتثال تام للقوانين المصرية' : 'Full Egyptian legal compliance'}
+              {isRTL ? 'تخضع للقانون المصري' : 'Governed by Egyptian law'}
             </p>
           </div>
         </div>
@@ -199,10 +199,10 @@ Sellers must dispatch sold items via our integrated courier partner within 48 ho
           <AlertOctagon className="w-6 h-6 text-amber-600 flex-shrink-0" />
           <div>
             <h4 className="text-xs font-bold text-gray-900">
-              {isRTL ? 'منع السلع المقلدة' : 'Zero Fake Items Policy'}
+              {isRTL ? 'منع السلع المقلدة' : 'Counterfeit Items Prohibited'}
             </h4>
             <p className="text-[11px] text-gray-500">
-              {isRTL ? 'إحالة المخالفين لمباحث الإنترنت' : 'Strict anti-fraud enforcement'}
+              {isRTL ? 'إحالة المخالفين لمباحث الإنترنت' : 'Violations may be reported to the authorities'}
             </p>
           </div>
         </div>
@@ -229,7 +229,7 @@ Sellers must dispatch sold items via our integrated courier partner within 48 ho
           </h3>
           <p className="text-gray-600 text-xs sm:text-sm mb-4 leading-relaxed">
             {isRTL
-              ? 'فريق خدمة العملاء والوساطة متاح على مدار الساعة لمساعدتك في حل أي نزاع أو الإجابة على استفسارات الشروط:'
+              ? 'فريق خدمة العملاء والوساطة متاح لمساعدتك في حل أي نزاع أو الإجابة على استفسارات الشروط:'
               : 'Our mediation and dispute resolution specialists are available to review transaction claims and answer legal inquiries:'}
           </p>
           <div className="flex flex-wrap gap-3">
