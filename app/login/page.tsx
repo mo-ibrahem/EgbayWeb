@@ -146,13 +146,13 @@ function LoginForm() {
           </p>
         </div>
 
-        {/* Escrow note */}
+        {/* Safety note */}
         <div className="mt-6 bg-gray-50 rounded-2xl p-3.5 flex items-center gap-2.5 text-[11px] text-gray-500 border border-gray-100">
           <ShieldCheck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
           <span>
             {isRTL
-              ? 'جميع المعاملات والمدفوعات مؤمّنة بنظام الضمان المالي المصري.'
-              : 'All marketplace orders and payments are protected by Egyptian escrow.'}
+              ? 'نصيحة: قابل البائع في مكان عام وافحص المنتج قبل الدفع.'
+              : 'Tip: meet in a public place and inspect the item before you pay.'}
           </span>
         </div>
       </div>

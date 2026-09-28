@@ -85,7 +85,7 @@ Data is shared strictly with authorized infrastructure partners necessary to ful
       icon: CheckCircle2,
       title: '6. Security Architecture & Encryption',
       content: `• Connections to our services use HTTPS/TLS.
-• Database access controls restrict private chats and orders. No system can guarantee absolute security.
+• Database access controls restrict private chats and orders. No system is absolutely secure.
 • National ID documents and verification media are stored in isolated private S3-compatible object storage with signed, expiring URLs.`,
     },
   ];
