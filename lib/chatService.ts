@@ -45,3 +45,55 @@ export async function hideChatRoomForUser(roomId: string): Promise<void> {
   const { error } = await supabase.rpc('hide_chat_room_for_user', { p_room_id: roomId });
   if (error) throw error;
 }
+
+export interface ChatMessage {
+  id: string;
+  room_id: string;
+  sender_id: string;
+  content: string;
+  created_at: string;
+  msg_type: 'text' | 'offer';
+  offer_amount_egp: number | null;
+  offer_status: 'pending' | 'accepted' | 'declined' | null;
+}
+
+export const formatOfferText = (amountEgp: number) => `Offer: EGP ${Math.round(amountEgp).toLocaleString('en-US')}`;
+
+/** Inbox / last-message preview: offers read "Offer: EGP X", never the raw content. */
+export const messagePreview = (m?: { content?: string | null; msg_type?: string | null; offer_amount_egp?: number | null } | null) =>
+  !m ? undefined : m.msg_type === 'offer' && m.offer_amount_egp ? formatOfferText(Number(m.offer_amount_egp)) : m.content ?? undefined;
+
+/**
+ * Sends a structured price offer. It is a handshake for an in-person
+ * handover -- no payment is created or implied. The database enforces the
+ * shape (msg_type/offer_amount_egp/offer_status check constraint).
+ */
+export async function sendOffer(roomId: string, senderId: string, amountEgp: number): Promise<ChatMessage> {
+  const amount = Math.round(amountEgp);
+  if (!Number.isFinite(amount) || amount <= 0) throw new Error('Enter an amount');
+  const { data, error } = await supabase
+    .from('messages')
+    .insert({
+      room_id: roomId,
+      sender_id: senderId,
+      content: formatOfferText(amount),
+      msg_type: 'offer',
+      offer_amount_egp: amount,
+      offer_status: 'pending',
+    })
+    .select('*')
+    .single();
+  if (error || !data) throw error || new Error('No row returned');
+  return data as ChatMessage;
+}
+
+/**
+ * Accept or decline an offer from the other participant. Only offer_status
+ * is granted; validate_offer_response rejects the sender, non-pending
+ * offers and every other column. Zero returned rows means nothing changed.
+ */
+export async function respondToOffer(messageId: string, response: 'accepted' | 'declined'): Promise<void> {
+  const { data, error } = await supabase.from('messages').update({ offer_status: response }).eq('id', messageId).select('id');
+  if (error) throw error;
+  if (!data?.length) throw new Error('Could not respond to this offer');
+}

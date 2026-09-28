@@ -17,7 +17,7 @@ import { getUserOrders, type MarketplaceOrder } from '@/lib/orderService';
 import { supabase } from '@/lib/supabase';
 import SmartImage from '@/components/SmartImage';
 import ProductCard from '@/components/ui/ProductCard';
-import { hideChatRoomForUser } from '@/lib/chatService';
+import { hideChatRoomForUser, messagePreview } from '@/lib/chatService';
 import { getSellerReviews, respondToReview, type Review } from '@/lib/reviews';
 import { StarRow } from '@/components/ui/StarRating';
 
@@ -136,14 +136,14 @@ function ProfileContent() {
             const otherId = room.participant_ids.find((p: string) => p !== user.id);
             const otherProfile = profiles?.find((p: {id: string}) => p.id === otherId);
             const product = products?.find((p: {id: string}) => p.id === room.product_id);
-            const { data: msgs } = await supabase.from('messages').select('content, created_at')
+            const { data: msgs } = await supabase.from('messages').select('content, created_at, msg_type, offer_amount_egp')
               .eq('room_id', room.id).order('created_at', { ascending: false }).limit(1);
             return {
               room_id: room.id,
               other_user_name: otherProfile?.full_name || (isRTL ? 'مستخدم إيجي باي' : 'EgyBay User'),
               other_user_avatar_url: otherProfile?.avatar_url,
               product_title: product?.title,
-              last_message: msgs?.[0]?.content,
+              last_message: messagePreview(msgs?.[0]),
               last_message_time: msgs?.[0]?.created_at,
             };
           }));
