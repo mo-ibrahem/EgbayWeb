@@ -242,8 +242,8 @@ function SellerVerificationContent() {
               </div>
               <p className="text-xs text-gray-500">
                 {isRTL
-                  ? 'تفعيل السحب الفوري عبر إنستاباي وفودافون كاش. يتطلب بطاقة الرقم القومي.'
-                  : 'Unlock instant InstaPay & Vodafone Cash payouts. Requires National ID.'}
+                  ? 'تفعيل السحب عبر إنستاباي وفودافون كاش. يتطلب بطاقة الرقم القومي.'
+                  : 'Unlock InstaPay & Vodafone Cash payouts. Requires National ID.'}
               </p>
             </button>
 
@@ -266,8 +266,8 @@ function SellerVerificationContent() {
               </div>
               <p className="text-xs text-gray-500">
                 {isRTL
-                  ? 'تحرير فوري للأرباح بمجرد مسح مندوب الشحن للباركود وإعلانات غير محدودة.'
-                  : 'Instant clearance upon courier scan & unlimited listings.'}
+                  ? 'تحرير الأرباح عند مسح مندوب الشحن للباركود وإعلانات غير محدودة.'
+                  : 'Earnings released on courier scan & unlimited listings.'}
               </p>
             </button>
           </div>

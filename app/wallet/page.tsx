@@ -27,6 +27,7 @@ import {
   type SellerTierConfig,
 } from '@/lib/walletService';
 import { supabase } from '@/lib/supabase';
+import { PAYMENTS_ENABLED } from '@/lib/platformCommerce';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -296,25 +297,38 @@ function WalletContent() {
         </div>
       )}
 
+      {/* Classifieds mode: the balance and history below are the user's real
+          money, so they stay visible -- read-only, with every action hidden. */}
+      {!PAYMENTS_ENABLED && (
+        <div className="mb-6 bg-amber-50 border border-amber-200 text-amber-900 text-sm p-4 rounded-md">
+          <p className="font-bold">{isRTL ? 'الدفع متوقف مؤقتاً' : 'Payments are paused'}</p>
+          <p className="text-xs mt-1 leading-relaxed">
+            {isRTL
+              ? 'شحن الرصيد وسحب الأرباح والترويج متوقفة حالياً. رصيدك وسجل معاملاتك أدناه للعرض فقط.'
+              : 'Top-ups, payouts and boosts are paused on Egbay right now. Your balance and transaction history below are read-only.'}
+          </p>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-black text-slate-900 flex items-center gap-2">
             <Wallet className="w-6 h-6 text-blue-600" />
-            {isRTL ? 'محفظة إيجي باي والأرباح' : 'EgyBay Wallet & Payouts'}
+            {isRTL ? 'محفظة إيجباي' : 'Egbay Wallet'}
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            {isRTL ? 'إدارة الرصيد المتاح، الأرباح المحجوزة في الضمان وسحب الأرباح الفوري' : 'Manage spendable balance, pending escrow funds & instant payouts'}
+            {isRTL ? 'رصيدك المتاح والمبالغ المعلقة وسجل معاملاتك' : 'Your available balance, pending funds and transaction history'}
           </p>
         </div>
 
-        <Link
+        {PAYMENTS_ENABLED && <Link
           href="/seller-verification"
           className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 text-blue-800 px-4 py-2 rounded-xl text-xs font-bold hover:shadow-sm transition-all"
         >
           <span>{sellerTier.badge}</span>
           <span className="text-blue-600">{isRTL ? 'ترقية الباقة ›' : 'Upgrade Tier ›'}</span>
-        </Link>
+        </Link>}
       </div>
 
       {/* Main Balances Grid */}
@@ -340,11 +354,11 @@ function WalletContent() {
               <AnimatedNumber value={available} prefix={isRTL ? 'ج.م ' : 'EGP '} />
             </div>
             <p className="text-xs text-slate-400 mt-1">
-              {isRTL ? 'متاح للشراء المباشر في السوق وسحب الأرباح الفوري' : 'Available for direct marketplace checkout & instant payout'}
+              {isRTL ? 'رصيدك المتاح في المحفظة' : 'Your available wallet balance'}
             </p>
           </div>
 
-          <div className="flex gap-3">
+          {PAYMENTS_ENABLED && <div className="flex gap-3">
             <button
               onClick={() => { setTopUpOpen(true); setErrorMsg(''); }}
               className="flex-1 bg-brand hover:brightness-110 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition-all shadow-lg shadow-blue-500/30 flex items-center justify-center gap-2"
@@ -358,7 +372,7 @@ function WalletContent() {
             >
               <ArrowUpRight className="w-4 h-4" /> {isRTL ? 'سحب الأرباح' : 'Withdraw'}
             </button>
-          </div>
+          </div>}
         </div>
 
         {/* Pending Escrow Balance */}
@@ -389,7 +403,7 @@ function WalletContent() {
           <div className="bg-blue-50/70 border border-blue-100 rounded-md p-3.5 flex items-start gap-2.5">
             <ShieldCheck className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
             <p className="text-xs text-blue-900 leading-relaxed">
-              <strong>{isRTL ? 'حماية الضمان المالي:' : 'Escrow Protection:'}</strong>{' '}
+              <strong>{isRTL ? 'متى تصل الأموال إلى رصيدك:' : 'When funds reach your balance:'}</strong>{' '}
               {isRTL
                 ? 'تتحول الأموال إلى رصيدك المتاح بمجرد تسليم كود الـ PIN في حالة التسليم اليدوي، أو تأكيد المشتري لاستلام الطلب في حالة الشحن.'
                 : 'Funds move to your available balance once the PIN is handed over (in-person meetup), or the buyer explicitly confirms receipt (courier delivery).'}
@@ -399,7 +413,7 @@ function WalletContent() {
       </div>
 
       {/* Seller Tier Details Banner */}
-      <div className="bg-brand rounded-lg p-5 text-white mb-8 shadow-md">
+      {PAYMENTS_ENABLED && <div className="bg-brand rounded-lg p-5 text-white mb-8 shadow-md">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
@@ -421,12 +435,12 @@ function WalletContent() {
             {isRTL ? 'الترقية للباقة الاحترافية' : 'Upgrade to Pro'}
           </Link>
         </div>
-      </div>
+      </div>}
 
       {/* Payout Methods & Transaction History */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left: Saved Payout Methods */}
-        <div className="lg:col-span-1 space-y-4">
+        {PAYMENTS_ENABLED && <div className="lg:col-span-1 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="font-bold text-slate-900 text-xs uppercase tracking-wider">
               {isRTL ? 'وجهات استلام الأرباح' : 'Payout Channels'}
@@ -459,10 +473,10 @@ function WalletContent() {
               </div>
             ))}
           </div>
-        </div>
+        </div>}
 
         {/* Right: Transaction Log */}
-        <div className="lg:col-span-2">
+        <div className={PAYMENTS_ENABLED ? 'lg:col-span-2' : 'lg:col-span-3'}>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
             <h3 className="font-bold text-slate-900 text-xs uppercase tracking-wider">
               {isRTL ? 'سجل المعاملات والتحويلات' : 'Transaction Activity'}
@@ -804,7 +818,7 @@ function WalletContent() {
               </h2>
               <p className="text-xs text-slate-500 mb-6 leading-relaxed">
                 {isRTL
-                  ? 'تمت إضافة الرصيد بنجاح إلى حسابك في إيجي باي وهو جاهز للاستخدام فوراً!'
+                  ? 'تمت إضافة الرصيد بنجاح إلى حسابك في إيجباي وهو جاهز للاستخدام فوراً!'
                   : 'Your funds have been deposited safely and are ready to spend across the marketplace!'}
               </p>
 

@@ -13,6 +13,7 @@ import { getUserWallet, deductWalletSpendableFunds, type UserWallet } from '@/li
 import { createMarketplaceOrder, COURIER_DELIVERY_FEE_EGP } from '@/lib/orderService';
 import { sendChatMessage, type LiveSession, type LivePinnedProduct } from '@/lib/liveService';
 import SmartImage from '@/components/SmartImage';
+import { PAYMENTS_ENABLED } from '@/lib/platformCommerce';
 
 const formatEGP = (amount: number) => `EGP ${(Number(amount) || 0).toLocaleString('en-EG')}`;
 
@@ -51,7 +52,7 @@ export default function LiveQuickCheckout({
   const totalAmount = price + deliveryFee;
 
   useEffect(() => {
-    if (user && isOpen) {
+    if (user && isOpen && PAYMENTS_ENABLED) {
       getUserWallet(user.id).then(setWallet).catch(console.error);
     }
   }, [user, isOpen]);
@@ -142,15 +143,16 @@ export default function LiveQuickCheckout({
     }
   };
 
-  if (!isOpen) return null;
+  // Classifieds mode: no in-stream purchase. The live page shows "View item" instead.
+  if (!isOpen || !PAYMENTS_ENABLED) return null;
 
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm p-0 sm:p-4">
         <motion.div
-          initial={{ y: '100%', opacity: 0 }}
+          initial={{ y: '100vh', opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          exit={{ y: '100%', opacity: 0 }}
+          exit={{ y: '100vh', opacity: 0 }}
           transition={{ type: 'spring', damping: 28, stiffness: 350 }}
           className="bg-slate-900 border border-slate-800 w-full sm:max-w-lg sm:rounded-3xl rounded-t-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh] text-white"
           onClick={e => e.stopPropagation()}
@@ -166,7 +168,7 @@ export default function LiveQuickCheckout({
                   {isRTL ? 'شراء فوري من البث المباشر' : 'Live Stream Instant Checkout'}
                 </h3>
                 <p className="text-[11px] text-slate-400">
-                  {isRTL ? 'حماية الضمان المالي ١٠٠٪ · شحن سريع لباب البيت' : '100% Escrow Protection · Express Doorstep Delivery'}
+                  {isRTL ? 'الدفع من محفظتك · توصيل لباب البيت' : 'Pay from your wallet · Doorstep delivery'}
                 </p>
               </div>
             </div>
@@ -229,7 +231,7 @@ export default function LiveQuickCheckout({
               }`}>
                 <span className="text-xs font-bold flex items-center gap-1.5 text-white">
                   <Wallet className="w-3.5 h-3.5 text-emerald-400" />
-                  {isRTL ? 'الدفع من محفظة إيجي باي' : 'Pay from EgyBay Wallet'}
+                  {isRTL ? 'الدفع من محفظة إيجباي' : 'Pay from Egbay Wallet'}
                 </span>
                 <span className="text-[10px] text-slate-300">
                   {isRTL ? `المتاح: ${formatEGP(availableBalance)}` : `Bal: ${formatEGP(availableBalance)}`}

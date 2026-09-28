@@ -18,6 +18,7 @@ import SmartImage from '@/components/SmartImage';
 import { supabase } from '@/lib/supabase';
 import Alert from '@/components/ui/Alert';
 import Button from '@/components/ui/Button';
+import { PAYMENTS_ENABLED } from '@/lib/platformCommerce';
 
 const GOVERNORATES = [
   { en: 'Cairo', ar: 'القاهرة' }, { en: 'Giza', ar: 'الجيزة' }, { en: 'Alexandria', ar: 'الإسكندرية' },
@@ -27,6 +28,8 @@ const GOVERNORATES = [
   { en: 'Asyut', ar: 'أسيوط' }, { en: 'Beheira', ar: 'البحيرة' }, { en: 'Beni Suef', ar: 'بني سويف' },
 ];
 
+type VariantRow = { id: string; price: number; stock: number; storage: string | null; color: string | null; grade: string | null };
+
 function CheckoutContent() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -35,6 +38,7 @@ function CheckoutContent() {
   const { isRTL } = useLanguage();
 
   const [product, setProduct] = useState<Product | null>(null);
+  const [variants, setVariants] = useState<VariantRow[]>([]);
   const [wallet, setWallet] = useState<UserWallet | null>(null);
   const [useWalletBalance, setUseWalletBalance] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -60,6 +64,24 @@ function CheckoutContent() {
         if (!id) return;
         const prod = await productService.getProductById(id);
         if (!prod) { router.push('/'); return; }
+
+        // Multi-unit listings are priced per variant. The product page links
+        // here with ?variant=<id>; without a valid one, send the buyer back
+        // to pick (the server refuses that case too).
+        const { data: variantRows } = await supabase
+          .from('product_variants')
+          .select('id, price, stock, storage, color, grade')
+          .eq('product_id', id)
+          .order('position', { ascending: true });
+        const rows = (variantRows ?? []) as VariantRow[];
+        const chosen = searchParams.get('variant');
+        // (A Paymob return lands here without ?variant -- let it fall through to /orders/success below.)
+        const returningFromPayment = searchParams.get('success') === 'true' || searchParams.get('txn_response_code') === 'APPROVED';
+        if (rows.length > 0 && !returningFromPayment && !rows.some(v => v.id === chosen)) {
+          router.replace(`/products/${id}`);
+          return;
+        }
+        setVariants(rows);
         setProduct(prod);
         setFullName(user.user_metadata?.full_name || '');
 
@@ -84,7 +106,9 @@ function CheckoutContent() {
   }, [id, user, authLoading, router, searchParams]);
 
   const deliveryFee = deliveryMethod === 'courier' ? COURIER_DELIVERY_FEE_EGP : 0;
-  const itemPrice = Number(product?.price || 0);
+  const variant = variants.find(v => v.id === searchParams.get('variant'));
+  const variantLabel = variant ? [variant.storage, variant.color, variant.grade].filter(Boolean).join(' · ') : '';
+  const itemPrice = Number(variant ? variant.price : product?.price || 0);
   const totalPrice = itemPrice + deliveryFee;
   const walletAvailable = Number(wallet?.available_balance || 0);
   const canPayFullyWithWallet = walletAvailable >= totalPrice && totalPrice > 0;
@@ -116,9 +140,10 @@ function CheckoutContent() {
           buyer_id: user.id,
           seller_id: product.seller_id,
           amount: totalPrice,
+          variant_id: variant?.id,
           handover_method: deliveryMethod,
           shipping_address: { full_name: fullName || 'Buyer', phone: phoneNumber, governorate, city, street: streetAddress },
-          product_snapshot: { id: product.id, title: product.title, price: product.price, images: product.images, condition: product.condition, category: product.category },
+          product_snapshot: { id: product.id, title: product.title, price: itemPrice, images: product.images, condition: product.condition, category: product.category },
         });
 
         if (!order) throw new Error(isRTL ? 'تعذر إنشاء الطلب، يرجى المحاولة ثانية' : 'Failed to create order');
@@ -147,13 +172,13 @@ function CheckoutContent() {
         }
         return;
       } else {
-        const nameParts = (fullName || 'Buyer EgyBay').split(' ');
+        const nameParts = (fullName || 'Buyer Egbay').split(' ');
         const session = await startPaymobCheckoutSession({
           purpose: 'order',
           referenceId: currentOrderId,
           billingData: {
-            first_name: nameParts[0] || 'Buyer', last_name: nameParts[1] || 'EgyBay',
-            email: user.email || 'buyer@egbay.market', phone_number: phoneNumber || '+201000000000',
+            first_name: nameParts[0] || 'Buyer', last_name: nameParts[1] || 'Egbay',
+            email: user.email || 'buyer@egbay.shop', phone_number: phoneNumber || '+201000000000',
             city, state: governorate, street: streetAddress,
           },
         });
@@ -335,6 +360,7 @@ function CheckoutContent() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <h4 className="text-xs font-bold text-slate-900 line-clamp-2 leading-snug">{product.title}</h4>
+                  {variantLabel && <p className="text-[11px] text-slate-500 mt-0.5">{variantLabel}</p>}
                   <p className="text-xs font-black text-slate-900 mt-1">{formatEGP(itemPrice)}</p>
                 </div>
               </div>
@@ -410,7 +436,31 @@ function CheckoutContent() {
   );
 }
 
+function CheckoutPaused() {
+  const { id } = useParams<{ id: string }>();
+  const { isRTL } = useLanguage();
+  return (
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
+      <div className="max-w-md w-full bg-white rounded-lg border border-slate-200 p-6 text-center space-y-3">
+        <h1 className="text-base font-black text-slate-900">
+          {isRTL ? 'الدفع متوقف مؤقتاً على إيجباي' : 'Payments are paused on Egbay'}
+        </h1>
+        <p className="text-xs text-slate-600 leading-relaxed">
+          {isRTL
+            ? 'لا يوجد شراء داخل التطبيق حالياً. تواصل مع البائع عبر المحادثة لترتيب المعاينة والتسليم باليد.'
+            : 'There is no in-app checkout right now. Message the seller to arrange a viewing and an in-person handover.'}
+        </p>
+        <Link href={`/products/${id}`} className="inline-flex items-center gap-1.5 text-xs font-bold text-brand hover:underline">
+          <ArrowLeft className={`w-4 h-4 ${isRTL ? 'rotate-180' : ''}`} />
+          {isRTL ? 'الرجوع للإعلان' : 'Back to the listing'}
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 export default function CheckoutPage() {
+  if (!PAYMENTS_ENABLED) return <CheckoutPaused />;
   return (
     <ProtectedRoute>
       <CheckoutContent />

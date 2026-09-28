@@ -274,11 +274,11 @@ function OrderSuccessContent() {
           <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-5 rounded-full blur-2xl" />
           <ShieldCheck className="w-10 h-10 text-emerald-400 flex-shrink-0" />
           <div>
-            <h4 className="font-bold text-lg mb-1">{isRTL ? 'حماية الضمان المالي ١٠٠٪' : '100% Escrow Protection'}</h4>
+            <h4 className="font-bold text-lg mb-1">{isRTL ? 'أموالك محفوظة حتى تستلم' : 'Your funds are held until you receive the item'}</h4>
             <p className="text-emerald-100 text-xs leading-relaxed opacity-90">
               {isRTL 
-                ? 'أموالك محفوظة بأمان لدى إيجي باي. لن يتم تحويلها للبائع إلا بعد استلامك للمنتج وتأكيد مطابقته للمواصفات.' 
-                : 'Your funds are secured by EgyBay. They will not be released to the seller until you receive and verify the item.'}
+                ? 'دفعتك محتجزة لدى إيجباي. لن يتم تحويلها للبائع إلا بعد استلامك للمنتج وتأكيدك.' 
+                : 'Your payment is held by Egbay. It is released to the seller only after you receive the item and confirm.'}
             </p>
           </div>
         </div>

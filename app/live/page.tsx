@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Video, Users, Zap, Play, Clock, Package, ShieldCheck, ChevronRight } from 'lucide-react';
+import { Video, Users, Zap, Play, Clock, ShieldCheck, ChevronRight } from 'lucide-react';
+import { PAYMENTS_ENABLED } from '@/lib/platformCommerce';
 import { useAuth } from '@/components/AuthProvider';
 import { useLanguage } from '@/components/LanguageProvider';
 import { getActiveLiveSessions, LIVE_PASSES, type LiveSession } from '@/lib/liveService';
@@ -46,15 +47,15 @@ export default function LiveDiscoveryPage() {
         <div className="relative z-10">
           <div className="inline-flex items-center gap-2 bg-red-600/10 border border-red-600/30 text-red-400 text-xs font-black px-3 py-1 rounded-full mb-4">
             <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-            {isRTL ? 'بيع مباشر وحصري — EgyBay Live' : 'LIVE SHOPPING — EgyBay Live'}
+            {isRTL ? 'بيع مباشر وحصري — Egbay Live' : 'LIVE SHOPPING — Egbay Live'}
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-white mb-2">
             {isRTL ? 'سوق مباشر للتجار والمحلات المصرية' : 'Egypt\'s Live Commerce Marketplace'}
           </h1>
           <p className="text-sm text-gray-400 max-w-lg mb-6">
             {isRTL
-              ? 'اشترِ مباشرة من التجار الموثوقين عبر بث حي مع حماية الضمان المالي الكاملة وتوصيل لباب البيت.'
-              : 'Buy directly from verified Egyptian sellers via live HD video with 100% escrow protection and doorstep delivery.'}
+              ? 'شاهد بثاً حياً من تجار مصريين وتواصل معهم بخصوص المنتجات التي تعجبك.'
+              : 'Watch live shows from Egyptian sellers and message them about the items you like.'}
           </p>
           <div className="flex flex-wrap gap-3">
             {user && (
@@ -66,10 +67,6 @@ export default function LiveDiscoveryPage() {
                 {isRTL ? 'ابدأ بثك المباشر' : 'Go Live & Sell'}
               </Link>
             )}
-            <div className="flex items-center gap-4 text-xs text-gray-400">
-              <span className="flex items-center gap-1"><ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /> {isRTL ? 'ضمان مالي ١٠٠٪' : '100% Escrow'}</span>
-              <span className="flex items-center gap-1"><Package className="w-3.5 h-3.5 text-blue-400" /> {isRTL ? 'توصيل لباب البيت' : 'Doorstep Delivery'}</span>
-            </div>
           </div>
         </div>
       </div>
@@ -182,15 +179,19 @@ export default function LiveDiscoveryPage() {
       {/* How it Works */}
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100/80 rounded-lg p-6 sm:p-8">
         <h2 className="text-base font-black text-gray-900 mb-6 text-center">
-          {isRTL ? 'كيف يعمل EgyBay Live للبائعين؟' : 'How Does EgyBay Live Work for Sellers?'}
+          {isRTL ? 'كيف يعمل Egbay Live للبائعين؟' : 'How Does Egbay Live Work for Sellers?'}
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
           {[
             {
               step: '1',
               icon: Zap,
-              title: isRTL ? 'احجز الباقة وادفع من المحفظة' : 'Book Pass & Pay from Wallet',
-              desc: isRTL ? 'اختر باقة Flash أو Pro أو Mega. المبلغ يُخصم فوراً من محفظتك.' : 'Choose Flash, Pro or Mega pass. Amount instantly deducted from your wallet.',
+              title: PAYMENTS_ENABLED
+                ? (isRTL ? 'احجز الباقة وادفع من المحفظة' : 'Book Pass & Pay from Wallet')
+                : (isRTL ? 'احجز باقة البث' : 'Book a Live Pass'),
+              desc: PAYMENTS_ENABLED
+                ? (isRTL ? 'اختر باقة Flash أو Pro أو Mega. المبلغ يُخصم من محفظتك.' : 'Choose Flash, Pro or Mega pass. The amount is deducted from your wallet.')
+                : (isRTL ? 'اختر باقة Flash أو Pro أو Mega. الحجز مجاني حالياً.' : 'Choose Flash, Pro or Mega pass. Booking is free right now.'),
               color: '#F59E0B',
             },
             {
@@ -203,8 +204,12 @@ export default function LiveDiscoveryPage() {
             {
               step: '3',
               icon: ShieldCheck,
-              title: isRTL ? 'البيع بضمان — الأرباح للمحفظة' : 'Sell with Escrow — Earn to Wallet',
-              desc: isRTL ? 'كل عملية شراء محمية بالضمان المالي. الأرباح تصل لمحفظتك بعد تأكيد التسليم.' : 'Every purchase is escrow-protected. Earnings reach your wallet after delivery is confirmed.',
+              title: PAYMENTS_ENABLED
+                ? (isRTL ? 'البيع بضمان — الأرباح للمحفظة' : 'Sell with Escrow — Earn to Wallet')
+                : (isRTL ? 'تواصل مع المشاهدين' : 'Talk to Viewers'),
+              desc: PAYMENTS_ENABLED
+                ? (isRTL ? 'كل عملية شراء محمية بالضمان المالي. الأرباح تصل لمحفظتك بعد تأكيد التسليم.' : 'Every purchase is escrow-protected. Earnings reach your wallet after delivery is confirmed.')
+                : (isRTL ? 'يراسلك المشاهدون بخصوص المنتجات المثبتة وتتفقون على المعاينة والتسليم باليد.' : 'Viewers message you about the pinned items and you arrange the viewing and in-person handover together.'),
               color: '#10B981',
             },
           ].map(item => (

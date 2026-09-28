@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { createSupabaseAdmin } from '@/lib/adminAuth';
+import { PAYMENTS_ENABLED } from '@/lib/platformCommerce';
 
 // No hardcoded fallback IDs here on purpose -- a wrong-but-numeric
 // integration/iframe id doesn't fail loudly, it silently sends every
@@ -21,6 +22,9 @@ const PAYMOB_IFRAME_ID = process.env.PAYMOB_IFRAME_ID || process.env.NEXT_PUBLIC
 // payment-processing endpoint's permissions instead of failing loudly.
 export async function POST(req: Request) {
   try {
+    if (!PAYMENTS_ENABLED) {
+      return NextResponse.json({ success: false, error: 'Payments are paused on Egbay right now.' }, { status: 403 });
+    }
     if (!PAYMOB_API_KEY || !PAYMOB_INTEGRATION_ID_RAW || !PAYMOB_IFRAME_ID || Number.isNaN(PAYMOB_INTEGRATION_ID)) {
       console.error('[API paymob/session] Missing/invalid Paymob credentials (PAYMOB_API_KEY / PAYMOB_INTEGRATION_ID / PAYMOB_IFRAME_ID).');
       return NextResponse.json({ success: false, error: 'Card payments are temporarily unavailable. Please try again shortly or pay with your Egbay wallet.' }, { status: 500 });
@@ -60,7 +64,7 @@ export async function POST(req: Request) {
 
       amountEgp = Number(order.amount);
       merchantOrderId = order.id;
-      itemName = `EgyBay Order #${order.id.slice(-6).toUpperCase()}`;
+      itemName = `Egbay Order #${order.id.slice(-6).toUpperCase()}`;
 
     } else {
       // 'boost' is intentionally not offered here: boost purchases are
@@ -110,7 +114,7 @@ export async function POST(req: Request) {
           shipping_method: 'NA', postal_code: 'NA',
           first_name: b.first_name || 'User',
           last_name: b.last_name || 'Name',
-          email: b.email || 'customer@egbay.market',
+          email: b.email || 'customer@egbay.shop',
           phone_number: b.phone_number || '+201000000000',
           street: b.street || 'NA',
           city: b.city || 'Cairo',

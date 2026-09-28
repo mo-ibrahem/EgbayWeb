@@ -13,6 +13,7 @@ import { useLanguage } from '@/components/LanguageProvider';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { productService, formatEGP, isPromotionActive, type Product } from '@/lib/products';
 import { getUserWallet, type UserWallet } from '@/lib/walletService';
+import { PAYMENTS_ENABLED } from '@/lib/platformCommerce';
 import { BOOST_PACKAGES, BOOST_BADGE_STYLES, boostProduct, type BoostPackage } from '@/lib/boostService';
 
 function BoostProductContent() {
@@ -228,7 +229,7 @@ function BoostProductContent() {
           <div className="flex items-center gap-2 mb-1">
             <Wallet className="w-4 h-4 text-blue-600" />
             <span className="font-bold text-xs text-gray-900">
-              {isRTL ? 'رصيد محفظة إيجي باي' : 'Spendable Wallet Balance'}
+              {isRTL ? 'رصيد محفظة إيجباي' : 'Spendable Wallet Balance'}
             </span>
           </div>
           <p className="text-xs text-gray-500">
@@ -255,7 +256,26 @@ function BoostProductContent() {
   );
 }
 
+function BoostPaused() {
+  const { productId } = useParams<{ productId: string }>();
+  const { isRTL } = useLanguage();
+  return (
+    <div className="max-w-md mx-auto px-4 py-16 text-center space-y-3">
+      <h1 className="text-lg font-black text-gray-900">
+        {isRTL ? 'الدفع متوقف مؤقتاً على إيجباي' : 'Payments are paused on Egbay'}
+      </h1>
+      <p className="text-sm text-gray-500">
+        {isRTL ? 'ترويج الإعلانات غير متاح حالياً.' : 'Boosting listings is not available right now.'}
+      </p>
+      <Link href={`/products/${productId}`} className="text-sm font-bold text-blue-600 hover:underline inline-block">
+        {isRTL ? 'الرجوع للإعلان' : 'Back to the listing'}
+      </Link>
+    </div>
+  );
+}
+
 export default function BoostProductPage() {
+  if (!PAYMENTS_ENABLED) return <BoostPaused />;
   return (
     <ProtectedRoute>
       <BoostProductContent />

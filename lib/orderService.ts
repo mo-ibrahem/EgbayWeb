@@ -80,6 +80,8 @@ export async function createMarketplaceOrder(orderData: {
   // display_price (never trusting the client's `amount` above) and
   // credits the session's sales counters atomically.
   live_session_id?: string;
+  // Chosen variant of a multi-unit listing; the server prices from it.
+  variant_id?: string;
 }): Promise<MarketplaceOrder> {
   const orderId = `ord_${Date.now()}`;
   const estimated = calculateEstimatedDelivery(orderData.shipping_address?.governorate);
@@ -113,7 +115,7 @@ export async function createMarketplaceOrder(orderData: {
         },
         body: JSON.stringify({
           action: 'create',
-          orderData: { ...newOrder, live_session_id: orderData.live_session_id },
+          orderData: { ...newOrder, live_session_id: orderData.live_session_id, variant_id: orderData.variant_id },
         }),
       });
       const json = await res.json();
