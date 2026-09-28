@@ -6,6 +6,7 @@ import { encryptPin, decryptPin } from '@/lib/encryption';
 import { createSupabaseAdmin } from '@/lib/adminAuth';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
+import { PAYMENTS_ENABLED } from '@/lib/platformCommerce';
 
 // The admin client is constructed lazily, inside each request handler
 // below -- never at module scope. Next.js's build-time "collect page
@@ -113,6 +114,13 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { action, orderData, orderId } = body;
 
+    // Creating an order or paying for one moves money: refused in classifieds
+    // mode. Actions on EXISTING orders (release_escrow, dispute, shipping)
+    // stay open so orders already in escrow can still be completed.
+    if ((action === 'create' || action === 'pay_with_wallet') && !PAYMENTS_ENABLED) {
+      return NextResponse.json({ success: false, error: 'Payments are paused on Egbay right now.' }, { status: 403 });
+    }
+
     // Action 1: Create Order
     if (action === 'create' && orderData) {
       // 1. Generate secure PIN server-side
@@ -158,7 +166,7 @@ export async function POST(req: Request) {
       });
     }
 
-    // Action 1.5: Pay with Wallet (100% wallet checkout)
+    // Action 1.5: Pay with Wallet
     if (action === 'pay_with_wallet' && orderId) {
       // Record payment started event
       await supabaseAdmin.from('order_events').insert({

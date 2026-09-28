@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
 import { createSupabaseAdmin } from '@/lib/adminAuth';
+import { PAYMENTS_ENABLED } from '@/lib/platformCommerce';
 
 // The admin client is constructed lazily, inside the handler below --
 // never at module scope. Next.js's build-time "collect page data" step
@@ -28,6 +29,11 @@ export async function POST(req: Request) {
     const userId = user.id;
     const body = await req.json();
     const { action } = body;
+
+    // Money-moving actions are refused in classifieds mode.
+    if ((action === 'deduct_spendable' || action === 'request_payout') && !PAYMENTS_ENABLED) {
+      return NextResponse.json({ success: false, error: 'Payments are paused on Egbay right now.' }, { status: 403 });
+    }
 
     // Action 1: Deduct Spendable (Wallet Checkout) - Replaced by RPC
     if (action === 'deduct_spendable') {

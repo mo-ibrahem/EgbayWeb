@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createSupabaseAdmin } from '@/lib/adminAuth';
+import { PAYMENTS_ENABLED } from '@/lib/platformCommerce';
 
 // The admin client is constructed lazily, inside the handler below --
 // never at module scope. Next.js's build-time "collect page data" step
@@ -10,6 +11,9 @@ import { createSupabaseAdmin } from '@/lib/adminAuth';
 // the build environment.
 export async function POST(req: Request) {
   try {
+    if (!PAYMENTS_ENABLED) {
+      return NextResponse.json({ success: false, error: 'Payments are paused on Egbay right now.' }, { status: 403 });
+    }
     const supabaseAdmin = createSupabaseAdmin();
     const authHeader = req.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {

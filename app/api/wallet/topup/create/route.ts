@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
+import { PAYMENTS_ENABLED } from '@/lib/platformCommerce';
 
 const PAYMOB_API_KEY = process.env.PAYMOB_API_KEY || '';
 const PAYMOB_INTEGRATION_ID = process.env.PAYMOB_INTEGRATION_ID || process.env.NEXT_PUBLIC_PAYMOB_INTEGRATION_ID || process.env.EXPO_PUBLIC_PAYMOB_INTEGRATION_ID || '';
@@ -15,6 +16,9 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export async function POST(req: Request) {
   try {
+    if (!PAYMENTS_ENABLED) {
+      return NextResponse.json({ success: false, error: 'Payments are paused on Egbay right now.' }, { status: 403 });
+    }
     if (!supabaseServiceKey) {
       console.error('[API wallet/topup/create] Missing SUPABASE_SERVICE_ROLE_KEY credential.');
       return NextResponse.json({ success: false, error: 'Server misconfiguration: Missing required backend credential' }, { status: 500 });
