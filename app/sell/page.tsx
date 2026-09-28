@@ -12,7 +12,8 @@ import {
 import { useAuth } from '@/components/AuthProvider';
 import { useLanguage } from '@/components/LanguageProvider';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import { productService, formatEGP } from '@/lib/products';
+import { formatEGP } from '@/lib/products';
+import { PAYMENTS_ENABLED } from '@/lib/platformCommerce';
 import { supabase } from '@/lib/supabase';
 import { getSellerTier, SELLER_TIERS, type SellerTierConfig } from '@/lib/walletService';
 import { COURIER_DELIVERY_FEE_EGP } from '@/lib/orderService';
@@ -83,6 +84,10 @@ function SellContent() {
   const [condition, setCondition] = useState('New');
   const [location, setLocation] = useState('Cairo');
   const [stock, setStock] = useState('1');
+  // 'in_hand' or 'sourced_to_order'. The database requires lead_time_days
+  // to be 1-30 when sourced and NULL when in hand.
+  const [fulfilment, setFulfilment] = useState<'in_hand' | 'sourced_to_order'>('in_hand');
+  const [leadTime, setLeadTime] = useState('');
   const [price, setPrice] = useState('');
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
@@ -136,6 +141,9 @@ function SellContent() {
     setImages(prev => [...prev, ...newImages].slice(0, 8));
   };
 
+  const leadTimeNum = Number(leadTime);
+  const leadTimeValid = Number.isInteger(leadTimeNum) && leadTimeNum >= 1 && leadTimeNum <= 30;
+
   const handleNext = () => {
     setError('');
     if (step === 1) {
@@ -157,6 +165,10 @@ function SellContent() {
         setError(isRTL ? 'يرجى كتابة وصف يوضح حالة السلعة' : 'Please provide a description.');
         return;
       }
+      if (fulfilment === 'sourced_to_order' && !leadTimeValid) {
+        setError(isRTL ? 'حدد مدة التوريد من ١ إلى ٣٠ يوماً' : 'Enter a lead time between 1 and 30 days.');
+        return;
+      }
     }
     setStep(s => s + 1);
   };
@@ -166,6 +178,11 @@ function SellContent() {
     const p = parseFloat(price);
     if (isNaN(p) || p <= 0) {
       setError(isRTL ? 'يرجى إدخال سعر صحيح بالجنيه المصري' : 'Please enter a valid price in EGP.');
+      return;
+    }
+
+    if (fulfilment === 'sourced_to_order' && !leadTimeValid) {
+      setError(isRTL ? 'حدد مدة التوريد من ١ إلى ٣٠ يوماً' : 'Enter a lead time between 1 and 30 days.');
       return;
     }
 
@@ -208,6 +225,8 @@ function SellContent() {
           condition,
           price: p,
           stock: stockNum,
+          fulfilment,
+          lead_time_days: fulfilment === 'sourced_to_order' ? leadTimeNum : null,
           images: uploadedUrls,
           status: 'active',
         })
@@ -239,7 +258,7 @@ function SellContent() {
             {isRTL ? 'تم نشر إعلانك بنجاح! 🚀' : 'Listing Published! 🚀'}
           </h2>
           <p className="text-xs text-slate-500">
-            {isRTL ? 'إعلانك الآن معروض في السوق ومحمي بالضمان المالي.' : 'Your item is now live and protected by EgyBay Escrow.'}
+            {isRTL ? 'إعلانك الآن معروض في السوق.' : 'Your item is now live on Egbay.'}
           </p>
         </div>
       </div>
@@ -299,7 +318,7 @@ function SellContent() {
                 {isRTL ? 'أضف صور المنتج' : 'Upload Item Photos'}
               </h2>
               <p className="text-xs text-slate-500 mt-0.5">
-                {isRTL ? 'الصور الواضحة ذات الإضاءة الجيدة تزيد من سرعة بيع السلعة ٣ أضعاف.' : 'High-quality, well-lit photos increase buyer inquiries by 3x.'}
+                {isRTL ? 'الصور الواضحة ذات الإضاءة الجيدة تساعد المشترين على الحكم على السلعة.' : 'Clear, well-lit photos help buyers judge the item.'}
               </p>
             </div>
 
@@ -382,6 +401,53 @@ function SellContent() {
                   placeholder={isRTL ? 'وضح حالة الاستخدام، الضمان، سبب البيع، والمشتملات المرفقة مع السلعة...' : 'State the item condition, warranty status, reason for selling, and accessories...'}
                   className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-500 resize-none"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-2">
+                  {isRTL ? 'التوفر' : 'Availability'}
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {([
+                    { v: 'in_hand', l: 'In hand', l_ar: 'متوفر معي', d: 'You have it now and can hand it over', d_ar: 'السلعة معك وتقدر تسلمها الآن' },
+                    { v: 'sourced_to_order', l: 'Sourced to order', l_ar: 'أوفره عند الطلب', d: 'You get it after a buyer commits', d_ar: 'تجلبها بعد اتفاقك مع المشتري' },
+                  ] as const).map(o => (
+                    <button
+                      type="button"
+                      key={o.v}
+                      onClick={() => setFulfilment(o.v)}
+                      className={`p-3 rounded-2xl border-2 text-left rtl:text-right transition-all ${
+                        fulfilment === o.v ? 'border-blue-600 bg-blue-50/50' : 'border-slate-100 hover:border-slate-200'
+                      }`}
+                    >
+                      <p className="text-xs font-bold text-slate-900">{isRTL ? o.l_ar : o.l}</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">{isRTL ? o.d_ar : o.d}</p>
+                    </button>
+                  ))}
+                </div>
+                {fulfilment === 'sourced_to_order' && (
+                  <div className="mt-3">
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5" htmlFor="lead-time">
+                      {isRTL ? 'مدة التوريد (بالأيام، من ١ إلى ٣٠)' : 'Lead time (days, 1-30)'}
+                    </label>
+                    <input
+                      id="lead-time"
+                      type="number"
+                      inputMode="numeric"
+                      min="1"
+                      max="30"
+                      value={leadTime}
+                      onChange={e => setLeadTime(e.target.value)}
+                      placeholder="7"
+                      className="w-32 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-blue-500"
+                    />
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      {isRTL
+                        ? 'سيظهر على إعلانك أنه يُجلب عند الطلب، حتى لا يظنه المشتري متوفراً.'
+                        : 'Your listing will show "Sourced to order" so buyers never assume it is in stock.'}
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -471,7 +537,7 @@ function SellContent() {
                 {isRTL ? 'تحديد السعر' : 'Set Listing Price'}
               </h2>
               <p className="text-xs text-slate-500 mt-0.5">
-                {isRTL ? 'السعر المناسب يجذب المشترين الجادين بسرعة.' : 'Competitive pricing attracts fast, verified buyers.'}
+                {isRTL ? 'حدد السعر بالجنيه المصري وعدد القطع.' : 'Set your price in EGP and how many units you have.'}
               </p>
             </div>
 
@@ -508,11 +574,13 @@ function SellContent() {
                   min="1"
                   className="w-full border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-blue-500 bg-white"
                 />
-                <p className="text-[11px] text-slate-400 mt-1">
-                  {isRTL
-                    ? 'عند شراء آخر قطعة في المخزون، سيتم تحويل الإعلان تلقائياً إلى "تم البيع" وإخفاؤه من السوق.'
-                    : 'When the last item in stock is purchased, this listing is automatically marked Sold and removed from the active marketplace.'}
-                </p>
+                {PAYMENTS_ENABLED && (
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    {isRTL
+                      ? 'عند شراء آخر قطعة في المخزون، سيتم تحويل الإعلان تلقائياً إلى "تم البيع" وإخفاؤه من السوق.'
+                      : 'When the last item in stock is purchased, this listing is automatically marked Sold and removed from the active marketplace.'}
+                  </p>
+                )}
               </div>
 
               {/* Earnings preview.
@@ -530,7 +598,7 @@ function SellContent() {
                   meetup orders there is no delivery fee at all. The old
                   version of this box showed only `price - price*rate`,
                   which matched neither case. */}
-              {Number(price) > 0 && (() => {
+              {PAYMENTS_ENABLED && Number(price) > 0 && (() => {
                 const listing = Number(price);
                 const rate = sellerTier.commissionFeePercent;
                 const meetupFee = Math.round(listing * rate);

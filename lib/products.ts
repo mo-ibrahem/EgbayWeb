@@ -12,6 +12,14 @@ export interface Product {
   seller_id: string;
   status: string;
   stock?: number;
+  // 'in_hand' (default) or 'sourced_to_order'. lead_time_days is NULL when
+  // in_hand and 1-30 when sourced (DB check constraints). A sourced listing
+  // always renders its badge so it can never read as stock the seller holds.
+  fulfilment?: 'in_hand' | 'sourced_to_order';
+  lead_time_days?: number | null;
+  // Feed only: true when the listing has product_variants, so `price` is the
+  // cheapest "from" price rather than what any one unit costs.
+  has_variants?: boolean;
   created_at: string;
   updated_at: string;
   // tier/is_verified_seller come straight from the public_profiles view
@@ -29,6 +37,52 @@ export interface Product {
   // is getting looked at has no signal to act on, which is the single most
   // documented cause of marketplace seller churn.
   view_count?: number;
+}
+
+export interface ProductVariant {
+  id: string;
+  product_id: string;
+  sku: string | null;
+  storage: string | null;
+  color: string | null;
+  grade: string | null;
+  price: number;
+  stock: number;
+}
+
+/** "Sourced to order · ~4 days" -- null for an in-hand listing. */
+export function sourcedBadgeLabel(
+  p: Pick<Product, 'fulfilment' | 'lead_time_days'>,
+  isRTL = false,
+): string | null {
+  if (p.fulfilment !== 'sourced_to_order') return null;
+  const d = p.lead_time_days;
+  if (!d) return isRTL ? 'يُجلب عند الطلب' : 'Sourced to order';
+  return isRTL ? `يُجلب عند الطلب · ~${d} يوم` : `Sourced to order · ~${d} days`;
+}
+
+/**
+ * Real average reply time for a seller, in seconds, or null. Only trusted
+ * with at least 3 measured replies -- below that there is no number to
+ * show, and none is invented.
+ */
+export async function getSellerReplySeconds(sellerId: string): Promise<number | null> {
+  const { data, error } = await supabase.rpc('seller_reply_stats', { p_seller_id: sellerId });
+  const row = data?.[0];
+  if (error || !row || row.sample_size < 3 || row.avg_reply_seconds == null) return null;
+  return Number(row.avg_reply_seconds);
+}
+
+/** "Usually replies within ~15 min" / "~3 h" / "~2 d". */
+export function formatReplyTime(seconds: number, isRTL = false): string {
+  const min = Math.max(1, Math.round(seconds / 60));
+  const h = Math.round(min / 60);
+  const span = min < 60
+    ? (isRTL ? `${min} دقيقة` : `${min} min`)
+    : h < 48
+      ? (isRTL ? `${h} ساعة` : `${h} h`)
+      : (isRTL ? `${Math.round(h / 24)} يوم` : `${Math.round(h / 24)} d`);
+  return isRTL ? `عادةً يرد خلال ~${span}` : `Usually replies within ~${span}`;
 }
 
 export interface UserProfile {
@@ -139,7 +193,10 @@ export const productService = {
       try {
         let query = supabase
           .from('products')
-          .select('*')
+          // '*' carries fulfilment + lead_time_days. The embedded count is
+          // one aggregate per listing (a plain product_variants select
+          // would be truncated at 1000 rows; there are 1330).
+          .select('*, product_variants(count)')
           .eq('status', 'active')
           .gt('stock', 0)
           .order('created_at', { ascending: false });
@@ -211,8 +268,9 @@ export const productService = {
           // ignore wishlist auth error for public visitors
         }
 
-        const formatted: Product[] = products.map((p) => ({
+        const formatted: Product[] = products.map(({ product_variants, ...p }) => ({
           ...p,
+          has_variants: (product_variants?.[0]?.count ?? 0) > 0,
           seller: sellerMap[p.seller_id] || { full_name: 'Egbay Seller' },
           isWishlisted: wishlistedIds.includes(p.id),
         }));
@@ -287,6 +345,29 @@ export const productService = {
     }
   },
 
+  getVariants: async (productId: string): Promise<ProductVariant[]> => {
+    const { data, error } = await supabase
+      .from('product_variants')
+      .select('id, product_id, sku, storage, color, grade, price, stock')
+      .eq('product_id', productId)
+      .order('position', { ascending: true });
+    if (error) {
+      console.warn('[ProductService] variants fetch error:', error);
+      return [];
+    }
+    return (data || []).map((v) => ({ ...v, price: Number(v.price) })) as ProductVariant[];
+  },
+
+  /** Signed-in only (the RPC rejects anon). reason is 1-1000 chars. */
+  reportListing: async (productId: string, reason: string): Promise<void> => {
+    const { error } = await supabase.rpc('report_content', {
+      p_target_type: 'listing',
+      p_target_id: productId,
+      p_reason: reason.trim(),
+    });
+    if (error) throw new Error(error.message);
+  },
+
   getSimilarProducts: async (category: string, excludeId: string, limit = 6): Promise<Product[]> => {
     try {
       const { data, error } = await supabase
@@ -345,17 +426,22 @@ export const productService = {
     location?: string;
     images: string[];
     stock?: number;
+    fulfilment?: 'in_hand' | 'sourced_to_order';
+    lead_time_days?: number | null;
   }): Promise<Product> => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user?.id) throw new Error('Not authenticated');
 
-    const { location, stock, ...payload } = productData;
+    const { location, stock, fulfilment = 'in_hand', lead_time_days, ...payload } = productData;
+    const sourced = fulfilment === 'sourced_to_order';
+    const lead = Math.floor(Number(lead_time_days));
+    if (sourced && !(lead >= 1 && lead <= 30)) throw new Error('Lead time must be between 1 and 30 days');
     const fullDescription = location ? `${payload.description.trim()}\n\n📍 ${location}` : payload.description.trim();
     const stockNum = Math.max(1, Math.floor(Number(stock) || 1));
 
     const { data, error } = await supabase
       .from('products')
-      .insert([{ ...payload, description: fullDescription, seller_id: session.user.id, status: 'active', stock: stockNum }])
+      .insert([{ ...payload, description: fullDescription, seller_id: session.user.id, status: 'active', stock: stockNum, fulfilment, lead_time_days: sourced ? lead : null }])
       .select()
       .single();
     if (error) throw error;
@@ -409,14 +495,18 @@ export const profileService = {
     }
   },
 
+  // update_my_profile is the only safe way to edit your own profile; it
+  // rejects a display name containing an email address. userId is kept for
+  // the existing call sites -- the RPC always acts on auth.uid().
   updateProfile: async (userId: string, updates: Partial<UserProfile>): Promise<UserProfile> => {
-    const { data, error } = await supabase
-      .from('user_profiles')
-      .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq('id', userId)
-      .select()
-      .single();
-    if (error) throw error;
-    return data as UserProfile;
+    const { error } = await supabase.rpc('update_my_profile', {
+      p_full_name: updates.full_name ?? null,
+      p_phone: updates.phone ?? null,
+      p_avatar_url: updates.avatar_url ?? null,
+    });
+    if (error) throw new Error(error.message);
+    const profile = await profileService.getProfile(userId);
+    if (!profile) throw new Error('Profile not found');
+    return profile;
   },
 };

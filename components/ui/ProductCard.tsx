@@ -4,11 +4,12 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { Heart, Package, Zap, MapPin } from 'lucide-react';
 import { useLanguage } from '@/components/LanguageProvider';
-import { type Product, isPromotionActive } from '@/lib/products';
+import { type Product, isPromotionActive, sourcedBadgeLabel } from '@/lib/products';
 import { BOOST_BADGE_STYLES } from '@/lib/boostService';
 import SmartImage from '@/components/SmartImage';
 import PriceTag from './PriceTag';
 import { RatingDisplay } from './StarRating';
+import Badge from './Badge';
 
 /**
  * The one product card for Egbay -- home feed, search results, wishlist,
@@ -32,8 +33,9 @@ import { RatingDisplay } from './StarRating';
  * (the convention on every marketplace, and it matches how people scan
  * "what is it" before "what does it cost"), but the emphasis doesn't.
  *
- * Escrow protection is stated once, globally (hero/footer), not repeated
- * on every card -- it's true of every listing, so per-card it's noise.
+ * A sourced-to-order listing always carries its badge, so it can never
+ * read as stock the seller is holding. A listing with variants shows a
+ * "From" price, since products.price is only its cheapest option.
  */
 export default function ProductCard({
   product,
@@ -108,6 +110,9 @@ export default function ProductCard({
         </h3>
 
         <div className="flex items-baseline gap-1.5 flex-wrap">
+          {product.has_variants && (
+            <span className="text-[10px] font-bold text-slate-400">{isRTL ? 'من' : 'From'}</span>
+          )}
           <PriceTag amount={product.price} size="md" />
           {product.condition === 'New' && (
             <span className="text-[10px] font-bold text-success">
@@ -123,6 +128,10 @@ export default function ProductCard({
             <RatingDisplay avg={product.seller.rating_avg} count={product.seller.rating_count} size="xs" />
           )}
         </div>
+
+        {sourcedBadgeLabel(product, isRTL) && (
+          <Badge tone="warning" className="!text-[10px] !px-1.5 !py-0.5">{sourcedBadgeLabel(product, isRTL)}</Badge>
+        )}
 
         <p className="flex items-center gap-1 text-[11px] text-slate-400 truncate">
           <MapPin className="w-2.5 h-2.5 flex-shrink-0" />

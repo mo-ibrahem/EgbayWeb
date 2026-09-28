@@ -7,9 +7,13 @@ import SmartImage from '@/components/SmartImage';
 import {
   ArrowLeft, Heart, Share2, ShieldCheck, MapPin, Clock,
   MessageCircle, ShoppingBag, ChevronLeft, ChevronRight,
-  Zap, Package, CheckCircle2, X,
+  Zap, Package, CheckCircle2, X, Flag, Handshake,
 } from 'lucide-react';
-import { productService, formatEGP, isPromotionActive, type Product } from '@/lib/products';
+import {
+  productService, formatEGP, isPromotionActive, sourcedBadgeLabel,
+  getSellerReplySeconds, formatReplyTime, type Product, type ProductVariant,
+} from '@/lib/products';
+import { PAYMENTS_ENABLED } from '@/lib/platformCommerce';
 import { BOOST_BADGE_STYLES } from '@/lib/boostService';
 import { supabase } from '@/lib/supabase';
 import { getOrCreateChatRoom } from '@/lib/chatService';
@@ -20,6 +24,8 @@ import SellerBadge from '@/components/ui/SellerBadge';
 import { StarRow } from '@/components/ui/StarRating';
 import { getProductReviews, type Review } from '@/lib/reviews';
 import Button from '@/components/ui/Button';
+import Badge from '@/components/ui/Badge';
+import VariantPicker, { resolveVariant, type VariantSelection } from '@/components/ui/VariantPicker';
 import { SkeletonBlock } from '@/components/ui/Skeleton';
 
 function timeAgo(dateStr?: string | null, isRTL?: boolean): string {
@@ -64,6 +70,13 @@ export default function ProductDetailPage() {
   const [copied, setCopied] = useState(false);
   const [productReviews, setProductReviews] = useState<Review[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(true);
+  const [variants, setVariants] = useState<ProductVariant[]>([]);
+  const [selection, setSelection] = useState<VariantSelection>({});
+  const [replySeconds, setReplySeconds] = useState<number | null>(null);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportReason, setReportReason] = useState('');
+  const [reportBusy, setReportBusy] = useState(false);
+  const [reportMsg, setReportMsg] = useState<string | null>(null);
 
   // Non-fatal on purpose: if reviews fail to load, the listing still
   // renders. A buyer losing the page because the reviews query broke is
@@ -87,6 +100,9 @@ export default function ProductDetailPage() {
         if (!p) { router.push('/'); return; }
         setProduct(p);
         setWishlisted(p.isWishlisted ?? false);
+        // Non-fatal side fetches: the listing renders without them.
+        productService.getVariants(id).then(setVariants).catch(() => {});
+        getSellerReplySeconds(p.seller_id).then(setReplySeconds).catch(() => {});
         const sim = await productService.getSimilarProducts(p.category, id);
         setSimilar(sim);
 
@@ -123,17 +139,34 @@ export default function ProductDetailPage() {
     }
   };
 
-  const handleChat = async () => {
+  const handleChat = async (offer = false) => {
     if (!user) { router.push('/login'); return; }
     if (!product || product.seller_id === user.id) return;
     setChatLoading(true);
     try {
       const roomId = await getOrCreateChatRoom(user.id, product.seller_id, product.id);
-      router.push(`/chat/${roomId}`);
+      router.push(`/chat/${roomId}${offer ? '?offer=1' : ''}`);
     } catch (err) {
       console.error('Chat error:', err);
     } finally {
       setChatLoading(false);
+    }
+  };
+
+  const handleReport = async () => {
+    if (!user) { router.push('/login'); return; }
+    const reason = reportReason.trim();
+    if (!reason) return;
+    setReportBusy(true);
+    try {
+      await productService.reportListing(id, reason);
+      setReportMsg(isRTL ? 'شكراً، وصل بلاغك.' : 'Thanks, your report was sent.');
+      setReportOpen(false);
+      setReportReason('');
+    } catch (e) {
+      setReportMsg((e as Error).message || (isRTL ? 'تعذر إرسال البلاغ.' : 'Could not send the report.'));
+    } finally {
+      setReportBusy(false);
     }
   };
 
@@ -152,7 +185,17 @@ export default function ProductDetailPage() {
   if (!product) return null;
 
   const isOwner = user?.id === product.seller_id;
-  const isOutOfStock = (product.stock ?? 1) <= 0 || product.status === 'sold';
+  const hasVariants = variants.length > 0;
+  const chosen = hasVariants ? resolveVariant(variants, selection) : null;
+  const isOutOfStock =
+    (product.stock ?? 1) <= 0 || product.status === 'sold' ||
+    (hasVariants && variants.every((v) => v.stock <= 0));
+  // A variant listing cannot be ordered without a variant id, so Buy
+  // stays disabled until every option has been picked.
+  const needsChoice = hasVariants && !chosen;
+  const sourced = sourcedBadgeLabel(product, isRTL);
+  const buyHref = `/checkout/${product.id}${chosen ? `?variant=${chosen.id}` : ''}`;
+  const buyLabel = isRTL ? 'شراء الآن' : 'Buy Now';
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -260,19 +303,30 @@ export default function ProductDetailPage() {
               )}
             </div>
 
-            <div className="bg-white border border-slate-200 rounded-lg p-4 flex items-start gap-3">
-              <ShieldCheck className="w-5 h-5 text-brand flex-shrink-0 mt-0.5" />
-              <div>
-                <h3 className="font-bold text-slate-900 text-sm">
-                  {isRTL ? 'محمي بالضمان المالي' : 'Escrow Protected'}
-                </h3>
-                <p className="text-slate-600 text-xs mt-0.5 leading-relaxed">
+            {PAYMENTS_ENABLED ? (
+              <div className="bg-white border border-slate-200 rounded-lg p-4 flex items-start gap-3">
+                <ShieldCheck className="w-5 h-5 text-brand flex-shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="font-bold text-slate-900 text-sm">
+                    {isRTL ? 'محمي بالضمان المالي' : 'Escrow Protected'}
+                  </h3>
+                  <p className="text-slate-600 text-xs mt-0.5 leading-relaxed">
+                    {isRTL
+                      ? 'أموالك تُحوَّل للبائع فقط بعد تأكيدك للاستلام أو تسليم كود الـ PIN. استرداد كامل عبر فتح نزاع إذا لم تطابق السلعة الوصف.'
+                      : 'Funds only reach the seller after you confirm receipt or hand over the PIN. Open a dispute for a full refund if the item doesn\'t match its description.'}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-white border border-slate-200 rounded-lg p-4 flex items-start gap-3">
+                <Handshake className="w-5 h-5 text-brand flex-shrink-0 mt-0.5" />
+                <p className="text-slate-600 text-xs leading-relaxed">
                   {isRTL
-                    ? 'أموالك تُحوَّل للبائع فقط بعد تأكيدك للاستلام أو تسليم كود الـ PIN. استرداد كامل عبر فتح نزاع إذا لم تطابق السلعة الوصف.'
-                    : 'Funds only reach the seller after you confirm receipt or hand over the PIN. Open a dispute for a full refund if the item doesn\'t match its description.'}
+                    ? 'الدفع والاستلام بينك وبين البائع مباشرة، خارج إيجي باي. عاين المنتج قبل ما تدفع.'
+                    : 'Payment and handover are arranged directly with the seller, outside Egbay. Check the item before you pay.'}
                 </p>
               </div>
-            </div>
+            )}
           </div>
 
           {/* ─── Details & buying column ─── */}
@@ -292,11 +346,27 @@ export default function ProductDetailPage() {
               <h1 className="text-xl sm:text-2xl font-black text-slate-900 leading-tight">{product.title}</h1>
 
               <div>
-                <div className="text-3xl font-black text-slate-900 tracking-tight tabular-nums">{formatEGP(product.price)}</div>
-                <p className="text-[11px] text-slate-400 mt-0.5">
-                  {isRTL ? '+ رسوم توصيل عند الدفع (إن اخترت الشحن)' : '+ delivery fee at checkout if you choose courier delivery'}
-                </p>
+                <div className="text-3xl font-black text-slate-900 tracking-tight tabular-nums">
+                  {needsChoice && (
+                    <span className="text-sm font-bold text-slate-400 mr-1.5 rtl:mr-0 rtl:ml-1.5">{isRTL ? 'من' : 'From'}</span>
+                  )}
+                  {formatEGP(chosen?.price ?? product.price)}
+                </div>
+                {PAYMENTS_ENABLED && (
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    {isRTL ? '+ رسوم توصيل عند الدفع (إن اخترت الشحن)' : '+ delivery fee at checkout if you choose courier delivery'}
+                  </p>
+                )}
+                {sourced && (
+                  <Badge tone="warning" icon={<Clock className="w-3 h-3" />} className="mt-2">{sourced}</Badge>
+                )}
               </div>
+
+              {hasVariants && (
+                <div className="pt-3 border-t border-slate-100">
+                  <VariantPicker variants={variants} selection={selection} onChange={setSelection} isRTL={isRTL} />
+                </div>
+              )}
 
               <div className="flex items-center gap-4 text-xs text-slate-400 pt-3 border-t border-slate-100">
                 <span className="flex items-center gap-1.5 font-medium">
@@ -343,6 +413,9 @@ export default function ProductDetailPage() {
                       {isRTL ? 'لم يتم توثيق الهوية بعد' : 'Identity not yet verified'}
                     </p>
                   )}
+                  {replySeconds != null && (
+                    <p className="text-[11px] text-slate-500 mt-0.5">{formatReplyTime(replySeconds, isRTL)}</p>
+                  )}
                 </div>
               </div>
             </Link>
@@ -354,23 +427,78 @@ export default function ProductDetailPage() {
                     <X className="w-4 h-4" />
                     {isRTL ? 'نفذت الكمية' : 'Out of stock'}
                   </div>
-                ) : (
-                  <Button href={`/checkout/${product.id}`} fullWidth size="lg" icon={<ShoppingBag className="w-4 h-4" />}>
-                    {isRTL ? 'شراء الآن — محمي بالضمان' : 'Buy Now — Escrow Protected'}
+                ) : PAYMENTS_ENABLED ? (
+                  needsChoice ? (
+                    <Button disabled fullWidth size="lg" icon={<ShoppingBag className="w-4 h-4" />}>
+                      {isRTL ? 'اختر الخيارات أولاً' : 'Choose your options'}
+                    </Button>
+                  ) : (
+                    <Button href={buyHref} fullWidth size="lg" icon={<ShoppingBag className="w-4 h-4" />}>
+                      {buyLabel}
+                    </Button>
+                  )
+                ) : null}
+                {PAYMENTS_ENABLED ? (
+                  <Button variant="outline" fullWidth onClick={() => handleChat()} loading={chatLoading} icon={<MessageCircle className="w-3.5 h-3.5" />}>
+                    {isRTL ? 'محادثة البائع' : 'Message Seller'}
                   </Button>
+                ) : (
+                  <>
+                    <Button fullWidth size="lg" onClick={() => handleChat()} loading={chatLoading} icon={<MessageCircle className="w-4 h-4" />}>
+                      {isRTL ? 'محادثة البائع' : 'Message seller'}
+                    </Button>
+                    {!isOutOfStock && (
+                      <Button variant="outline" fullWidth onClick={() => handleChat(true)} disabled={chatLoading} icon={<Handshake className="w-3.5 h-3.5" />}>
+                        {isRTL ? 'قدّم عرضاً' : 'Make an offer'}
+                      </Button>
+                    )}
+                  </>
                 )}
-                <Button variant="outline" fullWidth onClick={handleChat} loading={chatLoading} icon={<MessageCircle className="w-3.5 h-3.5" />}>
-                  {isRTL ? 'محادثة البائع' : 'Message Seller'}
-                </Button>
+                <div className="pt-1 text-center">
+                  {reportMsg && <p className="text-[11px] text-slate-500 mb-1">{reportMsg}</p>}
+                  {!reportOpen ? (
+                    <button
+                      onClick={() => { if (!user) { router.push('/login'); return; } setReportMsg(null); setReportOpen(true); }}
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-400 hover:text-danger transition-colors"
+                    >
+                      <Flag className="w-3 h-3" />
+                      {isRTL ? 'الإبلاغ عن الإعلان' : 'Report listing'}
+                    </button>
+                  ) : (
+                    <div className="text-left rtl:text-right space-y-2">
+                      <label className="text-[11px] font-bold text-slate-500" htmlFor="report-reason">
+                        {isRTL ? 'ما المشكلة في هذا الإعلان؟' : "What's wrong with this listing?"}
+                      </label>
+                      <textarea
+                        id="report-reason"
+                        value={reportReason}
+                        onChange={(e) => setReportReason(e.target.value)}
+                        maxLength={1000}
+                        rows={3}
+                        className="w-full text-xs border border-slate-200 rounded-md px-2.5 py-2 outline-none focus:border-brand"
+                      />
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="danger" onClick={handleReport} loading={reportBusy} disabled={!reportReason.trim()}>
+                          {isRTL ? 'إرسال البلاغ' : 'Send report'}
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => setReportOpen(false)}>
+                          {isRTL ? 'إلغاء' : 'Cancel'}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             ) : (
               <div className="bg-white rounded-lg border border-slate-200 p-4 space-y-2.5">
                 <p className="text-center text-xs font-bold text-slate-400 pb-1">
                   {isRTL ? 'هذا إعلانك الشخصي النشط' : 'This is your active listing'}
                 </p>
-                <Button href={`/boost/${product.id}`} variant="secondary" fullWidth icon={<Zap className="w-4 h-4 text-warning" />}>
-                  {isRTL ? 'ترويج الإعلان وزيادة المشاهدات' : 'Boost this listing'}
-                </Button>
+                {PAYMENTS_ENABLED && (
+                  <Button href={`/boost/${product.id}`} variant="secondary" fullWidth icon={<Zap className="w-4 h-4 text-warning" />}>
+                    {isRTL ? 'ترويج الإعلان وزيادة المشاهدات' : 'Boost this listing'}
+                  </Button>
+                )}
               </div>
             )}
           </div>
@@ -472,9 +600,21 @@ export default function ProductDetailPage() {
       {/* Mobile sticky CTA */}
       {!isOwner && !isOutOfStock && (
         <div className="fixed bottom-14 left-0 right-0 z-30 md:hidden bg-white border-t border-slate-200 px-3 py-2.5">
-          <Button href={`/checkout/${product.id}`} fullWidth icon={<ShoppingBag className="w-4 h-4" />}>
-            {isRTL ? 'شراء الآن بالضمان' : 'Buy Now — Escrow Protected'}
-          </Button>
+          {PAYMENTS_ENABLED ? (
+            needsChoice ? (
+              <Button disabled fullWidth icon={<ShoppingBag className="w-4 h-4" />}>
+                {isRTL ? 'اختر الخيارات أولاً' : 'Choose your options'}
+              </Button>
+            ) : (
+              <Button href={buyHref} fullWidth icon={<ShoppingBag className="w-4 h-4" />}>
+                {buyLabel}
+              </Button>
+            )
+          ) : (
+            <Button fullWidth onClick={() => handleChat()} loading={chatLoading} icon={<MessageCircle className="w-4 h-4" />}>
+              {isRTL ? 'محادثة البائع' : 'Message seller'}
+            </Button>
+          )}
         </div>
       )}
     </div>
