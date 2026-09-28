@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Package, Heart, MessageCircle, Settings, User, Camera,
-  Trash2, Eye, Wallet, ShieldCheck, Clock, Plus,
+  Trash2, Eye, Wallet, Clock, Plus,
   Sparkles, CheckCircle2, ArrowRight, ExternalLink, Phone,
   Lock, AlertCircle, ShoppingBag, ChevronRight, Star, Send
 } from 'lucide-react';
@@ -20,6 +20,7 @@ import ProductCard from '@/components/ui/ProductCard';
 import { hideChatRoomForUser, messagePreview } from '@/lib/chatService';
 import { getSellerReviews, respondToReview, type Review } from '@/lib/reviews';
 import { StarRow } from '@/components/ui/StarRating';
+import { PAYMENTS_ENABLED } from '@/lib/platformCommerce';
 import { BlockedUsersCard, DeleteAccountCard } from './SafetyCards';
 
 const TABS = [
@@ -142,7 +143,7 @@ function ProfileContent() {
               .eq('room_id', room.id).order('created_at', { ascending: false }).limit(1);
             return {
               room_id: room.id,
-              other_user_name: otherProfile?.full_name || (isRTL ? 'مستخدم إيجي باي' : 'EgyBay User'),
+              other_user_name: otherProfile?.full_name || (isRTL ? 'مستخدم إيجباي' : 'Egbay User'),
               other_user_avatar_url: otherProfile?.avatar_url,
               product_title: product?.title,
               last_message: messagePreview(msgs?.[0]),
@@ -327,11 +328,8 @@ function ProfileContent() {
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mb-1">
                 <h1 className="text-xl sm:text-3xl font-black tracking-tight truncate max-w-full">
-                  {profile?.full_name || (isRTL ? 'عضو إيجي باي' : 'Marketplace Member')}
+                  {profile?.full_name || (isRTL ? 'عضو إيجباي' : 'Marketplace Member')}
                 </h1>
-                <span className="bg-white/20 backdrop-blur-md text-white text-[10px] sm:text-xs font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 border border-white/20">
-                  <ShieldCheck className="w-3 h-3 text-emerald-300" /> {isRTL ? 'بائع موثق' : 'Verified Seller'}
-                </span>
               </div>
               <p className="text-white/80 text-xs sm:text-sm truncate">{user?.email}</p>
 
@@ -345,16 +343,13 @@ function ProfileContent() {
                   <Heart className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-rose-200" />
                   <span>{wishlist.length} {isRTL ? 'بالمفضلة' : `Saved ${wishlist.length === 1 ? 'Item' : 'Items'}`}</span>
                 </div>
-                <div className="bg-white/15 backdrop-blur-sm px-2.5 sm:px-3.5 py-1 rounded-xl text-[11px] sm:text-xs font-semibold flex items-center gap-1.5 border border-white/10">
-                  <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-200" />
-                  <span>{isRTL ? 'ضمان مالي ١٠٠٪' : '100% Escrow'}</span>
-                </div>
               </div>
             </div>
           </div>
 
           {/* Quick Action Buttons */}
           <div className="grid grid-cols-2 sm:flex items-center gap-2 sm:gap-3 w-full sm:w-auto pt-2 sm:pt-0 border-t border-white/10 sm:border-0">
+            {PAYMENTS_ENABLED && (
             <Link
               href="/wallet"
               className="flex items-center justify-center gap-1.5 bg-white text-blue-700 hover:bg-blue-50 font-bold text-xs px-3 sm:px-5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl shadow-md transition-all active:scale-95"
@@ -362,6 +357,7 @@ function ProfileContent() {
               <Wallet className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span>{isRTL ? 'المحفظة والأرباح' : 'Wallet & Payouts'}</span>
             </Link>
+            )}
             <Link
               href="/sell"
               className="flex items-center justify-center gap-1.5 bg-blue-900/70 hover:bg-blue-900/90 text-white font-bold text-xs px-3 sm:px-5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl border border-white/20 shadow-md transition-all active:scale-95"
@@ -418,8 +414,10 @@ function ProfileContent() {
             {[
               { label: isRTL ? 'إعلانات نشطة' : 'Active listings', value: String(listings.length), tone: 'text-slate-900' },
               { label: isRTL ? 'مشاهدات' : 'Views', value: sellerTotalViews.toLocaleString(isRTL ? 'ar-EG' : 'en-EG'), tone: 'text-slate-900' },
-              { label: isRTL ? 'عمليات بيع مكتملة' : 'Completed sales', value: String(sellerCompletedSales), tone: 'text-success' },
-              { label: isRTL ? 'بانتظار الشحن' : 'Awaiting dispatch', value: String(awaitingDispatchCount), tone: awaitingDispatchCount > 0 ? 'text-warning' : 'text-slate-900' },
+              ...(PAYMENTS_ENABLED ? [
+                { label: isRTL ? 'عمليات بيع مكتملة' : 'Completed sales', value: String(sellerCompletedSales), tone: 'text-success' },
+                { label: isRTL ? 'بانتظار الشحن' : 'Awaiting dispatch', value: String(awaitingDispatchCount), tone: awaitingDispatchCount > 0 ? 'text-warning' : 'text-slate-900' },
+              ] : []),
             ].map(s => (
               <div key={s.label} className="bg-white border border-slate-200 rounded-lg px-4 py-3">
                 <p className="text-[11px] font-semibold text-slate-500 truncate">{s.label}</p>
@@ -428,7 +426,7 @@ function ProfileContent() {
             ))}
           </div>
 
-          {awaitingDispatchCount > 0 && (
+          {PAYMENTS_ENABLED && awaitingDispatchCount > 0 && (
             <Link
               href="/orders"
               className="flex items-center justify-between bg-warning-soft border border-warning/20 rounded-lg px-4 py-3 hover:brightness-95 transition-all"
@@ -461,7 +459,7 @@ function ProfileContent() {
               <Package className="w-12 h-12 text-gray-300 mx-auto mb-3 stroke-[1.5]" />
               <h3 className="font-bold text-gray-900 text-sm sm:text-base mb-1">{isRTL ? 'لا توجد إعلانات بعد' : 'No listings yet'}</h3>
               <p className="text-gray-500 text-xs mb-5 max-w-xs mx-auto">
-                {isRTL ? 'اعرض أجهزتك ومقتنياتك غير المستخدمة للبيع بأمان عبر الضمان المالي.' : 'Turn your unused items, gadgets, or products into cash with Egyptian escrow.'}
+                {isRTL ? 'اعرض أجهزتك ومقتنياتك غير المستخدمة للبيع.' : 'Turn your unused items, gadgets, or products into cash.'}
               </p>
               <Link
                 href="/sell"
@@ -550,7 +548,7 @@ function ProfileContent() {
               <Heart className="w-12 h-12 text-gray-300 mx-auto mb-3 stroke-[1.5]" />
               <h3 className="font-bold text-gray-900 text-sm sm:text-base mb-1">{isRTL ? 'لا توجد سلع محفوظة بالمفضلة' : 'No saved items yet'}</h3>
               <p className="text-gray-500 text-xs mb-5 max-w-xs mx-auto">
-                {isRTL ? 'تصفح آلاف الإلكترونيات والأزياء الأصلية على إيجي باي.' : 'Browse thousands of verified electronics, fashion, and motors items on EgyBay.'}
+                {isRTL ? 'تصفح الإلكترونيات والأزياء والسيارات على إيجباي.' : 'Browse electronics, fashion, and motors listings on Egbay.'}
               </p>
               <Link
                 href="/"
@@ -673,7 +671,7 @@ function ProfileContent() {
                 <div key={r.id} className="p-5">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-sm font-bold text-gray-900">{r.reviewer_name || (isRTL ? 'مستخدم إيجي باي' : 'EgyBay User')}</p>
+                      <p className="text-sm font-bold text-gray-900">{r.reviewer_name || (isRTL ? 'مستخدم إيجباي' : 'Egbay User')}</p>
                       {r.product_title && <p className="text-xs text-gray-400 mt-0.5">{r.product_title}</p>}
                     </div>
                     <span className="text-[11px] text-gray-400 flex-shrink-0">{timeAgo(r.created_at, isRTL)}</span>

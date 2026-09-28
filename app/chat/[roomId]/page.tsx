@@ -96,7 +96,7 @@ function ChatContent() {
         if (otherId) {
           const { data: profile } = await supabase.from('public_profiles').select('full_name, avatar_url').eq('id', otherId).single();
           setChatDetails({
-            other_user_name: profile?.full_name || (isRTL ? 'مستخدم إيجي باي' : 'EgyBay User'),
+            other_user_name: profile?.full_name || (isRTL ? 'مستخدم إيجباي' : 'Egbay User'),
             other_user_avatar: profile?.avatar_url,
             product,
           });

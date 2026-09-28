@@ -34,8 +34,8 @@ export async function getOrCreateChatRoom(userId: string, otherUserId: string, p
 /**
  * Removes a chat room from the caller's own inbox without touching the
  * other participant's view or the message history -- delete-for-me, not
- * delete-for-both. Chat history can matter to a dispute on an escrow
- * marketplace, so nothing here ever destroys data; it only stops the
+ * delete-for-both. Chat history can matter if a report or dispute comes up,
+ * so nothing here ever destroys data; it only stops the
  * room from being listed for this user. If either side sends a new
  * message into the same room afterward, it resurfaces automatically
  * (server-side, via unhide_chat_room_on_new_message) rather than staying
