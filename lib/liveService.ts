@@ -231,24 +231,46 @@ export async function joinLiveSession(channelName: string, viewerUid: number): P
 // Discovery Feed
 // ──────────────────────────────────────────────────────────
 
+/**
+ * live_sessions.seller_id points at auth.users, which PostgREST cannot embed
+ * (`seller:seller_id(...)` returns PGRST200 -> 400). The old query did exactly
+ * that and the homepage swallowed the error, so the "live now" banner and the
+ * /live page could never show a session. Sellers are hydrated from
+ * public_profiles in a second query -- the fix mobile shipped in c0778f7.
+ */
+const SESSION_SELECT = `
+  *,
+  pinned_products:live_pinned_products (
+    *,
+    product:product_id (id, title, price, images)
+  )
+`;
+
+async function hydrateSellers(sessions: any[]): Promise<LiveSession[]> {
+  const ids = [...new Set(sessions.map(s => s.seller_id).filter(Boolean))];
+  if (ids.length === 0) return sessions as LiveSession[];
+  const { data: profiles } = await supabase
+    .from('public_profiles')
+    .select('id, full_name, avatar_url')
+    .in('id', ids);
+  const byId = new Map((profiles ?? []).map((p: any) => [p.id, p]));
+  return sessions.map(s => {
+    const p: any = byId.get(s.seller_id);
+    return { ...s, seller: p ? { full_name: p.full_name ?? undefined, avatar_url: p.avatar_url ?? undefined } : undefined };
+  }) as LiveSession[];
+}
+
 export async function getActiveLiveSessions(): Promise<LiveSession[]> {
   const { data, error } = await supabase
     .from('live_sessions')
-    .select(`
-      *,
-      seller:seller_id (full_name, avatar_url),
-      pinned_products:live_pinned_products (
-        *,
-        product:product_id (id, title, price, images)
-      )
-    `)
+    .select(SESSION_SELECT)
     .in('status', ['live', 'scheduled'])
     .order('status', { ascending: false })
     .order('current_viewers', { ascending: false })
     .limit(20);
 
   if (error) throw error;
-  return (data as unknown as LiveSession[]) || [];
+  return hydrateSellers(data || []);
 }
 
 export async function getSellerSessions(sellerId: string): Promise<LiveSession[]> {
@@ -265,19 +287,13 @@ export async function getSellerSessions(sellerId: string): Promise<LiveSession[]
 export async function getLiveSessionByChannel(channelName: string): Promise<LiveSession | null> {
   const { data, error } = await supabase
     .from('live_sessions')
-    .select(`
-      *,
-      seller:seller_id (full_name, avatar_url),
-      pinned_products:live_pinned_products (
-        *,
-        product:product_id (id, title, price, images)
-      )
-    `)
+    .select(SESSION_SELECT)
     .eq('agora_channel', channelName)
     .maybeSingle();
 
   if (error) throw error;
-  return (data as unknown as LiveSession) || null;
+  if (!data) return null;
+  return (await hydrateSellers([data]))[0];
 }
 
 // ──────────────────────────────────────────────────────────
