@@ -12,7 +12,7 @@ import PageTransition from '@/components/PageTransition';
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://egbay.shop';
 
 export const viewport: Viewport = {
-  themeColor: '#3665F3',
+  themeColor: '#2563EB',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,

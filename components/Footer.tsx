@@ -32,7 +32,7 @@ export default function Footer() {
           </div>
 
           <div className="flex items-center gap-4 justify-center sm:justify-start">
-            <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 border" style={{ background: 'rgba(54,101,243,0.12)', borderColor: 'rgba(54,101,243,0.25)' }}>
+            <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 border" style={{ background: 'rgba(37,99,235,0.12)', borderColor: 'rgba(37,99,235,0.25)' }}>
               <Truck className="w-5 h-5 text-blue-400" />
             </div>
             <div>
