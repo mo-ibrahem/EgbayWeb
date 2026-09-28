@@ -13,6 +13,7 @@ import {
 } from '@/lib/liveService';
 import { getUserWallet } from '@/lib/walletService';
 import { productService, type Product } from '@/lib/products';
+import { PAYMENTS_ENABLED } from '@/lib/platformCommerce';
 
 const CATEGORIES = [
   { value: 'Electronics', label: 'Electronics', label_ar: 'إلكترونيات' },
@@ -59,7 +60,11 @@ function BookLiveContent() {
   }, [user, isRTL]);
 
   const selectedPass = LIVE_PASSES.find(p => p.tier === selectedTier)!;
-  const canAfford = balance >= selectedPass.priceEGP;
+  // Classifieds mode: passes are free server-side (live_passes_are_free), so
+  // show no price and never block booking on wallet balance.
+  const passPrice = (p: { priceEGP: number }) => (PAYMENTS_ENABLED ? p.priceEGP : 0);
+  const price = passPrice(selectedPass);
+  const canAfford = balance >= price;
 
   const handleBook = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,13 +106,13 @@ function BookLiveContent() {
         </h1>
         <p className="text-sm text-gray-500 mt-1">
           {isRTL
-            ? 'اختر الباقة المناسبة، ادفع من محفظتك، وابدأ البيع المباشر فوراً مع حماية الضمان.'
-            : 'Pick your pass, pay from wallet, and start selling live with full escrow protection.'}
+            ? (PAYMENTS_ENABLED ? 'اختر الباقة المناسبة، ادفع من محفظتك، وابدأ البث المباشر.' : 'اختر الباقة المناسبة وابدأ البث المباشر مجاناً.')
+            : (PAYMENTS_ENABLED ? 'Pick your pass, pay from wallet, and go live.' : 'Pick your pass and go live for free.')}
         </p>
       </div>
 
       {/* Wallet Balance Banner */}
-      <div className="bg-gradient-to-r from-slate-900 to-[#1C2541] text-white rounded-2xl p-4 mb-8 flex items-center justify-between">
+      {PAYMENTS_ENABLED && <div className="bg-gradient-to-r from-slate-900 to-[#1C2541] text-white rounded-2xl p-4 mb-8 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Wallet className="w-5 h-5 text-emerald-400" />
           <div>
@@ -120,7 +125,7 @@ function BookLiveContent() {
             {isRTL ? 'شحن الرصيد ←' : 'Top Up →'}
           </a>
         )}
-      </div>
+      </div>}
 
       {/* Pass Tier Selection */}
       <div className="mb-8">
@@ -131,7 +136,7 @@ function BookLiveContent() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {LIVE_PASSES.map((pass) => {
             const isSelected = selectedTier === pass.tier;
-            const affordable = balance >= pass.priceEGP;
+            const affordable = balance >= passPrice(pass);
             return (
               <button
                 key={pass.tier}
@@ -150,7 +155,7 @@ function BookLiveContent() {
 
                 <div className="text-2xl mb-2">{pass.badge}</div>
                 <div className="font-black text-gray-900 text-sm">{isRTL ? pass.name_ar : pass.name}</div>
-                <div className="text-2xl font-black mt-1" style={{ color: pass.color }}>{pass.priceEGP} <span className="text-sm font-normal text-gray-500">EGP</span></div>
+                <div className="text-2xl font-black mt-1" style={{ color: pass.color }}>{PAYMENTS_ENABLED ? <>{pass.priceEGP} <span className="text-sm font-normal text-gray-500">EGP</span></> : (isRTL ? 'مجاناً' : 'Free')}</div>
 
                 <ul className="mt-3 space-y-1.5">
                   {(isRTL ? pass.features_ar : pass.features).map((f, i) => (
@@ -249,7 +254,7 @@ function BookLiveContent() {
         <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200/80 space-y-2 text-xs">
           <div className="flex justify-between font-bold text-gray-700">
             <span>{isRTL ? 'تكلفة الباس المختار:' : 'Live Pass Price:'}</span>
-            <span className="text-gray-900">{selectedPass.priceEGP} EGP</span>
+            <span className="text-gray-900">{PAYMENTS_ENABLED ? `${selectedPass.priceEGP} EGP` : (isRTL ? 'مجاناً' : 'Free')}</span>
           </div>
           <div className="flex justify-between text-gray-500">
             <span>{isRTL ? 'مدة البث المتاحة:' : 'Stream Duration:'}</span>
@@ -259,17 +264,21 @@ function BookLiveContent() {
             <span>{isRTL ? 'الحد الأقصى للمشاهدين:' : 'Max Viewers:'}</span>
             <span>{selectedPass.maxViewers.toLocaleString()} {isRTL ? 'مشاهد' : 'viewers'}</span>
           </div>
-          <div className="border-t border-slate-200 pt-2 flex justify-between font-bold text-gray-900">
-            <span>{isRTL ? 'رصيدك بعد الدفع:' : 'Balance After Payment:'}</span>
-            <span className={balance - selectedPass.priceEGP < 0 ? 'text-red-600' : 'text-emerald-700'}>
-              {(balance - selectedPass.priceEGP).toLocaleString()} EGP
-            </span>
-          </div>
-          <p className="text-[10px] text-gray-400 pt-1">
-            {isRTL
-              ? '* عمولة إيجي باي المعتادة (حسب مستوى حسابك) تُطبَّق بشكل منفصل على كل سلعة تُباع خلال البث.'
-              : "* EgyBay's standard marketplace commission (based on your seller tier) applies separately to each item sold during your stream."}
-          </p>
+          {PAYMENTS_ENABLED && (
+            <>
+              <div className="border-t border-slate-200 pt-2 flex justify-between font-bold text-gray-900">
+                <span>{isRTL ? 'رصيدك بعد الدفع:' : 'Balance After Payment:'}</span>
+                <span className={balance - price < 0 ? 'text-red-600' : 'text-emerald-700'}>
+                  {(balance - price).toLocaleString()} EGP
+                </span>
+              </div>
+              <p className="text-[10px] text-gray-400 pt-1">
+                {isRTL
+                  ? '* عمولة إيجباي المعتادة (حسب مستوى حسابك) تُطبَّق بشكل منفصل على كل سلعة تُباع خلال البث.'
+                  : "* Egbay's standard marketplace commission (based on your seller tier) applies separately to each item sold during your stream."}
+              </p>
+            </>
+          )}
         </div>
 
         <button
@@ -281,15 +290,17 @@ function BookLiveContent() {
           {booking
             ? (isRTL ? 'جاري الحجز...' : 'Booking...')
             : canAfford
-            ? (isRTL ? `احجز البث وادفع ${selectedPass.priceEGP} جنيه من المحفظة` : `Book Live Show — Pay ${selectedPass.priceEGP} EGP from Wallet`)
+            ? (PAYMENTS_ENABLED
+                ? (isRTL ? `احجز البث وادفع ${price} جنيه من المحفظة` : `Book Live Show — Pay ${price} EGP from Wallet`)
+                : (isRTL ? 'احجز البث المباشر' : 'Book Live Show'))
             : (isRTL ? 'رصيد غير كافٍ — اشحن محفظتك أولاً' : 'Insufficient Balance — Top Up Wallet First')}
         </button>
 
         {!canAfford && (
           <p className="text-center text-xs text-red-600">
             {isRTL
-              ? `تحتاج إلى ${selectedPass.priceEGP - balance} جنيه إضافي في محفظتك.`
-              : `You need ${selectedPass.priceEGP - balance} more EGP in your wallet.`}
+              ? `تحتاج إلى ${price - balance} جنيه إضافي في محفظتك.`
+              : `You need ${price - balance} more EGP in your wallet.`}
             {' '}
             <a href="/wallet" className="font-bold underline">{isRTL ? 'اشحن الآن ←' : 'Top Up Now →'}</a>
           </p>
