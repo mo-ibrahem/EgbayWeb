@@ -3,12 +3,15 @@
 import React, { Suspense, useEffect, useState, useRef } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Send, Loader2, Trash2, HandCoins } from 'lucide-react';
+import { ArrowLeft, Send, Loader2, Trash2, HandCoins, MoreVertical, Flag, Ban } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { useLanguage } from '@/components/LanguageProvider';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { supabase } from '@/lib/supabase';
-import { hideChatRoomForUser, sendOffer, respondToOffer, type ChatMessage as Message } from '@/lib/chatService';
+import {
+  hideChatRoomForUser, sendOffer, respondToOffer, reportContent, blockUser, unblockUser,
+  getBlockedUserIds, isBlockedInsertError, type ChatMessage as Message,
+} from '@/lib/chatService';
 import { formatEGP } from '@/lib/products';
 import SmartImage from '@/components/SmartImage';
 
@@ -47,6 +50,16 @@ function ChatContent() {
   const [offerMode, setOfferMode] = useState(searchParams.get('offer') === '1');
   const [sendError, setSendError] = useState('');
   const [respondingId, setRespondingId] = useState<string | null>(null);
+  // Safety: who the other participant is, whether either side blocked the
+  // other, the header menu, and the report dialog (user or one message).
+  const [otherId, setOtherId] = useState<string | null>(null);
+  const [blockState, setBlockState] = useState<'none' | 'i_blocked' | 'they_blocked'>('none');
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [reportTarget, setReportTarget] = useState<{ type: 'user' | 'message'; id: string } | null>(null);
+  const [reportReason, setReportReason] = useState('');
+  const [reporting, setReporting] = useState(false);
+  const [safetyBusy, setSafetyBusy] = useState(false);
+  const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -66,6 +79,13 @@ function ChatContent() {
         if (!room) { router.push('/profile?tab=chats'); return; }
 
         const otherId = room.participant_ids.find((p: string) => p !== user.id);
+        setOtherId(otherId ?? null);
+        if (otherId) {
+          // Best effort: RLS only exposes our own block list, so a block the
+          // other side placed is only discovered when a send is refused.
+          const blocked = await getBlockedUserIds(user.id).catch(() => [] as string[]);
+          if (blocked.includes(otherId)) setBlockState('i_blocked');
+        }
         let product: ChatDetails['product'];
         if (room.product_id) {
           const { data: prod } = await supabase.from('products').select('id, title, price, images, seller_id').eq('id', room.product_id).maybeSingle();
@@ -129,8 +149,54 @@ function ChatContent() {
   // Scroll on new messages
   useEffect(() => { scrollToBottom(); }, [messages]);
 
-  const sendFailureText = (_err: unknown) =>
-    isRTL ? 'تعذر الإرسال. حاول مرة أخرى.' : 'Could not send. Please try again.';
+  const sendFailureText = (err: unknown) => {
+    if (isBlockedInsertError(err)) {
+      // can_interact_with() refused the insert: one side blocked the other.
+      setBlockState(prev => (prev === 'i_blocked' ? prev : 'they_blocked'));
+      return '';
+    }
+    return isRTL ? 'تعذر الإرسال. حاول مرة أخرى.' : 'Could not send. Please try again.';
+  };
+
+  const handleBlock = async () => {
+    setMenuOpen(false);
+    if (!otherId) return;
+    if (!confirm(isRTL ? 'حظر هذا المستخدم؟ لن يتمكن أي منكما من مراسلة الآخر.' : 'Block this person? Neither of you will be able to message the other.')) return;
+    setSafetyBusy(true);
+    try {
+      await blockUser(otherId);
+      setBlockState('i_blocked');
+      setSendError('');
+      setNotice({ ok: true, text: isRTL ? 'تم حظر المستخدم' : 'User blocked' });
+    } catch {
+      setNotice({ ok: false, text: isRTL ? 'تعذر الحظر. حاول مرة أخرى.' : 'Could not block this person. Please try again.' });
+    } finally { setSafetyBusy(false); }
+  };
+
+  const handleUnblock = async () => {
+    if (!otherId) return;
+    setSafetyBusy(true);
+    try {
+      await unblockUser(otherId);
+      setBlockState('none');
+      setNotice({ ok: true, text: isRTL ? 'تم إلغاء الحظر' : 'User unblocked' });
+    } catch {
+      setNotice({ ok: false, text: isRTL ? 'تعذر إلغاء الحظر.' : 'Could not unblock this person.' });
+    } finally { setSafetyBusy(false); }
+  };
+
+  const handleSubmitReport = async () => {
+    if (!reportTarget || !reportReason.trim() || reporting) return;
+    setReporting(true);
+    try {
+      await reportContent(reportTarget.type, reportTarget.id, reportReason);
+      setReportTarget(null);
+      setReportReason('');
+      setNotice({ ok: true, text: isRTL ? 'تم إرسال البلاغ. سيراجعه فريق الأمان.' : 'Report sent. Our safety team will review it.' });
+    } catch {
+      setNotice({ ok: false, text: isRTL ? 'لم يتم إرسال البلاغ. حاول مرة أخرى.' : 'Report not sent. Please try again.' });
+    } finally { setReporting(false); }
+  };
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -238,6 +304,32 @@ function ChatContent() {
           <p className="font-bold text-gray-900">{chatDetails?.other_user_name || (isRTL ? 'محادثة' : 'Chat')}</p>
           <p className="text-xs text-emerald-500 font-medium">{isRTL ? 'متصل الآن' : 'Active now'}</p>
         </div>
+        <div className="relative flex-shrink-0">
+          <button
+            onClick={() => setMenuOpen(o => !o)}
+            aria-label={isRTL ? 'الإبلاغ أو الحظر' : 'Report or block'}
+            aria-expanded={menuOpen}
+            disabled={safetyBusy}
+            className="text-gray-400 hover:text-gray-700 hover:bg-gray-100 p-2 rounded-full transition-colors disabled:opacity-50"
+          >
+            <MoreVertical className="w-4 h-4" />
+          </button>
+          {menuOpen && (
+            <div className={`absolute top-full mt-1 ${isRTL ? 'left-0' : 'right-0'} z-20 w-48 bg-white border border-gray-200 rounded-xl shadow-lg py-1`}>
+              <button
+                onClick={() => { setMenuOpen(false); if (otherId) setReportTarget({ type: 'user', id: otherId }); }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+              >
+                <Flag className="w-4 h-4" /> {isRTL ? 'إبلاغ عن المستخدم' : 'Report user'}
+              </button>
+              {blockState !== 'i_blocked' && (
+                <button onClick={handleBlock} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-rose-600 hover:bg-rose-50">
+                  <Ban className="w-4 h-4" /> {isRTL ? 'حظر المستخدم' : 'Block user'}
+                </button>
+              )}
+            </div>
+          )}
+        </div>
         <button
           onClick={handleDeleteChat}
           disabled={deleting}
@@ -247,6 +339,13 @@ function ChatContent() {
           {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
         </button>
       </div>
+
+      {notice && (
+        <div role="status" className={`px-4 py-2 text-xs font-medium flex items-center justify-between ${notice.ok ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>
+          <span>{notice.text}</span>
+          <button onClick={() => setNotice(null)} className="font-bold ml-3" aria-label={isRTL ? 'إغلاق' : 'Dismiss'}>×</button>
+        </div>
+      )}
 
       {/* Item this conversation is about -- every chat room here is
           scoped to one product, so keep it visible for context instead
@@ -339,6 +438,16 @@ function ChatContent() {
                   <p className={`text-xs mt-1 ${isMine ? 'text-white/60' : 'text-gray-400'}`}>{timeStr(msg.created_at, isRTL)}</p>
                 </div>
                 )}
+                {!isMine && (
+                  <button
+                    onClick={() => setReportTarget({ type: 'message', id: msg.id })}
+                    aria-label={isRTL ? 'إبلاغ عن هذه الرسالة' : 'Report this message'}
+                    title={isRTL ? 'إبلاغ عن هذه الرسالة' : 'Report this message'}
+                    className="self-center mx-1 p-1 text-gray-300 hover:text-rose-500 transition-colors"
+                  >
+                    <Flag className="w-3 h-3" />
+                  </button>
+                )}
               </div>
             </div>
           );
@@ -348,6 +457,20 @@ function ChatContent() {
 
       {/* Input */}
       <div className="bg-white border-t border-gray-100 px-4 py-3">
+        {blockState !== 'none' ? (
+          <div className="flex items-center justify-between gap-3 text-sm">
+            <p className="text-gray-600 font-medium">
+              {blockState === 'i_blocked'
+                ? (isRTL ? 'لقد قمت بحظر هذا الشخص' : "You've blocked this person")
+                : (isRTL ? 'لا يمكنك مراسلة هذا الشخص' : "You can't message this person")}
+            </p>
+            {blockState === 'i_blocked' && (
+              <button onClick={handleUnblock} disabled={safetyBusy} className="text-xs font-bold text-blue-600 hover:text-blue-800 disabled:opacity-50">
+                {isRTL ? 'إلغاء الحظر' : 'Unblock'}
+              </button>
+            )}
+          </div>
+        ) : (<>
         {sendError && <p role="alert" className="text-xs text-rose-600 font-medium mb-2">{sendError}</p>}
         {offerMode && (
           <p className="text-xs text-gray-500 mb-2">
@@ -386,7 +509,39 @@ function ChatContent() {
             {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className={`w-4 h-4 ${isRTL ? 'rotate-180' : ''}`} />}
           </button>
         </form>
+        </>)}
       </div>
+
+      {reportTarget && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" role="dialog" aria-modal="true">
+          <div className="bg-white rounded-2xl p-5 w-full max-w-sm shadow-xl">
+            <h3 className="font-black text-gray-900">
+              {reportTarget.type === 'user' ? (isRTL ? 'إبلاغ عن المستخدم' : 'Report this user') : (isRTL ? 'إبلاغ عن الرسالة' : 'Report this message')}
+            </h3>
+            <p className="text-xs text-gray-500 mt-1 mb-3">{isRTL ? 'ما سبب البلاغ؟' : 'Why are you reporting this?'}</p>
+            <textarea
+              value={reportReason}
+              onChange={e => setReportReason(e.target.value)}
+              maxLength={1000}
+              rows={4}
+              autoFocus
+              className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            />
+            <div className="flex justify-end gap-2 mt-3">
+              <button onClick={() => { setReportTarget(null); setReportReason(''); }} className="text-xs font-bold text-gray-500 px-3 py-2">
+                {isRTL ? 'إلغاء' : 'Cancel'}
+              </button>
+              <button
+                onClick={handleSubmitReport}
+                disabled={!reportReason.trim() || reporting}
+                className="text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-50 px-4 py-2 rounded-xl"
+              >
+                {reporting ? (isRTL ? 'جاري الإرسال...' : 'Sending...') : (isRTL ? 'إرسال البلاغ' : 'Send report')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

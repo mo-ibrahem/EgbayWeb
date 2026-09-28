@@ -97,3 +97,41 @@ export async function respondToOffer(messageId: string, response: 'accepted' | '
   if (error) throw error;
   if (!data?.length) throw new Error('Could not respond to this offer');
 }
+
+// --- Safety: report / block ---
+// Each call throws unless the RPC succeeded; callers must not show
+// "reported" / "blocked" before the promise resolves.
+
+export type ReportTargetType = 'listing' | 'user' | 'message' | 'live_message';
+
+export async function reportContent(targetType: ReportTargetType, targetId: string, reason: string): Promise<void> {
+  const trimmed = reason.trim();
+  if (!trimmed) throw new Error('A reason is required');
+  const { error } = await supabase.rpc('report_content', {
+    p_target_type: targetType,
+    p_target_id: targetId,
+    p_reason: trimmed.slice(0, 1000),
+  });
+  if (error) throw error;
+}
+
+export async function blockUser(userId: string): Promise<void> {
+  const { error } = await supabase.rpc('block_user', { p_user_id: userId });
+  if (error) throw error;
+}
+
+export async function unblockUser(userId: string): Promise<void> {
+  const { error } = await supabase.rpc('unblock_user', { p_user_id: userId });
+  if (error) throw error;
+}
+
+/** Ids the signed-in user has blocked (RLS only lets you read your own block list). */
+export async function getBlockedUserIds(myId: string): Promise<string[]> {
+  const { data, error } = await supabase.from('blocked_users').select('blocked_id').eq('blocker_id', myId);
+  if (error) throw error;
+  return (data ?? []).map(r => String(r.blocked_id));
+}
+
+/** True when a failed insert was refused by row-level security (can_interact_with: either side blocked). */
+export const isBlockedInsertError = (err: unknown) =>
+  (err as { code?: string } | null)?.code === '42501' || /row-level security/i.test(String((err as { message?: string } | null)?.message ?? ''));
