@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { Store, BadgeCheck, MessageSquare } from 'lucide-react';
 import { useLanguage } from '@/components/LanguageProvider';
 import { supabase } from '@/lib/supabase';
-import { type Product } from '@/lib/products';
+import { type Product, getSellerReplySeconds, formatReplyTime } from '@/lib/products';
 import { getSellerReviews, type Review } from '@/lib/reviews';
 import ProductCard from '@/components/ui/ProductCard';
 import { RatingDisplay, StarRow } from '@/components/ui/StarRating';
@@ -51,6 +51,7 @@ export default function SellerProfilePage() {
   const [seller, setSeller] = useState<SellerProfile | null>(null);
   const [listings, setListings] = useState<Product[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [replySeconds, setReplySeconds] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [tab, setTab] = useState<'listings' | 'reviews'>('listings');
@@ -67,7 +68,7 @@ export default function SellerProfilePage() {
             .maybeSingle(),
           supabase
             .from('products')
-            .select('*')
+            .select('*, product_variants(count)')
             .eq('seller_id', sellerId)
             .eq('status', 'active')
             .gt('stock', 0)
@@ -77,7 +78,12 @@ export default function SellerProfilePage() {
 
         if (!profile) { setNotFound(true); return; }
         setSeller(profile);
-        setListings((products || []) as Product[]);
+        setListings((products || []).map(({ product_variants, ...p }) => ({
+          ...p,
+          has_variants: (product_variants?.[0]?.count ?? 0) > 0,
+        })) as Product[]);
+        // Real average only, and only from 3+ measured replies; otherwise nothing.
+        getSellerReplySeconds(sellerId).then(setReplySeconds).catch(() => {});
         setReviews(reviewList);
       } catch (e) {
         console.error('[SellerProfile] Failed to load:', e);
@@ -138,6 +144,9 @@ export default function SellerProfilePage() {
             <span className="text-xs text-slate-400">
               {listings.length} {isRTL ? 'إعلان نشط' : listings.length === 1 ? 'active listing' : 'active listings'}
             </span>
+            {replySeconds != null && (
+              <span className="text-xs text-slate-500">{formatReplyTime(replySeconds, isRTL)}</span>
+            )}
           </div>
         </div>
       </div>
@@ -187,7 +196,7 @@ export default function SellerProfilePage() {
                       )}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-xs font-bold text-slate-900 truncate">{r.reviewer_name || (isRTL ? 'مستخدم إيجي باي' : 'EgyBay User')}</p>
+                      <p className="text-xs font-bold text-slate-900 truncate">{r.reviewer_name || (isRTL ? 'مستخدم إيجي باي' : 'Egbay User')}</p>
                       {r.product_title && <p className="text-[11px] text-slate-400 truncate">{r.product_title}</p>}
                     </div>
                   </div>
