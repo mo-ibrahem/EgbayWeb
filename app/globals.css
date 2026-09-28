@@ -14,11 +14,7 @@
    these map to `bg-*`/`text-*`/`border-*` utility classes.
    ══════════════════════════════════════════════════════════════════════ */
 :root {
-  /* Brand — #3665F3 is Egbay's established product blue (used across every
-     button/link/badge already); anchoring the system to it rather than
-     introducing a new hue. It is NOT derived from the egbay.svg logo mark,
-     which uses an unrelated four-color palette left over from an earlier
-     placeholder asset -- redesigning the logo itself is out of scope here. */
+  /* Brand — Egbay blue, shared with the mobile app's icon and lockup. */
   --brand:        #3665F3;   /* primary actions, links, active states */
   --brand-dark:   #2851D6;   /* hover/active of primary */
   --brand-soft:   #EEF2FF;   /* tinted backgrounds behind brand content */
@@ -176,4 +172,13 @@ main { animation: page-in 0.15s ease; }
 .surface-dark {
   background-color: #0F172A;
   color: #94A3B8;
+}
+
+/* Wordmark: the shipped lockup is white-on-transparent, so tint it with the
+   surrounding text colour (text-brand on light surfaces, text-white on dark). */
+.egbay-logo {
+  display: inline-block;
+  background-color: currentColor;
+  -webkit-mask: url('/egbay_logo_header.png') center / contain no-repeat;
+  mask: url('/egbay_logo_header.png') center / contain no-repeat;
 }

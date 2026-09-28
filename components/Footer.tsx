@@ -2,7 +2,6 @@
 
 import React from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { ShieldCheck, Truck, Lock, ArrowRight } from 'lucide-react';
 import { useLanguage } from '@/components/LanguageProvider';
 
@@ -69,14 +68,7 @@ export default function Footer() {
           <div className="col-span-2">
             <Link href="/" className="inline-block mb-4">
               <div className="h-8 relative flex items-center">
-                <Image
-                  src="/egbay.svg"
-                  alt="egbay"
-                  width={100}
-                  height={32}
-                  className="h-8 w-auto object-contain brightness-200"
-                  unoptimized
-                />
+                <span role="img" aria-label="Egbay" className="egbay-logo h-9 w-[108px] text-white" />
               </div>
             </Link>
             <p className="text-xs text-slate-500 leading-relaxed max-w-sm mb-5">

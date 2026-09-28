@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import {
   Search, Plus, User, LogOut, Wallet, Package,
@@ -93,7 +92,7 @@ export default function Navbar() {
       {/* ─── Main header row: logo, search, actions ─── */}
       <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-3 md:gap-6">
         <Link href="/" className="flex items-center flex-shrink-0">
-          <Image src="/egbay.svg" alt="egbay" width={104} height={32} className="h-7 w-auto object-contain" unoptimized priority />
+          <span role="img" aria-label="Egbay" className="egbay-logo h-9 w-[108px] text-brand" />
         </Link>
 
         <form onSubmit={handleSearch} className="flex-1 max-w-2xl hidden md:flex items-center">
