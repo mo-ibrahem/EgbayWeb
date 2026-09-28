@@ -99,7 +99,7 @@
     "offerAmount": "Your Offer Amount (EGP)",
     "sendOffer": "Send Offer to Seller",
     "offerSent": "Offer sent in chat!",
-    "guaranteeTitle": "EgyBay Money Back Guarantee",
+    "guaranteeTitle": "Egbay Money Back Guarantee",
     "guaranteeDesc": "Get the exact item you ordered or your money back. Protected by Paymob escrow.",
     "verifiedSeller": "Verified Seller",
     "fastResponder": "Replies in < 15 mins",
@@ -208,7 +208,7 @@
     "declineOffer": "Decline",
     "offerAccepted": "✅ Offer Accepted",
     "offerDeclined": "❌ Offer Declined",
-    "safetyReminder": "🛡️ EgyBay Tip: Meet in public places or use Paymob protected delivery. Never wire deposits directly."
+    "safetyReminder": "🛡️ Egbay Tip: Meet in public places or use Paymob protected delivery. Never wire deposits directly."
   },
   "payment": {
     "title": "Complete Payment",

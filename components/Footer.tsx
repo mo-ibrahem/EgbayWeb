@@ -158,7 +158,7 @@ export default function Footer() {
         <div className="mt-5 text-[10px] text-slate-700 text-center leading-relaxed">
           {isRTL
             ? 'إيجي باي (egbay.shop) هي منصة تجارة إلكترونية مصرية مستقلة تعمل داخل جمهورية مصر العربية ولا تتبع أي جهات تجارية خارجية.'
-            : 'EgyBay (egbay.shop) is an independent peer-to-peer marketplace operating in Egypt. EgyBay is not affiliated with, endorsed by, or sponsored by eBay Inc. or any international entities.'}
+            : 'Egbay (egbay.shop) is an independent peer-to-peer marketplace operating in Egypt. Egbay is not affiliated with, endorsed by, or sponsored by eBay Inc. or any international entities.'}
         </div>
       </div>
     </footer>

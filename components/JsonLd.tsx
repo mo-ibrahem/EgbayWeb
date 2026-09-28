@@ -23,7 +23,7 @@ export function MarketplaceJsonLd() {
         '@type': 'WebSite',
         '@id': `${baseUrl}/#website`,
         url: baseUrl,
-        name: 'EgyBay',
+        name: 'Egbay',
         description: "Egypt's Trusted Peer-to-Peer Escrow Marketplace",
         publisher: {
           '@id': `${baseUrl}/#organization`,
@@ -41,7 +41,7 @@ export function MarketplaceJsonLd() {
       {
         '@type': 'Organization',
         '@id': `${baseUrl}/#organization`,
-        name: 'EgyBay Market',
+        name: 'Egbay Market',
         url: baseUrl,
         logo: {
           '@type': 'ImageObject',
@@ -86,7 +86,7 @@ export function ProductJsonLd({
     '@type': 'Product',
     name: product.title,
     image: product.images && product.images.length > 0 ? product.images : [imgUrl],
-    description: product.description || `${product.title} on EgyBay Marketplace`,
+    description: product.description || `${product.title} on Egbay Marketplace`,
     sku: product.id,
     category: product.category,
     offers: {
@@ -102,7 +102,7 @@ export function ProductJsonLd({
       availability: 'https://schema.org/InStock',
       seller: {
         '@type': 'Organization',
-        name: 'EgyBay Verified Seller',
+        name: 'Egbay Verified Seller',
       },
     },
   };

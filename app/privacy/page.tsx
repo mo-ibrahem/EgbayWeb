@@ -13,7 +13,7 @@ export default function PrivacyPage() {
       id: 'scope',
       icon: Eye,
       title: '1. Scope & Legal Framework',
-      content: `Welcome to EgyBay (egbay.shop / EgyBay Mobile Application). We are dedicated to maintaining the highest standards of data privacy and security.
+      content: `Welcome to Egbay (egbay.shop / Egbay Mobile Application). We are dedicated to maintaining the highest standards of data privacy and security.
 
 This Privacy Policy complies with:
 • Egyptian Personal Data Protection Law No. 151 of 2020 (قانون حماية البيانات الشخصية).
@@ -21,7 +21,7 @@ This Privacy Policy complies with:
 • Apple App Store Review Guidelines (Section 5.1 - Privacy and Data Security).
 • Google Play Developer Policy on User Data.
 
-By accessing our website, creating an account, or transacting on EgyBay, you acknowledge and agree to the practices described in this policy.`,
+By accessing our website, creating an account, or transacting on Egbay, you acknowledge and agree to the practices described in this policy.`,
     },
     {
       id: 'collection',
@@ -59,10 +59,10 @@ D. Optional KYC Verification Data (For High-Tier Sellers):
       id: 'sharing',
       icon: Lock,
       title: '4. Data Sharing & Third-Party Processors',
-      content: `EgyBay NEVER sells, rents, or monetizes your personal data or contact details to third-party marketing brokers.
+      content: `Egbay NEVER sells, rents, or monetizes your personal data or contact details to third-party marketing brokers.
 
 Data is shared strictly with authorized infrastructure partners necessary to fulfill platform operations:
-• Sellers: Your delivery address and phone number are shared with the seller of your order so they can arrange courier delivery or an in-person meetup. EgyBay does not currently have an exclusive courier logistics partner -- sellers arrange delivery independently.
+• Sellers: Your delivery address and phone number are shared with the seller of your order so they can arrange courier delivery or an in-person meetup. Egbay does not currently have an exclusive courier logistics partner -- sellers arrange delivery independently.
 • Payment Processing (Paymob / Central Bank of Egypt Integrations): For card checkout and automated payouts.
 • Cloud Infrastructure (Supabase / AWS Ireland/Frankfurt): Encrypted database storage with automated backups and strict access controls.
 • Legal Authorities: Only when mandated by a legally binding court order or official warrant under Egyptian Law.`,

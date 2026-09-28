@@ -21,13 +21,13 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "EgyBay — Egypt's Trusted Escrow Marketplace (سوق إيجي باي مصر)",
-    template: "%s | EgyBay — Egypt's Marketplace",
+    default: "Egbay — Egypt's Trusted Escrow Marketplace (سوق إيجي باي مصر)",
+    template: "%s | Egbay — Egypt's Marketplace",
   },
   description:
     'Buy and sell electronics, sneakers, fashion, and vehicles safely across Egypt. 100% Escrow Protection, doorstep courier delivery, and instant InstaPay / Vodafone Cash payouts.',
   keywords: [
-    'EgyBay',
+    'Egbay',
     'Egypt marketplace',
     'buy and sell Egypt',
     'escrow payment Egypt',
@@ -41,9 +41,9 @@ export const metadata: Metadata = {
     'مستعمل مصر',
     'اوليكس مصر بديل',
   ],
-  authors: [{ name: 'EgyBay Marketplace Inc.', url: siteUrl }],
-  creator: 'EgyBay Team',
-  publisher: 'EgyBay Marketplace',
+  authors: [{ name: 'Egbay Marketplace Inc.', url: siteUrl }],
+  creator: 'Egbay Team',
+  publisher: 'Egbay Marketplace',
   category: 'ecommerce',
   alternates: {
     canonical: '/',
@@ -54,11 +54,11 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "EgyBay — Egypt's Trusted Escrow Marketplace",
+    title: "Egbay — Egypt's Trusted Escrow Marketplace",
     description:
       'Buy & sell with complete escrow peace of mind across all Egyptian governorates. Nationwide courier delivery, verified sellers, and instant payouts.',
     url: siteUrl,
-    siteName: 'EgyBay',
+    siteName: 'Egbay',
     locale: 'en_US',
     alternateLocale: 'ar_EG',
     type: 'website',
@@ -67,13 +67,13 @@ export const metadata: Metadata = {
         url: '/icon-512.png',
         width: 512,
         height: 512,
-        alt: 'EgyBay - Escrow Marketplace Egypt',
+        alt: 'Egbay - Escrow Marketplace Egypt',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: "EgyBay — Egypt's Trusted Marketplace",
+    title: "Egbay — Egypt's Trusted Marketplace",
     description: '100% Escrow Protection, doorstep courier delivery, and instant InstaPay & Vodafone Cash payouts in Egypt.',
     images: ['/icon-512.png'],
     creator: '@egbay_market',

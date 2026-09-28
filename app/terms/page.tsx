@@ -12,14 +12,14 @@ export default function TermsPage() {
     {
       id: 'acceptance',
       title: '1. Platform Role & Acceptance of Agreement',
-      content: `Welcome to EgyBay (egbay.shop). By accessing the website, registering an account, or conducting transactions, you enter into a legally binding agreement under the laws of the Arab Republic of Egypt (Consumer Protection Law No. 181/2018 and Civil Code).
+      content: `Welcome to Egbay (egbay.shop). By accessing the website, registering an account, or conducting transactions, you enter into a legally binding agreement under the laws of the Arab Republic of Egypt (Consumer Protection Law No. 181/2018 and Civil Code).
 
-EgyBay acts strictly as an intermediary technology platform providing peer-to-peer listing tools, integrated escrow payment safeguards, courier logistics coordination, and dispute mediation. EgyBay is not the manufacturer, retailer, or physical owner of items listed by independent sellers.`,
+Egbay acts strictly as an intermediary technology platform providing peer-to-peer listing tools, integrated escrow payment safeguards, courier logistics coordination, and dispute mediation. Egbay is not the manufacturer, retailer, or physical owner of items listed by independent sellers.`,
     },
     {
       id: 'escrow',
       title: '2. Escrow Protection & Payout Mechanics',
-      content: `All transactions conducted through EgyBay's checkout are protected by our mandatory 100% Escrow Protection System:
+      content: `All transactions conducted through Egbay's checkout are protected by our mandatory 100% Escrow Protection System:
 
 A. Buyer Payment Holding:
 When a buyer purchases an item, funds are immediately secured in a neutral escrow holding ledger. The seller is notified to prepare and dispatch the item.
@@ -35,7 +35,7 @@ Upon PIN confirmation (in-person meetup) or the buyer confirming receipt (courie
 • Egyptian Bank IBAN (1–2 Business Days)
 
 D. Fee Structure:
-EgyBay charges a transparent marketplace platform commission (between 1.5% and 3.5%, depending on seller tier) automatically deducted from the seller's gross payout, plus a card processing fee (2.75% + 3 EGP) for card-paid orders only -- wallet-balance payments have no processing fee. There are no hidden fees.`,
+Egbay charges a transparent marketplace platform commission (between 1.5% and 3.5%, depending on seller tier) automatically deducted from the seller's gross payout, plus a card processing fee (2.75% + 3 EGP) for card-paid orders only -- wallet-balance payments have no processing fee. There are no hidden fees.`,
     },
     {
       id: 'disputes',
@@ -45,8 +45,8 @@ Before confirming receipt or releasing funds, buyers may inspect the delivered i
 
 B. Mediation & Refund Protocol:
 • Escrow funds remain frozen for the entire duration of an open dispute.
-• EgyBay's team reviews both the buyer's and seller's account of events and resolves the dispute directly.
-• If the dispute is resolved in the buyer's favor, the escrowed amount is refunded to the buyer's EgyBay wallet balance. If resolved in the seller's favor, the escrowed amount is released to the seller as normal.`,
+• Egbay's team reviews both the buyer's and seller's account of events and resolves the dispute directly.
+• If the dispute is resolved in the buyer's favor, the escrowed amount is refunded to the buyer's Egbay wallet balance. If resolved in the seller's favor, the escrowed amount is released to the seller as normal.`,
     },
     {
       id: 'prohibited',
@@ -75,7 +75,7 @@ Sellers must dispatch sold items via our integrated courier partner within 48 ho
     {
       id: 'liability',
       title: '6. Limitation of Liability & Force Majeure',
-      content: `EgyBay provides its marketplace platform on an "as-is" and "as-available" basis. While we enforce rigorous escrow safeguards and seller verification, EgyBay shall not be liable for indirect, incidental, or consequential damages resulting from unauthorized user conduct or off-platform transactions. All transactions conducted outside EgyBay's escrow checkout forfeit all platform buyer and seller protections.`,
+      content: `Egbay provides its marketplace platform on an "as-is" and "as-available" basis. While we enforce rigorous escrow safeguards and seller verification, Egbay shall not be liable for indirect, incidental, or consequential damages resulting from unauthorized user conduct or off-platform transactions. All transactions conducted outside Egbay's escrow checkout forfeit all platform buyer and seller protections.`,
     },
   ];
 
@@ -165,7 +165,7 @@ Sellers must dispatch sold items via our integrated courier partner within 48 ho
         <p className="text-xs sm:text-sm text-gray-500 max-w-xl mx-auto mb-6">
           {isRTL
             ? 'القواعد الحاكمة لمنصة إيجي باي، نظام حماية الضمان المالي، التزامات البائعين وحقوق المشترين وفقاً للقانون المصري.'
-            : 'Governing rules for EgyBay, Escrow protection mechanisms, seller verification, and buyer rights under Egyptian Law.'}
+            : 'Governing rules for Egbay, Escrow protection mechanisms, seller verification, and buyer rights under Egyptian Law.'}
         </p>
       </div>
 
