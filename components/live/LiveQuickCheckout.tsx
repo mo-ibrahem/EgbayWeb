@@ -150,9 +150,9 @@ export default function LiveQuickCheckout({
     <AnimatePresence>
       <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm p-0 sm:p-4">
         <motion.div
-          initial={{ y: '100vh', opacity: 0 }}
+          initial={{ y: '100%', opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          exit={{ y: '100vh', opacity: 0 }}
+          exit={{ y: '100%', opacity: 0 }}
           transition={{ type: 'spring', damping: 28, stiffness: 350 }}
           className="bg-slate-900 border border-slate-800 w-full sm:max-w-lg sm:rounded-3xl rounded-t-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh] text-white"
           onClick={e => e.stopPropagation()}

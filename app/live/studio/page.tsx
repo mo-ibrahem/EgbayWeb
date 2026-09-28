@@ -775,9 +775,9 @@ function StudioContent() {
             onClick={() => setInventoryDrawerOpen(false)}
           >
             <motion.div
-              initial={{ y: '100vh', opacity: 0 }}
+              initial={{ y: '100%', opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              exit={{ y: '100vh', opacity: 0 }}
+              exit={{ y: '100%', opacity: 0 }}
               transition={{ type: 'spring', damping: 28, stiffness: 350 }}
               className="bg-slate-900 border border-slate-800 w-full sm:max-w-xl sm:rounded-3xl rounded-t-3xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh] text-white"
               onClick={e => e.stopPropagation()}
