@@ -20,6 +20,7 @@ import ProductCard from '@/components/ui/ProductCard';
 import { hideChatRoomForUser, messagePreview } from '@/lib/chatService';
 import { getSellerReviews, respondToReview, type Review } from '@/lib/reviews';
 import { StarRow } from '@/components/ui/StarRating';
+import { BlockedUsersCard, DeleteAccountCard } from './SafetyCards';
 
 const TABS = [
   { id: 'products', label: 'My Listings', label_ar: 'إعلاناتي', icon: Package },
@@ -74,6 +75,7 @@ function ProfileContent() {
   const [editPhone, setEditPhone] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -161,14 +163,19 @@ function ProfileContent() {
     if (!user) return;
     setSaving(true);
     setSaveSuccess(false);
+    setSaveError('');
     try {
-      await profileService.updateProfile(user.id, {
+      const updated = await profileService.updateProfile(user.id, {
         full_name: editName.trim(),
         phone: editPhone.trim(),
       });
+      setProfile(p => (p ? { ...p, ...updated } : updated));
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 2500);
-    } catch { /* ignore */ }
+    } catch (err) {
+      // Show the server's own message (e.g. "Display name must not contain an email address").
+      setSaveError((err as { message?: string } | null)?.message || (isRTL ? 'تعذر حفظ التعديلات.' : 'Could not save your changes.'));
+    }
     setSaving(false);
   };
 
@@ -199,11 +206,14 @@ function ProfileContent() {
     try {
       const ext = file.name.split('.').pop() || 'jpg';
       const path = `${user.id}/avatar.${ext}`;
-      await supabase.storage.from('product-images').upload(path, file, { upsert: true });
+      const { error: uploadError } = await supabase.storage.from('product-images').upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
       const { data } = supabase.storage.from('product-images').getPublicUrl(path);
       await profileService.updateProfile(user.id, { avatar_url: data.publicUrl });
       setProfile(p => p ? { ...p, avatar_url: data.publicUrl } : null);
-    } catch { /* ignore */ }
+    } catch (err) {
+      setSaveError((err as { message?: string } | null)?.message || (isRTL ? 'تعذر رفع الصورة.' : 'Could not update your photo.'));
+    }
     setAvatarUploading(false);
   };
 
@@ -731,6 +741,13 @@ function ProfileContent() {
               <p className="text-xs text-gray-500 mt-0.5">{isRTL ? 'تعديل اسمك ورقم هاتفك للتواصل' : 'Update your display name and contact phone'}</p>
             </div>
 
+            {saveError && (
+              <div role="alert" className="bg-red-50 border border-red-200 rounded-2xl p-3.5 text-red-700 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                <span>{saveError}</span>
+              </div>
+            )}
+
             {saveSuccess && (
               <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3.5 text-emerald-700 text-xs flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
@@ -845,6 +862,9 @@ function ProfileContent() {
               </button>
             </div>
           </div>
+
+          <BlockedUsersCard />
+          <DeleteAccountCard />
         </div>
       )}
     </div>
