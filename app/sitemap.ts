@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase';
 export const revalidate = 3600; // revalidate sitemap every hour
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://egbay.shop';
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.egbay.shop';
 
   // 1. Static Key Landing Pages
   const staticRoutes: MetadataRoute.Sitemap = [

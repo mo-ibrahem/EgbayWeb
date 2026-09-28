@@ -14,7 +14,7 @@ export default function JsonLd({ data }: JsonLdProps) {
 }
 
 export function MarketplaceJsonLd() {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://egbay.shop';
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.egbay.shop';
 
   const schema = {
     '@context': 'https://schema.org',
@@ -77,7 +77,7 @@ export function ProductJsonLd({
     created_at?: string;
   };
 }) {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://egbay.shop';
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.egbay.shop';
   const imgUrl = product.images?.[0] || `${baseUrl}/icon-512.png`;
 
   const schema = {

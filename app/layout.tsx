@@ -9,7 +9,7 @@ import Footer from '@/components/Footer';
 import MobileBottomNav from '@/components/MobileBottomNav';
 import PageTransition from '@/components/PageTransition';
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://egbay.shop';
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.egbay.shop';
 
 export const viewport: Viewport = {
   themeColor: '#2563EB',
