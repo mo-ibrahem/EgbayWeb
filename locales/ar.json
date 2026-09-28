@@ -19,6 +19,18 @@
     "submit": "إرسال",
     "close": "إغلاق"
   },
+  "categories": {
+    "all": "كل الأقسام",
+    "electronics": "إلكترونيات",
+    "fashion": "أزياء وملابس",
+    "home": "المنزل والديكور",
+    "toys": "ألعاب وهوايات",
+    "sports": "رياضة وأنشطة خارجية",
+    "books": "كتب ووسائط",
+    "automotive": "سيارات ومركبات",
+    "beauty": "جمال",
+    "general": "أخرى"
+  },
   "language": {
     "title": "Language / اللغة",
     "english": "English",

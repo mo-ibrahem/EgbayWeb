@@ -19,6 +19,18 @@
     "submit": "Submit",
     "close": "Close"
   },
+  "categories": {
+    "all": "All Categories",
+    "electronics": "Electronics",
+    "fashion": "Fashion & Apparel",
+    "home": "Home & Living",
+    "toys": "Toys & Hobbies",
+    "sports": "Sports & Outdoors",
+    "books": "Books & Media",
+    "automotive": "Motors & Vehicles",
+    "beauty": "Beauty",
+    "general": "Other"
+  },
   "language": {
     "title": "Language / اللغة",
     "english": "English",

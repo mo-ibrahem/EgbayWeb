@@ -3,10 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Video, Plus, Package, User } from 'lucide-react';
+import { Home, Video, Plus, Package, MessageCircle, User } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { useLanguage } from '@/components/LanguageProvider';
 import { getUnreadNotificationCount } from '@/lib/notifications';
+import { PAYMENTS_ENABLED } from '@/lib/platformCommerce';
 
 export default function MobileBottomNav() {
   const pathname = usePathname();
@@ -72,17 +73,26 @@ export default function MobileBottomNav() {
       isPrimary: true,
       isActive: pathname === '/sell',
     },
-    {
-      href: user ? '/orders' : '/login?redirect=/orders',
-      label: isRTL ? 'الطلبات' : 'Orders',
-      icon: Package,
-      isActive: pathname.startsWith('/orders'),
-    },
+    // Orders only exist when payments are on; in classifieds mode the slot
+    // goes to Messages, the thing buyers and sellers actually use.
+    PAYMENTS_ENABLED
+      ? {
+          href: user ? '/orders' : '/login?redirect=/orders',
+          label: isRTL ? 'الطلبات' : 'Orders',
+          icon: Package,
+          isActive: pathname.startsWith('/orders'),
+        }
+      : {
+          href: user ? '/profile?tab=chats' : '/login?redirect=/profile',
+          label: isRTL ? 'الرسائل' : 'Messages',
+          icon: MessageCircle,
+          isActive: false,
+        },
     {
       href: user ? '/profile' : '/login?redirect=/profile',
       label: isRTL ? 'حسابي' : 'Account',
       icon: User,
-      isActive: pathname.startsWith('/profile') || pathname.startsWith('/wallet'),
+      isActive: pathname.startsWith('/profile') || (PAYMENTS_ENABLED && pathname.startsWith('/wallet')),
       showDot: hasUnread,
     },
   ];
