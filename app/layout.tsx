@@ -64,7 +64,7 @@ export const metadata: Metadata = {
     type: 'website',
     images: [
       {
-        url: '/icon.svg',
+        url: '/icon-512.png',
         width: 512,
         height: 512,
         alt: 'EgyBay - Escrow Marketplace Egypt',
@@ -75,7 +75,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: "EgyBay — Egypt's Trusted Marketplace",
     description: '100% Escrow Protection, doorstep courier delivery, and instant InstaPay & Vodafone Cash payouts in Egypt.',
-    images: ['/icon.svg'],
+    images: ['/icon-512.png'],
     creator: '@egbay_market',
   },
   robots: {
@@ -95,7 +95,7 @@ export const metadata: Metadata = {
       { url: '/favicon.svg', type: 'image/svg+xml' },
     ],
     shortcut: '/icon.svg',
-    apple: '/icon.svg',
+    apple: '/apple-icon.png',
   },
 };
 
