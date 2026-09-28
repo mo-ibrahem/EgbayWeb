@@ -8,6 +8,7 @@ import {
   LayoutGrid, Smartphone, Shirt, Home, Baby, Dumbbell, BookOpen,
   Car, Video, Package, Tag, Sparkles, ArrowRight, Wallet,
 } from 'lucide-react';
+import { PAYMENTS_ENABLED } from '@/lib/platformCommerce';
 import { productService, promotionRank, listingCompleteness, type Product } from '@/lib/products';
 import { getActiveLiveSessions, type LiveSession } from '@/lib/liveService';
 import { useAuth } from '@/components/AuthProvider';
@@ -202,14 +203,18 @@ function HomeFeedContent() {
             <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-7">
               <div className="max-w-2xl">
                 <h1 className="text-3xl sm:text-[2.75rem] font-black tracking-tight leading-[1.1] text-balance">
-                  {isRTL
-                    ? 'ادفع أونلاين من غير ما تثق في حد'
-                    : 'Pay online without trusting a stranger'}
+                  {PAYMENTS_ENABLED
+                    ? (isRTL ? 'ادفع أونلاين من غير ما تثق في حد' : 'Pay online without trusting a stranger')
+                    : (isRTL ? 'اشتري وبيع مع ناس حواليك' : 'Buy and sell with people near you')}
                 </h1>
                 <p className="text-sm sm:text-base text-slate-300 mt-3.5 leading-relaxed">
-                  {isRTL
-                    ? 'إيجي باي بيمسك الفلوس لحد ما المنتج يبقى في إيدك. لو مجاش، بتسترد فلوسك.'
-                    : 'Egbay holds the money until the item is in your hands. If it never arrives, you get it back.'}
+                  {PAYMENTS_ENABLED
+                    ? (isRTL
+                      ? 'إيجي باي بيمسك الفلوس لحد ما المنتج يبقى في إيدك. لو مجاش، بتسترد فلوسك.'
+                      : 'Egbay holds the money until the item is in your hands. If it never arrives, you get it back.')
+                    : (isRTL
+                      ? 'تصفح الإعلانات، كلّم البائع مباشرة، واتفقوا على السعر والاستلام. مفيش دفع على إيجي باي.'
+                      : 'Browse listings, talk to the seller directly, and agree the price and handover between you. Nothing is paid through Egbay.')}
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2.5 flex-shrink-0">
@@ -233,7 +238,7 @@ function HomeFeedContent() {
                 not as decoration. Logical-property mirroring via rtl:
                 variants so the track reads right-to-left in Arabic. */}
             <ol className="mt-9 sm:mt-11 pt-8 border-t border-white/10 grid grid-cols-2 lg:grid-cols-4 gap-y-8 gap-x-6 lg:gap-x-0">
-              {[
+              {(PAYMENTS_ENABLED ? [
                 { t: isRTL ? 'إنت بتدفع' : 'You pay',
                   b: isRTL ? 'فلوسك بتروح لإيجي باي، مش للبائع.' : 'Your money goes to Egbay, not to the seller.' },
                 { t: isRTL ? 'إيجي باي بيمسكها' : 'Egbay holds it',
@@ -242,7 +247,16 @@ function HomeFeedContent() {
                   b: isRTL ? 'شحن لباب البيت، أو تقابل البائع بكود PIN.' : 'Courier to your door, or meet in person with a PIN.' },
                 { t: isRTL ? 'البائع بياخد فلوسه' : 'The seller gets paid',
                   b: isRTL ? 'بعد ما تأكد إنت بس.' : 'Only once you have confirmed.' },
-              ].map((step, i, arr) => (
+              ] : [
+                { t: isRTL ? 'لاقي اللي عايزه' : 'Find it',
+                  b: isRTL ? 'ابحث أو تصفح الأقسام.' : 'Search or browse the categories.' },
+                { t: isRTL ? 'كلّم البائع' : 'Message the seller',
+                  b: isRTL ? 'اسأل عن الحالة والتفاصيل في الشات.' : 'Ask about the condition and details in chat.' },
+                { t: isRTL ? 'اتفقوا على السعر' : 'Agree a price',
+                  b: isRTL ? 'أو قدّم عرضك للبائع.' : 'Or make the seller an offer.' },
+                { t: isRTL ? 'قابله واستلم' : 'Meet and hand over',
+                  b: isRTL ? 'الدفع والاستلام بينكم، برّه إيجي باي.' : 'Payment and handover happen between you, outside Egbay.' },
+              ]).map((step, i, arr) => (
                 <li key={step.t} className="relative lg:pr-5 rtl:lg:pr-0 rtl:lg:pl-5">
                   {i < arr.length - 1 && (
                     <span
@@ -478,22 +492,28 @@ function HomeFeedContent() {
               {isRTL ? 'عندك حاجة تبيعها؟' : 'Got something to sell?'}
             </h2>
             <p className="text-sm text-slate-300 mt-2 leading-relaxed">
-              {isRTL
-                ? 'المشتري بيدفع قبل ما تشحن، والفلوس محجوزة في الضمان لحد ما يستلم — فمفيش حد يقدر ياخد سلعتك ويهرب. العمولة 3.5٪ وقت البيع بس، ومفيش رسوم على الإعلان.'
-                : 'The buyer pays before you ship, and the money sits in escrow until they confirm — so nobody walks off with your item. 3.5% commission when it sells, nothing to list.'}
+              {PAYMENTS_ENABLED
+                ? (isRTL
+                  ? 'المشتري بيدفع قبل ما تشحن، والفلوس محجوزة في الضمان لحد ما يستلم — فمفيش حد يقدر ياخد سلعتك ويهرب. العمولة 3.5٪ وقت البيع بس، ومفيش رسوم على الإعلان.'
+                  : 'The buyer pays before you ship, and the money sits in escrow until they confirm — so nobody walks off with your item. 3.5% commission when it sells, nothing to list.')
+                : (isRTL
+                  ? 'انشر إعلانك مجاناً وكلّم المشترين مباشرة. أنتم بتتفقوا على السعر والاستلام.'
+                  : 'List it for free and talk to buyers directly. You agree the price and the handover between you.')}
             </p>
             <div className="flex flex-wrap items-center gap-2.5 mt-5">
               <Button href={user ? '/sell' : '/signup'} size="lg" icon={<Tag className="w-4 h-4" />}>
                 {isRTL ? 'أضف إعلانك مجاناً' : 'List an item free'}
               </Button>
-              <Link
-                href="/wallet"
-                className="inline-flex items-center gap-1.5 text-sm font-bold text-slate-300 hover:text-white transition-colors px-2"
-              >
-                <Wallet className="w-4 h-4" />
-                {isRTL ? 'إزاي بستلم فلوسي؟' : 'How payouts work'}
-                <ArrowRight className={`w-3.5 h-3.5 ${isRTL ? 'rotate-180' : ''}`} />
-              </Link>
+              {PAYMENTS_ENABLED && (
+                <Link
+                  href="/wallet"
+                  className="inline-flex items-center gap-1.5 text-sm font-bold text-slate-300 hover:text-white transition-colors px-2"
+                >
+                  <Wallet className="w-4 h-4" />
+                  {isRTL ? 'إزاي بستلم فلوسي؟' : 'How payouts work'}
+                  <ArrowRight className={`w-3.5 h-3.5 ${isRTL ? 'rotate-180' : ''}`} />
+                </Link>
+              )}
             </div>
           </div>
         </section>
