@@ -15,7 +15,7 @@ export default function TermsPage() {
       title: '1. Platform Role & Acceptance of Agreement',
       content: `Welcome to Egbay (egbay.shop). By accessing the website, registering an account, or conducting transactions, you enter into a legally binding agreement under the laws of the Arab Republic of Egypt (Consumer Protection Law No. 181/2018 and Civil Code).
 
-Egbay acts strictly as an intermediary technology platform providing peer-to-peer listing tools, integrated escrow payment safeguards, courier logistics coordination, and dispute mediation. Egbay is not the manufacturer, retailer, or physical owner of items listed by independent sellers.`,
+Egbay acts strictly as an intermediary technology platform providing peer-to-peer listing tools, integrated escrow payment safeguards, and dispute mediation. Egbay is not the manufacturer, retailer, or physical owner of items listed by independent sellers.`,
     },
     {
       id: 'escrow',
@@ -71,7 +71,7 @@ B. Listing Accuracy:
 Sellers must disclose all cosmetic flaws, battery health, warranty status, and included accessories. Misleading photographs or concealed defects constitute a violation of these Terms.
 
 C. Order Fulfillment:
-Sellers must dispatch sold items via our integrated courier partner within 48 hours of order placement. Failure to fulfill orders repeatedly results in permanent account deactivation.`,
+Sellers must dispatch sold items, using a courier of their choice, within 48 hours of order placement. Failure to fulfill orders repeatedly results in permanent account deactivation.`,
     },
     {
       id: 'liability',
@@ -86,7 +86,7 @@ Sellers must dispatch sold items via our integrated courier partner within 48 ho
       title: '١. طبيعة المنصة والموافقة على الشروط',
       content: `مرحباً بكم في منصة إيجباي (egbay.shop). بالوصول إلى الموقع أو تسجيل حساب أو إتمام عمليات شراء وبيع، فإنك توافق على الالتزام الكامل بهذه الشروط والأحكام الخاضعة لقوانين جمهورية مصر العربية (قانون حماية المستهلك رقم ١٨١ لسنة ٢٠١٨ والقانون المدني).
 
-تعمل إيجباي كمنصة تكنولوجية وسيطة لربط البائعين والمشترين، وتوفير نظام الضمان المالي (Escrow)، وتنسيق الشحن، والوساطة في النزاعات. إيجباي ليست مُصنّعاً أو مالكاً للمنتجات المعروضة من البائعين المستقلين.`,
+تعمل إيجباي كمنصة تكنولوجية وسيطة لربط البائعين والمشترين، وتوفير نظام الضمان المالي (Escrow)، والوساطة في النزاعات. إيجباي ليست مُصنّعاً أو مالكاً للمنتجات المعروضة من البائعين المستقلين.`,
     },
     {
       id: 'escrow',

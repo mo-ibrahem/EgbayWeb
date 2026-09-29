@@ -77,9 +77,9 @@ Data is shared strictly with authorized infrastructure partners necessary to ful
 • Right to Access & Rectify: You can review and edit your profile details at any time in Profile Settings.
 • Right to Data Portability: Request an export of your order history, transaction records, and listing data.
 • Right to Permanent Erasure (Account Deletion):
-  1. In the mobile app: open your profile settings and choose Delete Account.
+  1. In the mobile app or on the website: open your profile settings and choose Delete Account.
   2. By Email: Send a deletion request to info@egbay.shop from your registered email.
-  Access is disabled when deletion starts. The cleanup worker removes uploaded files, your messages, profile and auth account, retrying automatically each minute if a service is unavailable. The mobile app provides a completion status. Transaction records are retained without your account identity; other participants keep their own messages. Backups follow the hosting provider’s backup lifecycle. Contact support if cleanup remains pending.`,
+  Access is disabled when deletion starts. The cleanup worker removes uploaded files, your messages, profile and auth account, retrying automatically each minute if a service is unavailable. The app and website show a completion status. Transaction records are retained without your account identity; other participants keep their own messages. Backups follow the hosting provider’s backup lifecycle. Contact support if cleanup remains pending.`,
     },
     {
       id: 'security',
@@ -159,9 +159,9 @@ Data is shared strictly with authorized infrastructure partners necessary to ful
 • حق الوصول والتعديل: يمكنك تعديل بياناتك الشخصية وإعلاناتك في أي وقت عبر صفحة الملف الشخصي.
 • حق نقل البيانات: يمكنك طلب نسخة كاملة من سجل معاملاتك وبياناتك المسجلة.
 • حق الحذف النهائي للحساب والبيانات:
-  ١. عبر تطبيق الهاتف: الملف الشخصي ← الإعدادات ← حذف الحساب.
+  ١. عبر التطبيق أو الموقع: الملف الشخصي ← الإعدادات ← حذف الحساب.
   ٢. عبر البريد الإلكتروني: مراسلتنا على info@egbay.shop من البريد المسجل.
-  يتوقف الوصول إلى الحساب عند بدء الحذف. تُحذف الملفات المرفوعة ورسائلك وملفك الشخصي وحساب تسجيل الدخول، وتُعاد محاولة التنظيف تلقائياً كل دقيقة عند تعذر إحدى الخدمات. يعرض تطبيق الهاتف حالة اكتمال الحذف. تبقى سجلات المعاملات دون ربطها بحسابك ويحتفظ الآخرون برسائلهم. تخضع النسخ الاحتياطية لدورة الاحتفاظ لدى مزود الاستضافة. تواصل معنا إذا استمر الانتظار.`,
+  يتوقف الوصول إلى الحساب عند بدء الحذف. تُحذف الملفات المرفوعة ورسائلك وملفك الشخصي وحساب تسجيل الدخول، وتُعاد محاولة التنظيف تلقائياً كل دقيقة عند تعذر إحدى الخدمات. يعرض التطبيق والموقع حالة اكتمال الحذف. تبقى سجلات المعاملات دون ربطها بحسابك ويحتفظ الآخرون برسائلهم. تخضع النسخ الاحتياطية لدورة الاحتفاظ لدى مزود الاستضافة. تواصل معنا إذا استمر الانتظار.`,
     },
     {
       id: 'security',
