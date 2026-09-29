@@ -10,7 +10,7 @@ import {
   Zap, Package, CheckCircle2, X, Flag, Handshake,
 } from 'lucide-react';
 import {
-  productService, formatEGP, isPromotionActive, sourcedBadgeLabel,
+  productService, formatEGP, isPromotionActive, sourcedBadgeLabel, listingImages, usesCataloguePhotos,
   getSellerReplySeconds, formatReplyTime, type Product, type ProductVariant,
 } from '@/lib/products';
 import { PAYMENTS_ENABLED } from '@/lib/platformCommerce';
@@ -183,7 +183,8 @@ export default function ProductDetailPage() {
     }
   };
 
-  const images = product?.images || [];
+  const images = product ? listingImages(product) : [];
+  const catalogue = !!product && usesCataloguePhotos(product);
   const hasImages = images.length > 0;
 
   if (loading) return <SkeletonDetail />;
@@ -260,6 +261,12 @@ export default function ProductDetailPage() {
                   </>
                 )}
 
+                {catalogue && (
+                  <span className="absolute bottom-3 left-3 rtl:left-auto rtl:right-3 bg-black/70 text-white text-[11px] font-bold px-2.5 py-1 rounded-md z-10">
+                    {isRTL ? 'صورة من الكتالوج' : 'Catalogue photo'}
+                  </span>
+                )}
+
                 <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
                   {isPromotionActive(product) && (() => {
                     const style = BOOST_BADGE_STYLES[product.promotion_tier as 'urgent' | 'featured' | 'turbo'] || BOOST_BADGE_STYLES.featured;
@@ -307,6 +314,15 @@ export default function ProductDetailPage() {
                 </div>
               )}
             </div>
+
+            {catalogue && (
+              <div className="bg-white border border-slate-200 rounded-lg p-4 text-xs text-slate-600 leading-relaxed">
+                <p className="font-bold text-slate-800">
+                  {isRTL ? 'الصور توضّح الموديل وليست صوراً للوحدة نفسها.' : 'These are catalogue photos of the model, not photos of this exact unit.'}
+                </p>
+                {product.catalogue_credit && <p className="mt-1 text-slate-500" dir="ltr">{product.catalogue_credit}</p>}
+              </div>
+            )}
 
             {PAYMENTS_ENABLED ? (
               <div className="bg-white border border-slate-200 rounded-lg p-4 flex items-start gap-3">
@@ -583,12 +599,18 @@ export default function ProductDetailPage() {
               {similar.map((p) => (
                 <Link key={p.id} href={`/products/${p.id}`} className="group card-hover bg-white rounded-lg border border-slate-200 overflow-hidden">
                   <div className="aspect-square bg-slate-100 relative overflow-hidden">
-                    {p.images?.[0] ? (
-                      <SmartImage src={p.images[0]} alt={p.title} fill className="object-cover group-hover:scale-105 transition-transform" sizes="200px" />
+                    {listingImages(p)[0] ? (
+                      <SmartImage src={listingImages(p)[0]} alt={p.title} fill className="object-cover group-hover:scale-105 transition-transform" sizes="200px" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-slate-300">
                         <Package className="w-8 h-8" />
                       </div>
+                    )}
+                    {usesCataloguePhotos(p) && (
+                      <span className="absolute inset-x-0 bottom-0 bg-black/65 text-white px-1.5 py-1 leading-tight">
+                        <span className="block text-[9px] font-bold">{isRTL ? 'صورة من الكتالوج' : 'Catalogue photo'}</span>
+                        {p.catalogue_credit && <span className="block text-[8px] opacity-90 line-clamp-2" dir="ltr">{p.catalogue_credit}</span>}
+                      </span>
                     )}
                   </div>
                   <div className="p-2.5">

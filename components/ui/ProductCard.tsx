@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Heart, Package, Zap, MapPin } from 'lucide-react';
 import { useLanguage } from '@/components/LanguageProvider';
 import { useAuth } from '@/components/AuthProvider';
-import { type Product, isPromotionActive } from '@/lib/products';
+import { type Product, isPromotionActive, listingImages, usesCataloguePhotos } from '@/lib/products';
 import { getOrCreateChatRoom } from '@/lib/chatService';
 import { supabase } from '@/lib/supabase';
 import { BOOST_BADGE_STYLES } from '@/lib/boostService';
@@ -61,7 +61,8 @@ export default function ProductCard({
     Promise.resolve(onWishlistToggle(product.id, !next)).catch(() => setWishlisted(!next));
   };
 
-  const imgSrc = product.images?.[0] || null;
+  const imgSrc = listingImages(product)[0] || null;
+  const catalogue = usesCataloguePhotos(product);
 
   const askSeller = async () => {
     if (!user) {
@@ -108,6 +109,13 @@ export default function ProductCard({
         ) : (
           <div className="w-full h-full flex items-center justify-center text-slate-300">
             <Package className="w-8 h-8 stroke-[1.5]" />
+          </div>
+        )}
+
+        {catalogue && (
+          <div className="absolute inset-x-0 bottom-0 bg-black/65 text-white px-1.5 py-1 z-10 leading-tight">
+            <p className="text-[9px] font-bold">{isRTL ? 'صورة من الكتالوج' : 'Catalogue photo'}</p>
+            {product.catalogue_credit && <p className="text-[8px] opacity-90 line-clamp-2" dir="ltr">{product.catalogue_credit}</p>}
           </div>
         )}
 

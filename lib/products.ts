@@ -9,6 +9,13 @@ export interface Product {
   condition: string;
   location?: string;
   images: string[];
+  // Catalogue model this listing was created from (New listings only). When a
+  // listing has no photos of its own, attachCataloguePhotos fills the two
+  // catalogue_* fields below with the model's licensed photos.
+  model_id?: string | null;
+  variant?: string | null;
+  catalogue_photos?: string[];
+  catalogue_credit?: string | null;
   seller_id: string;
   status: string;
   stock?: number;
@@ -153,6 +160,41 @@ export function listingCompleteness(
   return score;
 }
 
+/**
+ * Fills catalogue photos for listings with no photos of their own, in one
+ * request for the whole set. Same selection as the mobile app: photos tagged
+ * with the listing's variant, else the untagged ones. Every distinct credit is
+ * kept (not just the first photo's) because each photo's licence needs its own.
+ */
+export async function attachCataloguePhotos<T extends Product>(products: T[]): Promise<T[]> {
+  const needy = products.filter(p => !p.images?.length && p.model_id);
+  if (!needy.length) return products;
+  const modelIds = [...new Set(needy.map(p => p.model_id as string))];
+  const { data: photos, error } = await supabase
+    .from('product_model_photos')
+    .select('model_id, variant, url, credit, position')
+    .in('model_id', modelIds)
+    .order('position', { ascending: true });
+  if (error || !photos?.length) return products;
+  return products.map(p => {
+    if (p.images?.length || !p.model_id) return p;
+    const mine = photos.filter(x => x.model_id === p.model_id);
+    const forVariant = p.variant ? mine.filter(x => x.variant === p.variant) : [];
+    const chosen = forVariant.length ? forVariant : mine.filter(x => !x.variant);
+    if (!chosen.length) return p;
+    const credits = [...new Set(chosen.map(c => c.credit).filter(Boolean))];
+    return { ...p, catalogue_photos: chosen.map(c => c.url), catalogue_credit: credits.join(' · ') || null };
+  });
+}
+
+/** Photos to display: the seller's own, else the catalogue's (see usesCataloguePhotos). */
+export const listingImages = (p: Pick<Product, 'images' | 'catalogue_photos'>): string[] =>
+  p.images?.length ? p.images : p.catalogue_photos ?? [];
+
+/** True when the displayed photos are licensed catalogue photos, not the seller's. */
+export const usesCataloguePhotos = (p: Pick<Product, 'images' | 'catalogue_photos'>): boolean =>
+  !p.images?.length && !!p.catalogue_photos?.length;
+
 // ─── Fast In-Memory Cache with Stale-While-Revalidate ─────────────────────────
 const productCache = new Map<string, { data: Product[]; timestamp: number }>();
 const singleProductCache = new Map<string, { data: Product; timestamp: number }>();
@@ -278,8 +320,9 @@ export const productService = {
           isWishlisted: wishlistedIds.includes(p.id),
         }));
 
-        productCache.set(key, { data: formatted, timestamp: Date.now() });
-        return formatted;
+        const withPhotos = await attachCataloguePhotos(formatted);
+        productCache.set(key, { data: withPhotos, timestamp: Date.now() });
+        return withPhotos;
       } catch (err) {
         console.error('[ProductService] Fatal fetchFresh error:', err);
         if (filters?.strict) throw err;
@@ -335,11 +378,11 @@ export const productService = {
         }
       } catch {}
 
-      const fullProduct: Product = {
+      const [fullProduct] = await attachCataloguePhotos<Product>([{
         ...product,
         seller: seller || { id: product.seller_id, full_name: 'Egbay Seller' },
         isWishlisted,
-      };
+      }]);
 
       singleProductCache.set(productId, { data: fullProduct, timestamp: Date.now() });
       return fullProduct;
@@ -383,7 +426,7 @@ export const productService = {
         .order('created_at', { ascending: false })
         .limit(limit);
       if (error) return [];
-      return (data || []) as Product[];
+      return await attachCataloguePhotos((data || []) as Product[]);
     } catch {
       return [];
     }
@@ -420,7 +463,7 @@ export const productService = {
     const ids = wl.map((w) => w.product_id);
     const { data: products, error: productsError } = await supabase.from('products').select('*').in('id', ids);
     if (productsError) throw productsError;
-    return (products || []).map((p) => ({ ...p, isWishlisted: true })) as Product[];
+    return attachCataloguePhotos((products || []).map((p) => ({ ...p, isWishlisted: true })) as Product[]);
   },
 
   createProduct: async (productData: {

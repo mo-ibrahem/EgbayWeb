@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Store, BadgeCheck, MessageSquare } from 'lucide-react';
 import { useLanguage } from '@/components/LanguageProvider';
 import { supabase } from '@/lib/supabase';
-import { productService, type Product, getSellerReplySeconds, formatReplyTime } from '@/lib/products';
+import { productService, attachCataloguePhotos, type Product, getSellerReplySeconds, formatReplyTime } from '@/lib/products';
 import { useAuth } from '@/components/AuthProvider';
 import { getSellerReviews, type Review } from '@/lib/reviews';
 import ProductCard from '@/components/ui/ProductCard';
@@ -84,11 +84,11 @@ export default function SellerProfilePage() {
         if (!profile) { setNotFound(true); return; }
         setSeller(profile);
         const savedIds = new Set(saved.map(p => p.id));
-        setListings((products || []).map(({ product_variants, ...p }) => ({
+        setListings(await attachCataloguePhotos((products || []).map(({ product_variants, ...p }) => ({
           ...p,
           has_variants: (product_variants?.[0]?.count ?? 0) > 0,
           isWishlisted: savedIds.has(p.id),
-        })) as Product[]);
+        })) as Product[]));
         // Real average only, and only from 3+ measured replies; otherwise nothing.
         getSellerReplySeconds(sellerId).then(setReplySeconds).catch(() => {});
         setReviews(reviewList);
