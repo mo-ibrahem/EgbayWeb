@@ -10,7 +10,12 @@ import { useLanguage } from '@/components/LanguageProvider';
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectUrl = searchParams.get('redirect') || '/';
+  // Same-site paths only. Taken straight from the URL, `redirect` let a link
+  // like /login?redirect=https://evil.example sign someone in for real and
+  // then hand them to a lookalike page. "//host" and "/\host" start with "/"
+  // but browsers resolve both to another origin, so they are refused too.
+  const rawRedirect = searchParams.get('redirect');
+  const redirectUrl = rawRedirect && /^\/(?![/\\])/.test(rawRedirect) ? rawRedirect : '/';
   const { isRTL } = useLanguage();
 
   const [email, setEmail] = useState('');
