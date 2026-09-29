@@ -8,9 +8,9 @@ export function SkeletonBlock({ className = '' }: { className?: string }) {
  * when real content arrives. */
 export function SkeletonProductCard() {
   return (
-    <div>
-      <div className="aspect-square skeleton rounded-lg" />
-      <div className="pt-2.5 space-y-1.5">
+    <div className="rounded-2xl bg-white ring-1 ring-slate-200/80">
+      <div className="m-1.5 mb-0 aspect-square skeleton rounded-xl" />
+      <div className="px-3 pt-2.5 pb-3 space-y-1.5">
         <SkeletonBlock className="h-3 w-full" />
         <SkeletonBlock className="h-3 w-2/3" />
         <SkeletonBlock className="h-4 w-1/2" />

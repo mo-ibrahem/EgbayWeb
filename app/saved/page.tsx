@@ -38,7 +38,7 @@ function SavedContent() {
     {error && <p role="alert" className="bg-red-50 text-red-700 border border-red-200 rounded-lg p-3 mb-5 text-sm">{error}</p>}
     {loading ? <p className="text-slate-500">{isRTL ? 'جاري التحميل...' : 'Loading saved items...'}</p>
       : items.length === 0 ? <div className="text-center bg-white border border-slate-200 rounded-xl py-16 px-5"><Heart className="w-9 h-9 mx-auto text-slate-300" /><h2 className="font-bold mt-3">{isRTL ? 'لا شيء محفوظ بعد' : 'Nothing saved yet'}</h2><p className="text-sm text-slate-500 mt-1">{isRTL ? 'اضغط القلب على أي إعلان لحفظه هنا.' : 'Tap the heart on any listing to keep it here.'}</p><Link href="/" className="inline-block mt-5 bg-brand text-white px-5 py-2 rounded-lg text-sm font-bold">{isRTL ? 'تصفح السوق' : 'Browse marketplace'}</Link></div>
-      : <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">{items.map(p => <ProductCard key={p.id} product={p} onWishlistToggle={id => remove(id)} />)}</div>}
+      : <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-5">{items.map(p => <ProductCard key={p.id} product={p} onWishlistToggle={id => remove(id)} />)}</div>}
   </main>;
 }
 

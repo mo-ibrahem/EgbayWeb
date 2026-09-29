@@ -504,8 +504,8 @@ function HomeFeedContent() {
         </div>
       ) : sortedProducts.length > 0 ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-5">
-          {sortedProducts.map((product) => (
-            <ProductCard key={product.id} product={product} onWishlistToggle={handleWishlistToggle} showAsk />
+          {sortedProducts.map((product, i) => (
+            <ProductCard key={product.id} product={product} onWishlistToggle={handleWishlistToggle} showAsk priority={i < 5} />
           ))}
         </div>
       ) : (
