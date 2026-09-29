@@ -17,7 +17,7 @@ export default function Footer() {
 
       {/* ─── Trust Badges Ribbon ─── */}
       <div className="border-b border-white/5 py-8" style={{ background: 'rgba(255,255,255,0.03)' }}>
-        <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 sm:grid-cols-3 gap-6 text-center sm:text-left">
+        <div className={`max-w-7xl mx-auto px-4 grid grid-cols-1 ${PAYMENTS_ENABLED ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-6 text-center sm:text-left`}>
           <div className="flex items-center gap-4 justify-center sm:justify-start">
             <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 border" style={{ background: 'rgba(16,185,129,0.12)', borderColor: 'rgba(16,185,129,0.25)' }}>
               <MessageCircle className="w-5 h-5 text-emerald-400" />
