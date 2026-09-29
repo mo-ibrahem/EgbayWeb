@@ -205,10 +205,11 @@ export const productService = {
         if (filters?.category && filters.category !== 'All Categories' && filters.category !== 'All' && filters.category.trim() !== '') {
           query = query.ilike('category', filters.category);
         }
-        if (filters?.search && filters.search.trim() !== '') {
-          query = query.or(
-            `title.ilike.%${filters.search.trim()}%,description.ilike.%${filters.search.trim()}%`
-          );
+        // Strip PostgREST filter syntax (, ( ) " \) and LIKE wildcards before
+        // interpolating typed text into .or(), or it breaks/injects conditions.
+        const term = (filters?.search ?? '').replace(/[,()"\\%_*]/g, ' ').replace(/\s+/g, ' ').trim();
+        if (term) {
+          query = query.or(`title.ilike.%${term}%,description.ilike.%${term}%`);
         }
         if (filters?.minPrice !== undefined) {
           query = query.gte('price', filters.minPrice);
