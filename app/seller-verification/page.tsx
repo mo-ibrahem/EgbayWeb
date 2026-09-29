@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { useLanguage } from '@/components/LanguageProvider';
+import { PAYMENTS_ENABLED } from '@/lib/platformCommerce';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { supabase } from '@/lib/supabase';
 import {
@@ -461,7 +462,29 @@ function SellerVerificationContent() {
   );
 }
 
+// Seller verification belongs to the money layer (tiers, payouts, fees), so
+// in classifieds mode it is not offered -- matching the mobile app, which
+// shows this same message. Without this gate the page was hidden from every
+// link but still worked by URL and filed real verification requests.
+function NotAvailableYet() {
+  const { isRTL } = useLanguage();
+  return (
+    <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-6">
+      <h1 className="text-xl font-extrabold text-slate-900">{isRTL ? 'غير متاح حالياً' : 'Not available yet'}</h1>
+      <p className="text-sm text-slate-500 mt-2 max-w-sm leading-relaxed">
+        {isRTL
+          ? 'الدفع داخل إيجباي قريباً. في الوقت الحالي، اتفق على السعر والاستلام مع الطرف الآخر عبر الدردشة.'
+          : 'Payments inside Egbay are coming soon. For now, agree on price and handover with the other person in chat.'}
+      </p>
+      <Link href="/" className="mt-6 h-11 px-6 rounded-full bg-slate-900 text-white text-sm font-bold inline-flex items-center">
+        {isRTL ? 'رجوع' : 'Go back'}
+      </Link>
+    </div>
+  );
+}
+
 export default function SellerVerificationPage() {
+  if (!PAYMENTS_ENABLED) return <NotAvailableYet />;
   return (
     <ProtectedRoute>
       <SellerVerificationContent />

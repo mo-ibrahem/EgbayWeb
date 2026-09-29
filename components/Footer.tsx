@@ -46,6 +46,7 @@ export default function Footer() {
             </div>
           </div>
 
+          {PAYMENTS_ENABLED && (
           <div className="flex items-center gap-4 justify-center sm:justify-start">
             <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 border" style={{ background: 'rgba(124,58,237,0.12)', borderColor: 'rgba(124,58,237,0.25)' }}>
               <ShieldCheck className="w-5 h-5 text-violet-400" />
@@ -59,6 +60,7 @@ export default function Footer() {
               </p>
             </div>
           </div>
+          )}
         </div>
       </div>
 
@@ -115,7 +117,9 @@ export default function Footer() {
                   <li><Link href="/wallet" className="hover:text-white transition-colors">{isRTL ? 'المحفظة والسحب' : 'Wallet & Payouts'}</Link></li>
                 </>
               )}
-              <li><Link href="/seller-verification" className="hover:text-white transition-colors">{isRTL ? 'توثيق البائع' : 'Seller Verification'}</Link></li>
+              {PAYMENTS_ENABLED && (
+                <li><Link href="/seller-verification" className="hover:text-white transition-colors">{isRTL ? 'توثيق البائع' : 'Seller Verification'}</Link></li>
+              )}
               <li><Link href="/profile" className="hover:text-white transition-colors">{isRTL ? 'الملف الشخصي' : 'User Profile'}</Link></li>
             </ul>
           </div>
