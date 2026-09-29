@@ -2,15 +2,17 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Home, Video, Plus, Package, MessageCircle, User } from 'lucide-react';
+import { usePathname, useSearchParams } from 'next/navigation';
+import { Home, Video, Package, MessageCircle, User } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { useLanguage } from '@/components/LanguageProvider';
 import { getUnreadNotificationCount } from '@/lib/notifications';
 import { PAYMENTS_ENABLED } from '@/lib/platformCommerce';
+import { getWaitingReplyCount } from '@/lib/homeActivity';
 
 export default function MobileBottomNav() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const { isRTL } = useLanguage();
 
@@ -23,14 +25,18 @@ export default function MobileBottomNav() {
   // this bar mounts on every route and a subscription per page would be
   // wasteful for a badge that only needs to be roughly current.
   const [hasUnread, setHasUnread] = useState(false);
+  const [waitingReplies, setWaitingReplies] = useState(0);
   useEffect(() => {
-    if (!user) { setHasUnread(false); return; }
+    if (!user) { setHasUnread(false); setWaitingReplies(0); return; }
     let cancelled = false;
-    const check = () => getUnreadNotificationCount().then(c => { if (!cancelled) setHasUnread(c > 0); }).catch(() => {});
+    const check = () => {
+      getUnreadNotificationCount().then(c => { if (!cancelled) setHasUnread(c > 0); }).catch(() => {});
+      getWaitingReplyCount().then(c => { if (!cancelled) setWaitingReplies(c); }).catch(() => {});
+    };
     check();
     const interval = setInterval(check, 60000);
     return () => { cancelled = true; clearInterval(interval); };
-  }, [user]);
+  }, [user, pathname]);
 
   // Hide on full-screen pages that have their own UI
   if (
@@ -46,10 +52,10 @@ export default function MobileBottomNav() {
     href: string;
     label: string;
     icon: React.ElementType;
-    isPrimary?: boolean;
     isActive: boolean;
     isLive?: boolean;
     showDot?: boolean;
+    badge?: number;
   };
 
   const navItems: NavItem[] = [
@@ -66,13 +72,6 @@ export default function MobileBottomNav() {
       isActive: pathname === '/live',
       isLive: true,
     },
-    {
-      href: user ? '/sell' : '/login?redirect=/sell',
-      label: isRTL ? 'بيع' : 'Sell',
-      icon: Plus,
-      isPrimary: true,
-      isActive: pathname === '/sell',
-    },
     // Orders only exist when payments are on; in classifieds mode the slot
     // goes to Messages, the thing buyers and sellers actually use.
     PAYMENTS_ENABLED
@@ -84,54 +83,37 @@ export default function MobileBottomNav() {
         }
       : {
           href: user ? '/profile?tab=chats' : '/login?redirect=/profile',
-          label: isRTL ? 'الرسائل' : 'Messages',
+          label: isRTL ? 'الدردشات' : 'Chats',
           icon: MessageCircle,
-          isActive: false,
+          isActive: pathname === '/profile' && searchParams.get('tab') === 'chats',
+          badge: waitingReplies,
         },
     {
       href: user ? '/profile' : '/login?redirect=/profile',
       label: isRTL ? 'حسابي' : 'Account',
       icon: User,
-      isActive: pathname.startsWith('/profile') || (PAYMENTS_ENABLED && pathname.startsWith('/wallet')),
+      isActive: (pathname.startsWith('/profile') && searchParams.get('tab') !== 'chats') || pathname.startsWith('/settings') || pathname.startsWith('/saved') || (PAYMENTS_ENABLED && pathname.startsWith('/wallet')),
       showDot: hasUnread,
     },
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-white/97 backdrop-blur-2xl border-t border-gray-100 px-1 py-2 shadow-[0_-8px_30px_rgba(0,0,0,0.08)]">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-white/98 backdrop-blur-2xl border-t border-slate-200 px-1 py-1 shadow-[0_-6px_20px_rgba(15,23,42,0.08)]">
       <div className="flex items-center justify-around max-w-md mx-auto">
         {navItems.map((item, idx) => {
           const Icon = item.icon;
-
-          if (item.isPrimary) {
-            return (
-              <Link
-                key={idx}
-                href={item.href}
-                className="flex flex-col items-center justify-center -mt-6 group"
-              >
-                <div className="w-14 h-14 rounded-full bg-brand text-white flex items-center justify-center shadow-card-md group-active:scale-90 transition-transform border-[3px] border-white">
-                  <Plus className="w-6 h-6 stroke-[2.5]" />
-                </div>
-                <span className="text-[10px] font-black text-brand mt-1">
-                  {item.label}
-                </span>
-              </Link>
-            );
-          }
-
           return (
             <Link
               key={idx}
               href={item.href}
-              className="flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all"
+              className="flex flex-col items-center justify-center min-h-12 min-w-16 px-2 rounded-xl transition-all"
             >
               <div
-                className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ${
+                className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl transition-all ${
                   item.isActive
                     ? item.isLive
                       ? 'bg-red-50 text-red-600'
-                      : 'bg-brand-soft text-brand'
+                      : 'text-slate-900'
                     : 'text-gray-400 hover:text-gray-600'
                 }`}
               >
@@ -145,8 +127,13 @@ export default function MobileBottomNav() {
                   {item.showDot && (
                     <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-danger rounded-full border border-white" />
                   )}
+                  {!!item.badge && (
+                    <span className="absolute -top-2 -right-3 min-w-4 h-4 px-0.5 bg-danger text-white text-[10px] font-black rounded-full flex items-center justify-center border border-white">
+                      {item.badge > 9 ? '9+' : item.badge}
+                    </span>
+                  )}
                 </div>
-                <span className={`text-[9.5px] font-${item.isActive ? 'black' : 'medium'} whitespace-nowrap ${item.isLive ? 'text-red-600' : ''}`}>
+                <span className={`text-[11px] font-bold whitespace-nowrap ${item.isLive ? 'text-red-600' : ''}`}>
                   {item.label}
                 </span>
               </div>

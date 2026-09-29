@@ -37,7 +37,7 @@ export default function Navbar() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || searchParams.get('search') || '');
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [categories, setCategories] = useState<{ id: string; key: string; defaultLabel: string }[]>([]);
@@ -63,7 +63,7 @@ export default function Navbar() {
   }, []);
 
   useEffect(() => {
-    setSearchQuery(searchParams.get('search') || '');
+    setSearchQuery(searchParams.get('q') || searchParams.get('search') || '');
   }, [searchParams]);
 
   useEffect(() => {
@@ -128,8 +128,8 @@ export default function Navbar() {
           </button>
 
           <Link
-            href={user ? '/sell' : '/login'}
-            className="hidden md:flex items-center gap-1.5 bg-brand hover:bg-brand-dark text-white text-xs font-bold px-4 py-2 rounded-md transition-colors"
+            href={user ? '/sell' : '/login?redirect=/sell'}
+            className="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold px-3 md:px-4 py-2 rounded-full transition-colors"
           >
             <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
             {isRTL ? 'بيع' : 'Sell'}
@@ -138,7 +138,7 @@ export default function Navbar() {
           {!loading && (
             user ? (
               <div className="flex items-center gap-0.5 sm:gap-1">
-                <Link href="/saved" className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-md transition-colors flex" title={isRTL ? 'المفضلة' : 'Saved items'}>
+                <Link href="/saved" className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-md transition-colors hidden md:flex" title={isRTL ? 'المفضلة' : 'Saved items'}>
                   <Heart className="w-5 h-5" />
                 </Link>
                 {PAYMENTS_ENABLED && (
@@ -147,7 +147,7 @@ export default function Navbar() {
                   </Link>
                 )}
 
-                <NotificationBell />
+                <div className="hidden md:block"><NotificationBell /></div>
 
                 <div className="relative" ref={profileRef}>
                   <button

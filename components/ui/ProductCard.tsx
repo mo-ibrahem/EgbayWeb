@@ -2,14 +2,17 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Heart, Package, Zap, MapPin } from 'lucide-react';
 import { useLanguage } from '@/components/LanguageProvider';
-import { type Product, isPromotionActive, sourcedBadgeLabel } from '@/lib/products';
+import { useAuth } from '@/components/AuthProvider';
+import { type Product, isPromotionActive } from '@/lib/products';
+import { getOrCreateChatRoom } from '@/lib/chatService';
+import { supabase } from '@/lib/supabase';
 import { BOOST_BADGE_STYLES } from '@/lib/boostService';
 import SmartImage from '@/components/SmartImage';
 import PriceTag from './PriceTag';
 import { RatingDisplay } from './StarRating';
-import Badge from './Badge';
 
 /**
  * The one product card for Egbay -- home feed, search results, wishlist,
@@ -23,29 +26,29 @@ import Badge from './Badge';
  * chrome around every tile competes with it. This is the one structural
  * thing worth taking from how the large marketplaces render a grid.
  *
- * Three lines of text, not five. Title and price are what a buyer
- * compares on; governorate matters in Egypt because it decides whether a
- * meetup is even possible. "Posted 3d ago" was dropped -- it pushed the
- * card to five lines and nobody chooses between two listings on it.
+ * Price leads and title follows, as in the mobile card. Location appears
+ * only when the seller provided it; a generic "Egypt" label adds no value.
  *
- * Weight is inverted from the obvious: the title is quiet and the price
- * is the heaviest thing on the card. Reading order stays title-then-price
- * (the convention on every marketplace, and it matches how people scan
- * "what is it" before "what does it cost"), but the emphasis doesn't.
- *
- * A sourced-to-order listing always carries its badge, so it can never
- * read as stock the seller is holding. A listing with variants shows a
- * "From" price, since products.price is only its cheapest option.
+ * Fulfilment is disclosed on the listing detail where the buyer commits;
+ * it appeared on almost every card and overwhelmed the useful comparison
+ * fields. A listing with variants shows a "From" price, since products.price
+ * is only its cheapest option.
  */
 export default function ProductCard({
   product,
   onWishlistToggle,
+  showAsk = false,
 }: {
   product: Product;
   onWishlistToggle?: (id: string, current: boolean) => void | Promise<void>;
+  showAsk?: boolean;
 }) {
   const [wishlisted, setWishlisted] = useState(product.isWishlisted ?? false);
+  const [asking, setAsking] = useState(false);
+  const [askError, setAskError] = useState(false);
   const { isRTL } = useLanguage();
+  const { user } = useAuth();
+  const router = useRouter();
 
   useEffect(() => { setWishlisted(product.isWishlisted ?? false); }, [product.isWishlisted]);
 
@@ -60,8 +63,35 @@ export default function ProductCard({
 
   const imgSrc = product.images?.[0] || null;
 
+  const askSeller = async () => {
+    if (!user) {
+      router.push(`/login?redirect=${encodeURIComponent(`/products/${product.id}`)}`);
+      return;
+    }
+    if (!product.seller_id || product.seller_id === user.id || asking) return;
+    setAsking(true);
+    setAskError(false);
+    try {
+      const roomId = await getOrCreateChatRoom(user.id, product.seller_id, product.id);
+      const { error } = await supabase.from('messages').insert({
+        room_id: roomId,
+        sender_id: user.id,
+        content: isRTL ? 'هل ما زال متاحاً؟' : 'Is it still available?',
+        msg_type: 'text',
+      });
+      if (error) throw error;
+      router.push(`/chat/${roomId}`);
+    } catch (error) {
+      console.error('Could not ask seller:', error);
+      setAskError(true);
+    } finally {
+      setAsking(false);
+    }
+  };
+
   return (
-    <Link href={`/products/${product.id}`} className="group block h-full min-w-0">
+    <article className="group relative h-full min-w-0">
+      <Link href={`/products/${product.id}`} className="block min-w-0">
       {/* White well, not a grey one: the page sits on #F7F8FA, so white
           is what separates the image from the page here. (Marketplaces on
           a white page do the reverse and tint the well grey -- it's the
@@ -92,54 +122,54 @@ export default function ProductCard({
           );
         })()}
 
-        {/* Always reachable on touch, where there is no hover to reveal it. */}
-        {onWishlistToggle && (
-          <button
-            onClick={handleWishlist}
-            aria-label={isRTL ? 'أضف للمفضلة' : 'Save to wishlist'}
-            className={`absolute top-2 right-2 rtl:right-auto rtl:left-2 z-10 w-7 h-7 rounded-full flex items-center justify-center shadow-sm transition-all sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100 ${
-              wishlisted ? 'bg-danger text-white sm:opacity-100' : 'bg-white/95 text-slate-500 hover:text-danger'
-            }`}
-          >
-            <Heart className={`w-3.5 h-3.5 ${wishlisted ? 'fill-current' : ''}`} />
-          </button>
-        )}
       </div>
 
       <div className="pt-2.5 space-y-1 min-w-0">
-        <h3 className="text-xs text-slate-600 line-clamp-2 leading-snug group-hover:text-brand transition-colors">
-          {product.title}
-        </h3>
-
-        <div className="flex items-baseline gap-1.5 flex-wrap">
+        <div className="flex items-baseline justify-between gap-1.5 flex-wrap">
+          <span className="flex items-baseline gap-1.5">
           {product.has_variants && (
             <span className="text-[10px] font-bold text-slate-400">{isRTL ? 'من' : 'From'}</span>
           )}
           <PriceTag amount={product.price} size="md" />
-          {product.condition === 'New' && (
-            <span className="text-[10px] font-bold text-success">
-              {isRTL ? 'جديد' : 'New'}
-            </span>
-          )}
-          {/* Only when the seller actually has reviews -- unlike
-              SellerBadge/the seller page, a dense grid of mostly-new
-              sellers doesn't need a "New seller" chip repeated on every
-              card; showing nothing is quieter than showing that on
-              every tile. */}
-          {!!product.seller?.rating_count && (
-            <RatingDisplay avg={product.seller.rating_avg} count={product.seller.rating_count} size="xs" />
-          )}
+          </span>
+          {product.condition && <span className="text-[10px] font-bold tracking-wide uppercase text-slate-400">{product.condition === 'New' ? (isRTL ? 'جديد' : 'New') : (isRTL ? 'مستعمل' : product.condition)}</span>}
         </div>
 
-        {sourcedBadgeLabel(product, isRTL) && (
-          <Badge tone="warning" className="!text-[10px] !px-1.5 !py-0.5">{sourcedBadgeLabel(product, isRTL)}</Badge>
+        <h3 className="text-[13px] font-semibold text-slate-900 line-clamp-2 leading-snug group-hover:text-brand transition-colors">
+          {product.title}
+        </h3>
+
+        {!!product.seller?.rating_count && (
+          <RatingDisplay avg={product.seller.rating_avg} count={product.seller.rating_count} size="xs" />
         )}
 
-        <p className="flex items-center gap-1 text-[11px] text-slate-400 truncate">
-          <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
-          <span className="truncate">{product.location || (isRTL ? 'مصر' : 'Egypt')}</span>
-        </p>
+        {product.location && (
+          <p className="flex items-center gap-1 text-[11px] text-slate-400 truncate">
+            <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
+            <span className="truncate">{product.location}</span>
+          </p>
+        )}
       </div>
-    </Link>
+      </Link>
+      {onWishlistToggle && (
+        <button
+          type="button"
+          onClick={handleWishlist}
+          aria-label={wishlisted ? (isRTL ? 'إزالة من المحفوظات' : 'Remove saved item') : (isRTL ? 'حفظ الإعلان' : 'Save item')}
+          aria-pressed={wishlisted}
+          className={`absolute top-2 right-2 rtl:right-auto rtl:left-2 z-10 w-11 h-11 rounded-full flex items-center justify-center shadow-sm transition-all ${
+            wishlisted ? 'bg-white text-danger' : 'bg-white/95 text-slate-700 hover:text-danger'
+          }`}
+        >
+          <Heart className={`w-4 h-4 ${wishlisted ? 'fill-current' : ''}`} />
+        </button>
+      )}
+      {showAsk && product.seller_id !== user?.id && (
+        <button type="button" onClick={askSeller} disabled={asking}
+          className="mt-2 min-h-11 w-full rounded-full bg-slate-900 hover:bg-slate-800 disabled:opacity-60 text-white text-xs font-bold px-3">
+          {asking ? (isRTL ? 'جارٍ الإرسال…' : 'Sending…') : askError ? (isRTL ? 'تعذّر الإرسال، حاول مجدداً' : 'Could not send · Retry') : (isRTL ? 'هل ما زال متاحاً؟' : 'Is it still available?')}
+        </button>
+      )}
+    </article>
   );
 }

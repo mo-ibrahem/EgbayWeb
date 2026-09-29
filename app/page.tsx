@@ -11,6 +11,7 @@ import {
 import { PAYMENTS_ENABLED } from '@/lib/platformCommerce';
 import { productService, promotionRank, listingCompleteness, type Product } from '@/lib/products';
 import { getActiveLiveSessions, type LiveSession } from '@/lib/liveService';
+import { getAskCounts, getRecentReplies, type RecentReply } from '@/lib/homeActivity';
 import { useAuth } from '@/components/AuthProvider';
 import { useLanguage } from '@/components/LanguageProvider';
 import ProductCard from '@/components/ui/ProductCard';
@@ -37,7 +38,13 @@ const CATEGORY_META: Record<string, { label: string; label_ar: string; icon: Rea
   General:     { label: 'Other',         label_ar: 'أخرى',         icon: Tag },
 };
 
-type SortKey = 'newest' | 'price_asc' | 'price_desc';
+type SortKey = 'newest' | 'most_asked' | 'price_asc' | 'price_desc';
+const CATEGORY_HUES = [
+  { background: '#2563EB', color: '#FFFFFF' },
+  { background: '#EF4444', color: '#0F172A' },
+  { background: '#F59E0B', color: '#0F172A' },
+  { background: '#10B981', color: '#0F172A' },
+];
 
 function HomeFeedContent() {
   const searchParams = useSearchParams();
@@ -51,6 +58,8 @@ function HomeFeedContent() {
   // `products` so applying a filter never makes the categories vanish.
   const [catalogue, setCatalogue] = useState<Product[]>([]);
   const [liveSessions, setLiveSessions] = useState<LiveSession[]>([]);
+  const [recentReplies, setRecentReplies] = useState<RecentReply[]>([]);
+  const [askCounts, setAskCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
   const [activeCategory, setActiveCategory] = useState(searchParams.get('category') || '');
@@ -66,6 +75,15 @@ function HomeFeedContent() {
     getActiveLiveSessions().then(setLiveSessions).catch(() => {});
     productService.getProducts().then(setCatalogue).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!user) { setRecentReplies([]); return; }
+    getRecentReplies(2).then(setRecentReplies).catch(() => setRecentReplies([]));
+  }, [user]);
+
+  useEffect(() => {
+    getAskCounts(catalogue.slice(0, 100).map(p => p.id)).then(setAskCounts).catch(() => setAskCounts({}));
+  }, [catalogue]);
 
   useEffect(() => {
     setActiveCategory(searchParams.get('category') || '');
@@ -97,6 +115,7 @@ function HomeFeedContent() {
     const list = [...products];
     if (sortKey === 'price_asc') list.sort((a, b) => a.price - b.price);
     else if (sortKey === 'price_desc') list.sort((a, b) => b.price - a.price);
+    else if (sortKey === 'most_asked') list.sort((a, b) => (askCounts[b.id] ?? 0) - (askCounts[a.id] ?? 0));
     else {
       // 'newest': boosted listings rank first (Turbo > Featured > Urgent,
       // this is the entire product effect sellers are paying for), then
@@ -117,7 +136,7 @@ function HomeFeedContent() {
       );
     }
     return list;
-  }, [products, sortKey]);
+  }, [products, sortKey, askCounts]);
 
   const handleCategorySelect = (catId: string) => {
     setActiveCategory(catId);
@@ -171,6 +190,42 @@ function HomeFeedContent() {
     <div className="w-full max-w-7xl mx-auto px-4 py-5 sm:py-7 space-y-6 pb-24 sm:pb-10">
       {!isBrowsing && (
         <>
+          <section className="sm:hidden bg-ink text-white rounded-2xl p-5">
+            {recentReplies.length ? (
+              <>
+                <h1 className="text-xl font-black leading-tight">
+                  {isRTL ? (recentReplies.length === 1 ? 'شخص واحد رد بينما كنت غائباً' : `${recentReplies.length} ردوا بينما كنت غائباً`) : `${recentReplies.length} ${recentReplies.length === 1 ? 'person replied' : 'people replied'} while you were away`}
+                </h1>
+                <div className="mt-4 space-y-2">
+                  {recentReplies.map(reply => (
+                    <Link key={reply.room_id} href={`/chat/${reply.room_id}`} className="flex items-center gap-3 rounded-xl bg-white/10 p-3 min-h-16">
+                      <span className="h-10 w-10 rounded-full bg-white/15 flex items-center justify-center font-black shrink-0">
+                        {reply.other_user_name.charAt(0).toUpperCase()}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-bold truncate">{reply.other_user_name}</span>
+                        <span className="block text-xs text-slate-300 truncate">
+                          {reply.is_offer && reply.offer_amount_egp
+                            ? `${isRTL ? 'عرض' : 'Offer'}: EGP ${Math.round(reply.offer_amount_egp).toLocaleString('en-EG')}`
+                            : reply.message}
+                        </span>
+                        {reply.product_title && <span className="block text-[11px] text-slate-400 truncate mt-0.5">{reply.product_title}</span>}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <>
+                <h1 className="text-xl font-black leading-tight">
+                  {isRTL ? `${catalogue.length} إعلان على إيجباي` : `${catalogue.length} things for sale on Egbay`}
+                </h1>
+                <p className="text-sm text-slate-300 mt-2">
+                  {isRTL ? 'اسأل البائع في نقرة واحدة. الردود تظهر هنا.' : 'Ask a seller anything in one tap. Replies land here.'}
+                </p>
+              </>
+            )}
+          </section>
           {/* ─── Hero.
               The one loud thing on this page, and it is the product's
               actual mechanism rather than a pitch about it.
@@ -195,7 +250,7 @@ function HomeFeedContent() {
               inventing some is exactly the decorative filler this is
               stripping out. It disappears once browsing starts -- someone
               who has already committed shouldn't be re-pitched. */}
-          <section className="bg-ink text-white rounded-xl p-6 sm:p-10">
+          <section className="hidden sm:block bg-ink text-white rounded-xl p-6 sm:p-10">
             {/* Headline and actions share the top row. Capping the
                 headline at max-w-2xl inside a full-bleed section left
                 the right half of the hero as empty navy on a wide
@@ -311,23 +366,25 @@ function HomeFeedContent() {
                   the touch target on mobile, and fits six across on
                   desktop instead of four -- so a short category list
                   fills its row instead of trailing off into dead space. */}
-              <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-[repeat(auto-fit,minmax(7rem,1fr))] gap-2.5">
-                {categories.map(({ id, count, meta }) => {
+              <div className="flex overflow-x-auto sm:grid sm:grid-cols-4 lg:grid-cols-[repeat(auto-fit,minmax(7rem,1fr))] gap-2.5 pb-1 sm:pb-0">
+                {categories.map(({ id, count, meta }, index) => {
                   const Icon = meta.icon;
+                  const hue = CATEGORY_HUES[index % CATEGORY_HUES.length];
                   return (
                     <button
                       key={id}
                       onClick={() => handleCategorySelect(id)}
-                      className="group flex flex-col items-center gap-2 rounded-lg px-2 py-3 hover:bg-white transition-colors"
+                      className="group flex flex-col items-center gap-2 rounded-xl px-2 py-3 min-w-[92px] sm:min-w-0 hover:opacity-90 transition-opacity"
+                      style={{ backgroundColor: hue.background, color: hue.color }}
                     >
-                      <span className="w-11 h-11 rounded-full bg-brand-soft text-brand flex items-center justify-center flex-shrink-0 transition-colors group-hover:bg-brand group-hover:text-white">
-                        <Icon className="w-5 h-5" />
+                      <span className="w-11 h-11 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+                        <Icon className="w-5 h-5" aria-hidden />
                       </span>
                       <span className="min-w-0 w-full text-center">
-                        <span className="block text-xs font-bold text-slate-900 truncate">
+                        <span className="block text-xs font-bold truncate">
                           {isRTL ? meta.label_ar : meta.label}
                         </span>
-                        <span className="block text-[11px] text-slate-400 mt-0.5">
+                        <span className="block text-[11px] font-bold opacity-75 mt-0.5">
                           {count} {isRTL ? 'إعلان' : count === 1 ? 'item' : 'items'}
                         </span>
                       </span>
@@ -342,14 +399,14 @@ function HomeFeedContent() {
 
       {/* ─── Results toolbar ─── */}
       <div id="browse" className="space-y-3 scroll-mt-24">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="section-heading min-w-0">
             <h1 className="text-base font-black text-slate-900 truncate">
               {activeCategory
                 ? t(`categories.${activeCategory.toLowerCase()}`, activeCategory)
                 : searchQuery
                 ? (isRTL ? `نتائج البحث عن "${searchQuery}"` : `Results for "${searchQuery}"`)
-                : (isRTL ? 'أحدث الإعلانات' : 'Recently Listed')}
+                : (isRTL ? 'كل الإعلانات' : 'All listings')}
             </h1>
             {!loading && (
               <span className="text-xs font-semibold text-slate-400 flex-shrink-0">
@@ -358,7 +415,7 @@ function HomeFeedContent() {
             )}
           </div>
 
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-2 flex-shrink-0 sm:justify-end">
             <button
               onClick={() => setFiltersOpen(o => !o)}
               className={`flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-md border transition-colors ${
@@ -383,6 +440,7 @@ function HomeFeedContent() {
                 className="appearance-none bg-white border border-slate-200 hover:border-slate-300 text-xs font-bold text-slate-700 rounded-md pl-3 pr-7 py-2 outline-none cursor-pointer"
               >
                 <option value="newest">{isRTL ? 'الأحدث' : 'Newest'}</option>
+                <option value="most_asked">{isRTL ? 'الأكثر سؤالاً' : 'Most asked about'}</option>
                 <option value="price_asc">{isRTL ? 'السعر: الأقل أولاً' : 'Price: Low to High'}</option>
                 <option value="price_desc">{isRTL ? 'السعر: الأعلى أولاً' : 'Price: High to Low'}</option>
               </select>
@@ -446,8 +504,8 @@ function HomeFeedContent() {
         </div>
       ) : sortedProducts.length > 0 ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-6">
-          {sortedProducts.map((product) => (
-            <ProductCard key={product.id} product={product} onWishlistToggle={handleWishlistToggle} />
+          {sortedProducts.map((product, index) => (
+            <ProductCard key={product.id} product={product} onWishlistToggle={handleWishlistToggle} showAsk={index % 5 === 0} />
           ))}
         </div>
       ) : (
