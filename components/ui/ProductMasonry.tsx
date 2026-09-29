@@ -15,49 +15,51 @@ function subscribe(cb: () => void) {
 const laneCount = () => QUERIES.find(([q]) => window.matchMedia(q).matches)?.[1] ?? 2;
 
 /**
- * The mobile feed's masonry, on the web: lanes filled shortest-first so the
- * reading order stays left-to-right, every third photo is tall for rhythm,
- * and (when `askEvery` is set) every Nth card in reading order carries the
- * "Still available?" chip. CSS columns would fill top-to-bottom instead,
- * scattering the newest listings down the first column.
+ * The mobile feed's masonry, on the web. Cards go round-robin across lanes
+ * so reading order stays left-to-right, and heights follow a checkerboard
+ * (tall/short alternating down each lane, offset lane to lane) -- varied,
+ * but a rhythm the eye can predict rather than random-looking jumps.
+ * With `askChip`, one card every other row carries "Still available?",
+ * stepping one lane over each time so the chips run diagonally.
  */
 export default function ProductMasonry({
   products,
   onWishlistToggle,
-  askEvery,
+  askChip = false,
   priorityCount = 0,
 }: {
   products: Product[];
   onWishlistToggle?: (id: string, current: boolean) => void | Promise<void>;
-  askEvery?: number;
+  askChip?: boolean;
   priorityCount?: number;
 }) {
   const n = useSyncExternalStore(subscribe, laneCount, () => 2);
 
   const lanes = useMemo(() => {
-    const L: { product: Product; tall: boolean; seq: number }[][] = Array.from({ length: n }, () => []);
-    const h = new Array(n).fill(0);
+    const L: { product: Product; tall: boolean; ask: boolean }[][] = Array.from({ length: n }, () => []);
     products.forEach((product, seq) => {
-      const tall = seq % 3 === 0;
-      const k = h.indexOf(Math.min(...h));
-      L[k].push({ product, tall, seq });
-      h[k] += tall ? 1.3 : 1;
+      const lane = seq % n, row = Math.floor(seq / n);
+      L[lane].push({
+        product,
+        tall: (row + lane) % 2 === 0,
+        ask: askChip && row % 2 === 0 && lane === (row / 2) % n,
+      });
     });
     return L;
-  }, [products, n]);
+  }, [products, n, askChip]);
 
   return (
-    <div className="flex items-start gap-3 sm:gap-5">
+    <div className="flex items-start gap-4 sm:gap-6 lg:gap-8">
       {lanes.map((lane, li) => (
-        <div key={li} className="flex-1 min-w-0 flex flex-col gap-5 sm:gap-7">
-          {lane.map(({ product, tall, seq }) => (
+        <div key={li} className="flex-1 min-w-0 flex flex-col gap-8 sm:gap-10">
+          {lane.map(({ product, tall, ask }, row) => (
             <ProductCard
               key={product.id}
               product={product}
               tall={tall}
               onWishlistToggle={onWishlistToggle}
-              showAsk={!!askEvery && seq % askEvery === 0}
-              priority={seq < priorityCount}
+              showAsk={ask}
+              priority={row * n + li < priorityCount}
             />
           ))}
         </div>

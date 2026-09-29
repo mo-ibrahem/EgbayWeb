@@ -503,7 +503,7 @@ function HomeFeedContent() {
           {Array.from({ length: 10 }).map((_, i) => <SkeletonProductCard key={i} />)}
         </div>
       ) : sortedProducts.length > 0 ? (
-        <ProductMasonry products={sortedProducts} onWishlistToggle={handleWishlistToggle} askEvery={5} priorityCount={5} />
+        <ProductMasonry products={sortedProducts} onWishlistToggle={handleWishlistToggle} askChip priorityCount={5} />
       ) : (
         <EmptyState
           icon={<Search className="w-6 h-6" />}
