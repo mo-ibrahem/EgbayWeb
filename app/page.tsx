@@ -14,7 +14,7 @@ import { getActiveLiveSessions, type LiveSession } from '@/lib/liveService';
 import { getAskCounts, getRecentReplies, type RecentReply } from '@/lib/homeActivity';
 import { useAuth } from '@/components/AuthProvider';
 import { useLanguage } from '@/components/LanguageProvider';
-import ProductCard from '@/components/ui/ProductCard';
+import ProductMasonry from '@/components/ui/ProductMasonry';
 import { SkeletonProductCard } from '@/components/ui/Skeleton';
 import EmptyState from '@/components/ui/EmptyState';
 import Button from '@/components/ui/Button';
@@ -503,11 +503,7 @@ function HomeFeedContent() {
           {Array.from({ length: 10 }).map((_, i) => <SkeletonProductCard key={i} />)}
         </div>
       ) : sortedProducts.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-5">
-          {sortedProducts.map((product, i) => (
-            <ProductCard key={product.id} product={product} onWishlistToggle={handleWishlistToggle} showAsk priority={i < 5} />
-          ))}
-        </div>
+        <ProductMasonry products={sortedProducts} onWishlistToggle={handleWishlistToggle} askEvery={5} priorityCount={5} />
       ) : (
         <EmptyState
           icon={<Search className="w-6 h-6" />}

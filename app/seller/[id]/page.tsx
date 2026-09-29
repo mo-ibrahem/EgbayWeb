@@ -8,7 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { productService, attachCataloguePhotos, type Product, getSellerReplySeconds, formatReplyTime } from '@/lib/products';
 import { useAuth } from '@/components/AuthProvider';
 import { getSellerReviews, type Review } from '@/lib/reviews';
-import ProductCard from '@/components/ui/ProductCard';
+import ProductMasonry from '@/components/ui/ProductMasonry';
 import { RatingDisplay, StarRow } from '@/components/ui/StarRating';
 import EmptyState from '@/components/ui/EmptyState';
 import SmartImage from '@/components/SmartImage';
@@ -188,9 +188,7 @@ export default function SellerProfilePage() {
         listings.length > 0 ? (
           <>
           {wishlistError && <p role="alert" className="text-sm text-red-700">{wishlistError}</p>}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-5">
-            {listings.map(p => <ProductCard key={p.id} product={p} onWishlistToggle={toggleWishlist} />)}
-          </div>
+          <ProductMasonry products={listings} onWishlistToggle={toggleWishlist} />
           </>
         ) : (
           <EmptyState

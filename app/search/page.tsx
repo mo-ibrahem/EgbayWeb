@@ -7,7 +7,7 @@ import { Search, X, Clock, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { useLanguage } from '@/components/LanguageProvider';
 import { productService, type Product } from '@/lib/products';
-import ProductCard from '@/components/ui/ProductCard';
+import ProductMasonry from '@/components/ui/ProductMasonry';
 
 const RECENTS_KEY = 'egbay.recent_searches';
 
@@ -109,7 +109,7 @@ function SearchContent() {
       {error ? <div role="alert" className="bg-red-50 border border-red-200 rounded-lg p-5 text-red-700"><p>{error}</p><button type="button" onClick={() => run(submitted, false)} className="mt-2 font-bold underline">{isRTL ? 'إعادة المحاولة' : 'Retry'}</button></div>
         : loading && !results.length ? <p className="text-slate-500">{isRTL ? 'جاري تحميل النتائج...' : 'Loading results...'}</p>
         : !loading && !results.length ? <div className="bg-white border border-slate-200 rounded-lg p-8 text-center"><p className="font-bold">{isRTL ? 'لا توجد نتائج' : 'No matches'}</p><p className="text-sm text-slate-500 mt-1">{isRTL ? 'جرّب كلمة أقصر أو تصفّح الأقسام.' : 'Try a shorter word or browse a category.'}</p></div>
-        : <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-5">{results.map(p => <ProductCard key={p.id} product={p} onWishlistToggle={toggleWishlist} />)}</div>}
+        : <ProductMasonry products={results} onWishlistToggle={toggleWishlist} />}
     </section>}
   </main>;
 }

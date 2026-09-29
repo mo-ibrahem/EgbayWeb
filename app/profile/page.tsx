@@ -16,7 +16,7 @@ import { productService, profileService, formatEGP, type Product, type UserProfi
 import { getUserOrders, type MarketplaceOrder } from '@/lib/orderService';
 import { supabase } from '@/lib/supabase';
 import SmartImage from '@/components/SmartImage';
-import ProductCard from '@/components/ui/ProductCard';
+import ProductMasonry from '@/components/ui/ProductMasonry';
 import { getMyChatSummaries, hideChatRoomForUser, messagePreview } from '@/lib/chatService';
 import { getSellerReviews, respondToReview, type Review } from '@/lib/reviews';
 import { StarRow } from '@/components/ui/StarRating';
@@ -658,15 +658,10 @@ function ProfileContent() {
                listing looked like a different product depending on which
                page you found it on. Un-hearting removes it from the list
                in place. */
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-5">
-              {wishlist.map(product => (
-                <ProductCard
-                  key={product.id}
-                  product={{ ...product, isWishlisted: true }}
-                  onWishlistToggle={handleWishlistRemove}
-                />
-              ))}
-            </div>
+            <ProductMasonry
+              products={wishlist.map(product => ({ ...product, isWishlisted: true }))}
+              onWishlistToggle={handleWishlistRemove}
+            />
           )}
         </div>
       )}
