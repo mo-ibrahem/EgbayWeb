@@ -60,8 +60,8 @@ function ForgotPasswordForm() {
         </h2>
         <p className="text-gray-500 text-xs leading-relaxed mb-6">
           {isRTL
-            ? `لقد أرسلنا رابط إعادة تعيين كلمة المرور إلى ${email}. يرجى الضغط على الرابط في رسالتك لتحديد كلمة مرور جديدة.`
-            : `We've sent a password reset link to ${email}. Click the link in your email to set a new password.`}
+            ? `إذا كان هناك حساب مرتبط بـ ${email}، فستصلك رسالة فيها رابط إعادة تعيين كلمة المرور. تحقق أيضاً من البريد غير المرغوب فيه.`
+            : `If an account exists for ${email}, you’ll receive a password reset link. Check your spam folder too.`}
         </p>
 
         <div className="space-y-3">
