@@ -7,7 +7,7 @@ import {
   Package, Heart, MessageCircle, Settings, User, Camera,
   Trash2, Eye, Wallet, Clock, Plus,
   Sparkles, CheckCircle2, ArrowRight, ExternalLink, Phone,
-  Lock, AlertCircle, ShoppingBag, ChevronRight, Star, Send
+  Lock, AlertCircle, ShoppingBag, ChevronRight, Star, Send, FileEdit
 } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { useLanguage } from '@/components/LanguageProvider';
@@ -25,6 +25,7 @@ import { BlockedUsersCard, DeleteAccountCard } from './SafetyCards';
 
 const TABS = [
   { id: 'products', label: 'My Listings', label_ar: 'إعلاناتي', icon: Package },
+  { id: 'drafts', label: 'Drafts', label_ar: 'المسودات', icon: FileEdit },
   { id: 'wishlist', label: 'Saved Items', label_ar: 'المفضلة', icon: Heart },
   { id: 'chats', label: 'Messages', label_ar: 'المحادثات', icon: MessageCircle },
   { id: 'reviews', label: 'Reviews', label_ar: 'التقييمات', icon: Star },
@@ -63,6 +64,7 @@ function ProfileContent() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [listings, setListings] = useState<Product[]>([]);
   const [sellerOrders, setSellerOrders] = useState<MarketplaceOrder[]>([]);
+  const [drafts, setDrafts] = useState<Product[]>([]);
   const [wishlist, setWishlist] = useState<Product[]>([]);
   const [receivedReviews, setReceivedReviews] = useState<Review[]>([]);
   const [respondingTo, setRespondingTo] = useState<string | null>(null);
@@ -98,7 +100,8 @@ function ProfileContent() {
           productService.getWishlist(),
         ]);
         setProfile(prof);
-        setListings(prods);
+        setListings(prods.filter(p => p.status !== 'draft'));
+        setDrafts(prods.filter(p => p.status === 'draft'));
         setWishlist(wl);
 
         // Non-fatal: reviews received is a secondary tab, not core
@@ -219,6 +222,27 @@ function ProfileContent() {
       setListings(prev => prev.filter(p => p.id !== productId));
     } catch (err) {
       setSaveError((err as Error)?.message || (isRTL ? 'تعذر حذف الإعلان.' : 'Could not remove listing.'));
+    }
+  };
+
+  const handleDeleteDraft = async (productId: string) => {
+    if (!confirm(isRTL ? 'هل تريد حذف هذه المسودة؟' : 'Delete this draft?')) return;
+    try {
+      await productService.deleteProduct(productId);
+      setDrafts(prev => prev.filter(p => p.id !== productId));
+    } catch (err) {
+      setSaveError((err as Error)?.message || (isRTL ? 'تعذر حذف المسودة.' : 'Could not delete draft.'));
+    }
+  };
+
+  const handlePublishDraft = async (draft: Product) => {
+    try {
+      const published = await productService.publishDraft(draft);
+      setDrafts(prev => prev.filter(p => p.id !== draft.id));
+      setListings(prev => [published, ...prev]);
+      setSaveError('');
+    } catch (err) {
+      setSaveError((err as Error)?.message || (isRTL ? 'تعذر نشر المسودة.' : 'Could not publish draft.'));
     }
   };
 
@@ -395,6 +419,11 @@ function ProfileContent() {
                 {listings.length}
               </span>
             )}
+            {tab.id === 'drafts' && drafts.length > 0 && (
+              <span className={`text-[10px] sm:text-xs px-1.5 py-0.2 rounded-full ${activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600'}`}>
+                {drafts.length}
+              </span>
+            )}
             {tab.id === 'wishlist' && (
               <span className={`text-[10px] sm:text-xs px-1.5 py-0.2 rounded-full ${activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600'}`}>
                 {wishlist.length}
@@ -539,6 +568,53 @@ function ProfileContent() {
                         <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                       </button>
                     </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Drafts: private to the seller until published. */}
+      {activeTab === 'drafts' && (
+        <div className="space-y-4 sm:space-y-6">
+          <div>
+            <h2 className="text-base sm:text-xl font-black text-gray-900">{isRTL ? 'المسودات' : 'Drafts'}</h2>
+            <p className="text-xs text-gray-500 mt-0.5">{isRTL ? 'لا يراها المشترون حتى تنشرها.' : 'Buyers cannot see drafts until you publish them.'}</p>
+          </div>
+          {saveError && <p role="alert" className="text-xs font-bold text-red-600">{saveError}</p>}
+          {drafts.length === 0 ? (
+            <div className="text-center py-16 bg-white rounded-3xl border border-gray-200 shadow-sm max-w-md mx-auto p-6">
+              <FileEdit className="w-12 h-12 text-gray-300 mx-auto mb-3 stroke-[1.5]" />
+              <h3 className="font-bold text-gray-900 text-sm sm:text-base mb-1">{isRTL ? 'لا توجد مسودات بعد.' : 'No drafts yet.'}</h3>
+              <p className="text-gray-500 text-xs">{isRTL ? 'استخدم "حفظ كمسودة" عند إضافة إعلان جديد.' : 'Use "Save as draft" when adding a new listing.'}</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {drafts.map(draft => (
+                <div key={draft.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 flex items-center gap-3">
+                  <div className="relative w-16 h-16 rounded-xl bg-gray-50 overflow-hidden flex-shrink-0">
+                    <SmartImage src={draft.images?.[0]} alt={draft.title} fill className="object-cover" sizes="64px" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-gray-900 text-sm truncate">{draft.title}</h3>
+                    <p className="text-xs text-gray-500">
+                      {Number(draft.price) > 0 ? formatEGP(draft.price) : (isRTL ? 'لم يُحدد سعر بعد' : 'No price yet')}
+                      {' · '}{timeAgo(draft.updated_at, isRTL)}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 justify-end">
+                    <Link href={`/products/edit/${draft.id}`} className="text-xs font-bold text-brand bg-blue-50 hover:bg-blue-100 border border-blue-100 px-3 py-2 rounded-xl">
+                      {isRTL ? 'تعديل' : 'Edit'}
+                    </Link>
+                    <button type="button" onClick={() => handlePublishDraft(draft)} className="text-xs font-bold text-white bg-brand hover:bg-brand-dark px-3 py-2 rounded-xl">
+                      {isRTL ? 'نشر' : 'Publish'}
+                    </button>
+                    <button type="button" onClick={() => handleDeleteDraft(draft.id)} title={isRTL ? 'حذف المسودة' : 'Delete draft'}
+                      className="text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 px-2.5 py-2 rounded-xl">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
               ))}

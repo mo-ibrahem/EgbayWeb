@@ -92,6 +92,7 @@ function SellContent() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [savedDraft, setSavedDraft] = useState(false);
   const [sellerTier, setSellerTier] = useState<SellerTierConfig>(SELLER_TIERS[1]);
 
   React.useEffect(() => {
@@ -173,10 +174,21 @@ function SellContent() {
     setStep(s => s + 1);
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (asDraft = false) => {
     setError('');
     const p = parseFloat(price);
-    if (isNaN(p) || p <= 0) {
+    if (asDraft) {
+      // The database refuses a listing with no photos and no catalogue model
+      // (products_photos_or_model_check); this form has no model picker.
+      if (images.length === 0) {
+        setError(isRTL ? 'أضف صورة واحدة على الأقل لحفظ المسودة.' : 'Add at least one photo to save a draft.');
+        return;
+      }
+      if (!title.trim() || !category) {
+        setError(isRTL ? 'أدخل العنوان واختر القسم لحفظ المسودة.' : 'Add a title and choose a category to save a draft.');
+        return;
+      }
+    } else if (isNaN(p) || p <= 0) {
       setError(isRTL ? 'يرجى إدخال سعر صحيح بالجنيه المصري' : 'Please enter a valid price in EGP.');
       return;
     }
@@ -187,6 +199,7 @@ function SellContent() {
     }
 
     setUploading(true);
+    setSavedDraft(asDraft);
     const uploadedPaths: string[] = [];
     try {
       // 1. Upload images to Supabase storage
@@ -215,6 +228,7 @@ function SellContent() {
       ].filter(Boolean).join('\n');
 
       const fullDescription = `${description.trim()}\n\n${tags}`;
+      const draftPrice = Number.isFinite(p) && p > 0 ? p : 0; // a draft may have no price yet; publishing requires one
       const { data: newProd, error: insertError } = await supabase
         .from('products')
         .insert({
@@ -223,12 +237,12 @@ function SellContent() {
           description: fullDescription,
           category,
           condition,
-          price: p,
+          price: asDraft ? draftPrice : p,
           stock: stockNum,
           fulfilment,
           lead_time_days: fulfilment === 'sourced_to_order' ? leadTimeNum : null,
           images: uploadedUrls,
-          status: 'active',
+          status: asDraft ? 'draft' : 'active',
         })
         .select()
         .single();
@@ -237,7 +251,7 @@ function SellContent() {
 
       setSuccess(true);
       setTimeout(() => {
-        router.push(newProd ? `/products/${newProd.id}` : '/');
+        router.push(asDraft ? '/profile?tab=drafts' : newProd ? `/products/${newProd.id}` : '/');
       }, 1500);
     } catch (err: any) {
       if (uploadedPaths.length) await supabase.storage.from('product-images').remove(uploadedPaths).catch(() => {});
@@ -256,10 +270,12 @@ function SellContent() {
             <CheckCircle2 className="w-8 h-8" />
           </div>
           <h2 className="text-2xl font-black text-slate-900 mb-2">
-            {isRTL ? 'تم نشر إعلانك بنجاح! 🚀' : 'Listing Published! 🚀'}
+            {savedDraft ? (isRTL ? 'تم حفظ المسودة' : 'Draft saved') : (isRTL ? 'تم نشر إعلانك بنجاح! 🚀' : 'Listing Published! 🚀')}
           </h2>
           <p className="text-xs text-slate-500">
-            {isRTL ? 'إعلانك الآن معروض في السوق.' : 'Your item is now live on Egbay.'}
+            {savedDraft
+              ? (isRTL ? 'المسودة ليست معروضة للمشترين حتى تنشرها من ملفك الشخصي.' : 'Buyers cannot see it until you publish it from your profile.')
+              : (isRTL ? 'إعلانك الآن معروض في السوق.' : 'Your item is now live on Egbay.')}
           </p>
         </div>
       </div>
@@ -674,6 +690,15 @@ function SellContent() {
             </button>
           )}
 
+          <button
+            type="button"
+            onClick={() => handleSubmit(true)}
+            disabled={uploading}
+            className="border border-slate-200 text-slate-700 font-bold py-3.5 px-4 rounded-2xl hover:bg-slate-100 text-xs transition-colors disabled:opacity-50"
+          >
+            {uploading && savedDraft ? (isRTL ? 'جاري الحفظ...' : 'Saving draft...') : (isRTL ? 'حفظ كمسودة' : 'Save as draft')}
+          </button>
+
           {step < 3 ? (
             <button
               onClick={handleNext}
@@ -683,12 +708,12 @@ function SellContent() {
             </button>
           ) : (
             <button
-              onClick={handleSubmit}
+              onClick={() => handleSubmit()}
               disabled={uploading}
               className="flex-1 bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:from-blue-700 text-white font-black py-3.5 rounded-2xl text-xs shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 transition-all"
             >
               <Sparkles className="w-4 h-4" />
-              {uploading ? (isRTL ? 'جاري نشر الإعلان...' : 'Publishing Listing...') : (isRTL ? 'نشر الإعلان الآن' : 'Publish Listing Now')}
+              {uploading && !savedDraft ? (isRTL ? 'جاري نشر الإعلان...' : 'Publishing Listing...') : (isRTL ? 'نشر الإعلان الآن' : 'Publish Listing Now')}
             </button>
           )}
         </div>

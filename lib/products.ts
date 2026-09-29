@@ -480,6 +480,18 @@ export const productService = {
     return data[0] as Product;
   },
 
+  /**
+   * Publishes one of the seller's own drafts (status -> 'active'). A draft can
+   * be saved without a price or description, so those are checked here.
+   */
+  publishDraft: async (draft: Pick<Product, 'id' | 'price' | 'description' | 'stock'>): Promise<Product> => {
+    const body = (draft.description || '').replace(/\n*📍 .+$/m, '').trim();
+    if (!(Number(draft.price) > 0) || !body || !(Number(draft.stock) >= 1)) {
+      throw new Error('Edit this draft first: a listing needs a price, a description and a stock of at least 1.');
+    }
+    return productService.updateProduct(draft.id, { status: 'active' });
+  },
+
   updateProduct: async (productId: string, updates: Partial<Product>): Promise<Product> => {
     const { data, error } = await supabase
       .from('products')
