@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { getMyChatSummaries } from '@/lib/chatService';
 
 export interface RecentReply {
   room_id: string;
@@ -11,68 +12,45 @@ export interface RecentReply {
   offer_amount_egp?: number | null;
 }
 
-async function getMyRooms() {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { user: null, rooms: [] };
-  const { data, error } = await supabase
-    .from('chat_rooms')
-    .select('id, participant_ids, product_id')
-    .not('deleted_for', 'cs', `{${user.id}}`)
-    .contains('participant_ids', [user.id])
-    .limit(40);
-  if (error) throw error;
-  return { user, rooms: data ?? [] };
+async function getMyId() {
+  // Only used to filter/label; row-level security enforces access.
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.user.id ?? null;
 }
 
 /** A conversation counts when its latest message came from the other person. */
 export async function getWaitingReplyCount(): Promise<number> {
-  const { user, rooms } = await getMyRooms();
-  if (!user || !rooms.length) return 0;
-  const latest = await Promise.all(rooms.map(async room => {
-    const { data, error } = await supabase.from('messages')
-      .select('sender_id').eq('room_id', room.id)
-      .order('created_at', { ascending: false }).limit(1);
-    if (error) throw error;
-    return data?.[0]?.sender_id;
-  }));
-  return latest.filter(sender => sender && sender !== user.id).length;
+  const me = await getMyId();
+  if (!me) return 0;
+  return (await getMyChatSummaries()).filter(c => c.last_sender_id && c.last_sender_id !== me).length;
 }
 
 /** Up to two recent replies for the home activity panel, using real messages. */
 export async function getRecentReplies(limit = 2): Promise<RecentReply[]> {
-  const { user, rooms } = await getMyRooms();
-  if (!user || !rooms.length) return [];
+  const me = await getMyId();
+  if (!me) return [];
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-  const candidates = await Promise.all(rooms.map(async room => {
-    const { data, error } = await supabase.from('messages')
-      .select('sender_id, content, created_at, msg_type, offer_amount_egp')
-      .eq('room_id', room.id).order('created_at', { ascending: false }).limit(1);
-    if (error) throw error;
-    const last = data?.[0];
-    const otherId = (room.participant_ids as string[]).find(id => id !== user.id);
-    return last && otherId && last.sender_id !== user.id && last.created_at >= since
-      ? { room, last, otherId } : null;
-  }));
-  const hits = candidates.filter((hit): hit is NonNullable<typeof hit> => hit !== null)
-    .sort((a, b) => b.last.created_at.localeCompare(a.last.created_at)).slice(0, limit);
+  const hits = (await getMyChatSummaries())
+    .filter(c => c.other_user_id && c.last_sender_id && c.last_sender_id !== me && c.last_created_at && c.last_created_at >= since)
+    .slice(0, limit); // already newest first
   if (!hits.length) return [];
-  const profileIds = [...new Set(hits.map(hit => hit.otherId))];
-  const productIds = [...new Set(hits.map(hit => hit.room.product_id).filter(Boolean))] as string[];
+  const profileIds = [...new Set(hits.map(hit => hit.other_user_id as string))];
+  const productIds = [...new Set(hits.map(hit => hit.product_id).filter(Boolean))] as string[];
   const [{ data: profiles }, { data: products }] = await Promise.all([
     supabase.from('public_profiles').select('id, full_name, avatar_url').in('id', profileIds),
     productIds.length
       ? supabase.from('products').select('id, title').in('id', productIds)
       : Promise.resolve({ data: [] as { id: string; title: string }[] }),
   ]);
-  return hits.map(({ room, last, otherId }) => ({
-    room_id: room.id,
-    other_user_name: profiles?.find(p => p.id === otherId)?.full_name || 'Egbay User',
-    other_user_avatar_url: profiles?.find(p => p.id === otherId)?.avatar_url || '',
-    message: last.content,
-    created_at: last.created_at,
-    product_title: products?.find(p => p.id === room.product_id)?.title,
-    is_offer: last.msg_type === 'offer',
-    offer_amount_egp: last.offer_amount_egp,
+  return hits.map(c => ({
+    room_id: c.room_id,
+    other_user_name: profiles?.find(p => p.id === c.other_user_id)?.full_name || 'Egbay User',
+    other_user_avatar_url: profiles?.find(p => p.id === c.other_user_id)?.avatar_url || '',
+    message: c.last_content ?? '',
+    created_at: c.last_created_at as string,
+    product_title: products?.find(p => p.id === c.product_id)?.title,
+    is_offer: c.last_msg_type === 'offer',
+    offer_amount_egp: c.last_offer_amount_egp,
   }));
 }
 

@@ -17,7 +17,7 @@ import { getUserOrders, type MarketplaceOrder } from '@/lib/orderService';
 import { supabase } from '@/lib/supabase';
 import SmartImage from '@/components/SmartImage';
 import ProductCard from '@/components/ui/ProductCard';
-import { hideChatRoomForUser, messagePreview } from '@/lib/chatService';
+import { getMyChatSummaries, hideChatRoomForUser, messagePreview } from '@/lib/chatService';
 import { getSellerReviews, respondToReview, type Review } from '@/lib/reviews';
 import { StarRow } from '@/components/ui/StarRating';
 import { PAYMENTS_ENABLED } from '@/lib/platformCommerce';
@@ -121,36 +121,30 @@ function ProfileContent() {
         setEditName(prof?.full_name || '');
         setEditPhone(prof?.phone || '');
 
-        // Fetch chat rooms -- excluding ones this user has deleted from
-        // their own inbox (delete-for-me; see hideChatRoomForUser).
-        const { data: rooms } = await supabase
-          .from('chat_rooms')
-          .select('id, participant_ids, product_id')
-          .contains('participant_ids', [user.id])
-          .not('deleted_for', 'cs', `{${user.id}}`);
-        if (rooms?.length) {
-          const otherIds = rooms.map(r => r.participant_ids.find((p: string) => p !== user.id)).filter(Boolean);
+        // One request for every visible conversation and its latest message
+        // (rooms this user deleted from their own inbox are already excluded).
+        const rooms = await getMyChatSummaries();
+        if (rooms.length) {
+          const otherIds = rooms.map(r => r.other_user_id).filter(Boolean) as string[];
           const { data: profiles } = await supabase.from('public_profiles').select('id, full_name, avatar_url').in('id', otherIds);
-          const productIds = rooms.map(r => r.product_id).filter(Boolean);
+          const productIds = rooms.map(r => r.product_id).filter(Boolean) as string[];
           const { data: products } = productIds.length
             ? await supabase.from('products').select('id, title').in('id', productIds)
             : { data: [] as { id: string; title: string }[] };
-          const chatList: ChatRoom[] = await Promise.all(rooms.map(async (room) => {
-            const otherId = room.participant_ids.find((p: string) => p !== user.id);
-            const otherProfile = profiles?.find((p: {id: string}) => p.id === otherId);
+          setChats(rooms.map((room): ChatRoom => {
+            const otherProfile = profiles?.find((p: {id: string}) => p.id === room.other_user_id);
             const product = products?.find((p: {id: string}) => p.id === room.product_id);
-            const { data: msgs } = await supabase.from('messages').select('content, created_at, msg_type, offer_amount_egp')
-              .eq('room_id', room.id).order('created_at', { ascending: false }).limit(1);
             return {
-              room_id: room.id,
+              room_id: room.room_id,
               other_user_name: otherProfile?.full_name || (isRTL ? 'مستخدم إيجباي' : 'Egbay User'),
               other_user_avatar_url: otherProfile?.avatar_url,
               product_title: product?.title,
-              last_message: messagePreview(msgs?.[0]),
-              last_message_time: msgs?.[0]?.created_at,
+              last_message: room.last_created_at
+                ? messagePreview({ content: room.last_content, msg_type: room.last_msg_type, offer_amount_egp: room.last_offer_amount_egp })
+                : undefined,
+              last_message_time: room.last_created_at ?? undefined,
             };
           }));
-          setChats(chatList);
         }
       } catch (err) {
         console.error(err);

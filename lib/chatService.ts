@@ -63,6 +63,24 @@ export const formatOfferText = (amountEgp: number) => `Offer: EGP ${Math.round(a
 export const messagePreview = (m?: { content?: string | null; msg_type?: string | null; offer_amount_egp?: number | null } | null) =>
   !m ? undefined : m.msg_type === 'offer' && m.offer_amount_egp ? formatOfferText(Number(m.offer_amount_egp)) : m.content ?? undefined;
 
+export interface ChatSummary {
+  room_id: string;
+  product_id: string | null;
+  other_user_id: string | null;
+  last_content: string | null;
+  last_created_at: string | null;
+  last_sender_id: string | null;
+  last_msg_type: 'text' | 'offer' | null;
+  last_offer_amount_egp: number | null;
+}
+
+/** Every visible conversation with its latest message, newest first, in one request (RLS-scoped). */
+export async function getMyChatSummaries(): Promise<ChatSummary[]> {
+  const { data, error } = await supabase.rpc('my_chat_summaries');
+  if (error) throw error;
+  return (data ?? []) as ChatSummary[];
+}
+
 /**
  * Sends a structured price offer. It is a handshake for an in-person
  * handover -- no payment is created or implied. The database enforces the
