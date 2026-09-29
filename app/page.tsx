@@ -499,13 +499,13 @@ function HomeFeedContent() {
 
       {/* ─── Product grid ─── */}
       {loading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-5">
           {Array.from({ length: 10 }).map((_, i) => <SkeletonProductCard key={i} />)}
         </div>
       ) : sortedProducts.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-6">
-          {sortedProducts.map((product, index) => (
-            <ProductCard key={product.id} product={product} onWishlistToggle={handleWishlistToggle} showAsk={index % 5 === 0} />
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-5">
+          {sortedProducts.map((product) => (
+            <ProductCard key={product.id} product={product} onWishlistToggle={handleWishlistToggle} showAsk />
           ))}
         </div>
       ) : (
@@ -584,7 +584,7 @@ function HomeFeedContent() {
 export default function HomePage() {
   return (
     <Suspense fallback={
-      <div className="max-w-7xl mx-auto px-4 py-8 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-6">
+      <div className="max-w-7xl mx-auto px-4 py-8 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-5">
         {Array.from({ length: 10 }).map((_, i) => <SkeletonProductCard key={i} />)}
       </div>
     }>

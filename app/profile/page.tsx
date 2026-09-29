@@ -658,7 +658,7 @@ function ProfileContent() {
                listing looked like a different product depending on which
                page you found it on. Un-hearting removes it from the list
                in place. */
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-5">
               {wishlist.map(product => (
                 <ProductCard
                   key={product.id}

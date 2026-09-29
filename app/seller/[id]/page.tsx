@@ -188,7 +188,7 @@ export default function SellerProfilePage() {
         listings.length > 0 ? (
           <>
           {wishlistError && <p role="alert" className="text-sm text-red-700">{wishlistError}</p>}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-5">
             {listings.map(p => <ProductCard key={p.id} product={p} onWishlistToggle={toggleWishlist} />)}
           </div>
           </>

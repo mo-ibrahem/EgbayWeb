@@ -91,13 +91,13 @@ export default function ProductCard({
   };
 
   return (
-    <article className="group relative h-full min-w-0">
-      <Link href={`/products/${product.id}`} className="block min-w-0">
+    <article className="group relative h-full min-w-0 flex flex-col rounded-xl bg-white border border-slate-200 overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 hover:border-slate-300">
+      <Link href={`/products/${product.id}`} className="block min-w-0 flex-1">
       {/* White well, not a grey one: the page sits on #F7F8FA, so white
           is what separates the image from the page here. (Marketplaces on
           a white page do the reverse and tint the well grey -- it's the
           contrast relationship that matters, not the specific value.) */}
-      <div className="relative aspect-square rounded-lg bg-white border border-slate-200/70 overflow-hidden">
+      <div className="relative aspect-[4/3] bg-slate-100 overflow-hidden">
         {imgSrc ? (
           <SmartImage
             src={imgSrc}
@@ -132,7 +132,7 @@ export default function ProductCard({
 
       </div>
 
-      <div className="pt-2.5 space-y-1 min-w-0">
+      <div className="p-3 space-y-1.5 min-w-0">
         <div className="flex items-baseline justify-between gap-1.5 flex-wrap">
           <span className="flex items-baseline gap-1.5">
           {product.has_variants && (
@@ -143,7 +143,7 @@ export default function ProductCard({
           {product.condition && <span className="text-[10px] font-bold tracking-wide uppercase text-slate-400">{product.condition === 'New' ? (isRTL ? 'جديد' : 'New') : (isRTL ? 'مستعمل' : product.condition)}</span>}
         </div>
 
-        <h3 className="text-[13px] font-semibold text-slate-900 line-clamp-2 leading-snug group-hover:text-brand transition-colors">
+        <h3 className="text-sm font-medium text-slate-700 line-clamp-2 leading-snug min-h-[2.5rem] group-hover:text-brand transition-colors">
           {product.title}
         </h3>
 
@@ -174,7 +174,7 @@ export default function ProductCard({
       )}
       {showAsk && product.seller_id !== user?.id && (
         <button type="button" onClick={askSeller} disabled={asking}
-          className="mt-2 min-h-11 w-full rounded-full bg-slate-900 hover:bg-slate-800 disabled:opacity-60 text-white text-xs font-bold px-3">
+          className="min-h-11 w-[calc(100%-1.5rem)] mx-3 mb-3 rounded-lg border border-slate-200 hover:border-brand hover:text-brand disabled:opacity-60 text-slate-700 text-xs font-bold px-3 transition-all lg:opacity-0 lg:group-hover:opacity-100 focus-visible:opacity-100">
           {asking ? (isRTL ? 'جارٍ الإرسال…' : 'Sending…') : askError ? (isRTL ? 'تعذّر الإرسال، حاول مجدداً' : 'Could not send · Retry') : (isRTL ? 'هل ما زال متاحاً؟' : 'Is it still available?')}
         </button>
       )}
